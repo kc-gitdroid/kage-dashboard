@@ -180,6 +180,23 @@ function summarizeState(state: DashboardState) {
   };
 }
 
+function compareIsoTimestamps(a: string | null | undefined, b: string | null | undefined) {
+  const aTime = a ? new Date(a).getTime() : 0;
+  const bTime = b ? new Date(b).getTime() : 0;
+  return aTime - bTime;
+}
+
+function summarizePendingQueue(queue: SyncOperation[]) {
+  return {
+    count: queue.length,
+    byEntity: queue.reduce<Record<string, number>>((acc, operation) => {
+      acc[operation.entity] = (acc[operation.entity] ?? 0) + 1;
+      return acc;
+    }, {}),
+    recordIds: queue.map((operation) => `${operation.entity}:${operation.recordId}`).slice(0, 25),
+  };
+}
+
 export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<StoreSnapshot>(createBootstrapStore);
   const syncInFlightRef = useRef(false);
@@ -265,22 +282,57 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       setStore((current) => {
         const queue = current.queue.filter((operation) => !response.acknowledgedOperationIds.includes(operation.id));
         const incomingCanonicalState = sortDashboardState(response.state);
+        const previousRevision = current.meta.lastSyncedAt;
+        const incomingRevision = response.canonicalUpdatedAt;
+        const revisionComparison = compareIsoTimestamps(incomingRevision, previousRevision);
+        const applyStrategy = queue.length === 0 ? "canonical-replace" : "merge-with-local-pending";
         const mergedState =
           queue.length === 0
             ? incomingCanonicalState
             : mergeDashboardStates(current.state, incomingCanonicalState);
         const state = markStateSynced(mergedState, response.syncedAt);
+        const previousStateSummary = summarizeState(current.state);
+        const incomingStateSummary = summarizeState(incomingCanonicalState);
+        const resultingStateSummary = summarizeState(state);
+        const stateChanged =
+          JSON.stringify(previousStateSummary) !== JSON.stringify(resultingStateSummary);
+        const remoteApplyReason = (() => {
+          if (queue.length === 0) {
+            return revisionComparison > 0
+              ? "applied-newer-canonical-directly"
+              : revisionComparison === 0
+                ? "canonical-replace-same-revision"
+                : "canonical-replace-older-revision";
+          }
+
+          return revisionComparison > 0
+            ? "merged-newer-canonical-with-local-pending"
+            : revisionComparison === 0
+              ? "merged-same-revision-with-local-pending"
+              : "merged-older-canonical-with-local-pending";
+        })();
+        const remoteSkipReason = stateChanged
+          ? null
+          : queue.length > 0
+            ? "local-pending-state-preserved-after-merge"
+            : revisionComparison <= 0
+              ? "incoming-canonical-not-newer-than-local-revision"
+              : "incoming-canonical-matched-existing-local-shape";
 
         console.log("[sync-client] incoming sync response", {
-          incomingCanonicalRevision: response.canonicalUpdatedAt,
-          previousCanonicalRevision: current.meta.lastSyncedAt,
+          incomingCanonicalRevision: incomingRevision,
+          previousCanonicalRevision: previousRevision,
+          revisionComparison,
           acknowledgedOperationCount: response.acknowledgedOperationIds.length,
           remainingQueueCount: queue.length,
-          remoteChangesApplied:
-            JSON.stringify(summarizeState(current.state)) !== JSON.stringify(summarizeState(state)),
-          mergedUsingCanonicalOnly: queue.length === 0,
-          incomingStateSummary: summarizeState(incomingCanonicalState),
-          resultingStateSummary: summarizeState(state),
+          localPendingQueueSummary: summarizePendingQueue(queue),
+          applyStrategy,
+          remoteApplyReason,
+          remoteChangesApplied: stateChanged,
+          remoteSkipReason,
+          incomingStateSummary,
+          previousStateSummary,
+          resultingStateSummary,
         });
 
         return withIndicator({
