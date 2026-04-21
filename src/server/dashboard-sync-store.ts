@@ -29,6 +29,23 @@ type PersistedCanonicalState = {
   updatedAt: string;
 };
 
+function ensureConflictLogShape(conflictLog: unknown): SyncConflict[] {
+  return Array.isArray(conflictLog) ? (conflictLog as SyncConflict[]) : [];
+}
+
+function ensureCanonicalStateShape(
+  payload: Partial<PersistedCanonicalState> | null | undefined,
+): PersistedCanonicalState {
+  const normalizedUpdatedAt =
+    typeof payload?.updatedAt === "string" && payload.updatedAt.length > 0 ? payload.updatedAt : nowIso();
+
+  return {
+    state: sortState(ensureDashboardStateShape(payload?.state)),
+    conflictLog: ensureConflictLogShape(payload?.conflictLog),
+    updatedAt: normalizedUpdatedAt,
+  };
+}
+
 function ensureDashboardStateShape(state: Partial<DashboardState> | null | undefined): DashboardState {
   return {
     brands: state?.brands ?? [],
@@ -84,11 +101,11 @@ async function ensureSyncFile() {
 
 function createInitialCanonicalState(): PersistedCanonicalState {
   const seededAt = nowIso();
-  return {
+  return ensureCanonicalStateShape({
     state: sortState(createSeedDashboardState("server-seed")),
     conflictLog: [],
     updatedAt: seededAt,
-  };
+  });
 }
 
 function getUpstashConfig() {
@@ -153,7 +170,7 @@ async function readFromUpstash(): Promise<PersistedCanonicalState | null> {
     return null;
   }
 
-  return JSON.parse(payload.result) as PersistedCanonicalState;
+  return ensureCanonicalStateShape(JSON.parse(payload.result) as Partial<PersistedCanonicalState>);
 }
 
 async function writeToUpstash(payload: PersistedCanonicalState) {
@@ -195,10 +212,7 @@ export async function readCanonicalState(): Promise<PersistedCanonicalState> {
 
   const upstashState = await readFromUpstash();
   if (upstashState) {
-    return {
-      ...upstashState,
-      state: sortState(ensureDashboardStateShape(upstashState.state)),
-    };
+    return ensureCanonicalStateShape(upstashState);
   }
 
   if (isProductionRuntime()) {
@@ -210,11 +224,8 @@ export async function readCanonicalState(): Promise<PersistedCanonicalState> {
   try {
     await ensureSyncFile();
     const raw = await readFile(SYNC_FILE_PATH, "utf8");
-    const parsed = JSON.parse(raw) as PersistedCanonicalState;
-    return {
-      ...parsed,
-      state: sortState(ensureDashboardStateShape(parsed.state)),
-    };
+    const parsed = JSON.parse(raw) as Partial<PersistedCanonicalState>;
+    return ensureCanonicalStateShape(parsed);
   } catch {
     const initial = createInitialCanonicalState();
     await writeCanonicalState(initial);
@@ -225,7 +236,9 @@ export async function readCanonicalState(): Promise<PersistedCanonicalState> {
 export async function writeCanonicalState(payload: PersistedCanonicalState) {
   assertHostedSyncAvailable();
 
-  const wroteRemote = await writeToUpstash(payload).catch(() => false);
+  const normalizedPayload = ensureCanonicalStateShape(payload);
+
+  const wroteRemote = await writeToUpstash(normalizedPayload).catch(() => false);
   if (wroteRemote) {
     return;
   }
@@ -235,7 +248,7 @@ export async function writeCanonicalState(payload: PersistedCanonicalState) {
   }
 
   await ensureSyncFile();
-  await writeFile(SYNC_FILE_PATH, JSON.stringify(payload, null, 2), "utf8");
+  await writeFile(SYNC_FILE_PATH, JSON.stringify(normalizedPayload, null, 2), "utf8");
 }
 
 function applyOperation(
@@ -310,7 +323,7 @@ export async function processSyncRequest(input: {
 
   const persisted: PersistedCanonicalState = {
     state: sortState(nextState),
-    conflictLog: [...canonical.conflictLog, ...conflicts].slice(-100),
+    conflictLog: [...ensureConflictLogShape(canonical.conflictLog), ...conflicts].slice(-100),
     updatedAt: syncedAt,
   };
 
