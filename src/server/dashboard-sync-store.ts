@@ -37,6 +37,11 @@ function summarizeState(state: DashboardState) {
   };
 }
 
+function isCanonicalStateEmpty(state: DashboardState) {
+  const summary = summarizeState(ensureDashboardStateShape(state));
+  return Object.values(summary).every((count) => count === 0);
+}
+
 type PersistedCanonicalState = {
   state: DashboardState;
   conflictLog: SyncConflict[];
@@ -343,7 +348,10 @@ export async function processSyncRequest(input: {
 }): Promise<SyncResponse> {
   const canonical = await readCanonicalState();
   const syncedAt = nowIso();
-  let nextState = mergeSnapshotState(canonical.state, input.state, syncedAt);
+  const hasOperations = input.operations.length > 0;
+  const canonicalIsEmpty = isCanonicalStateEmpty(canonical.state);
+  const shouldMergeSnapshot = Boolean(input.state) && (hasOperations || canonicalIsEmpty);
+  let nextState = shouldMergeSnapshot ? mergeSnapshotState(canonical.state, input.state, syncedAt) : canonical.state;
   const conflicts: SyncConflict[] = [];
   const acknowledgedOperationIds: string[] = [];
 
@@ -351,6 +359,8 @@ export async function processSyncRequest(input: {
     deviceId: input.deviceId,
     operationCount: input.operations.length,
     canonicalRevisionBeforeWrite: canonical.updatedAt,
+    snapshotMergeApplied: shouldMergeSnapshot,
+    snapshotMergeReason: shouldMergeSnapshot ? (hasOperations ? "operations-present" : "canonical-empty") : "pull-only",
     incomingStateSummary: summarizeState(ensureDashboardStateShape(input.state)),
   });
 
