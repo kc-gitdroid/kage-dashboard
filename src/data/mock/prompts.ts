@@ -1,0 +1,57 @@
+import { PromptItem } from "@/types";
+
+export const promptItems: PromptItem[] = [
+  {
+    id: "prompt-aai-campaign-angle",
+    title: "AAI Campaign Angle Builder",
+    brandId: "aai",
+    summary: "Generate calm, identity-led campaign angles from product, ritual, and city mood inputs.",
+    body: "Use AAI tone: restrained, precise, reflective. Turn the source material into 3 campaign angles, 3 short captions, and 1 longer editorial direction.",
+    status: "active",
+    updatedAt: "2026-04-13",
+  },
+  {
+    id: "prompt-mastery-framework",
+    title: "Masteryatelier Lesson Framework",
+    brandId: "masteryatelier",
+    summary: "Shape a teaching concept into framework, sequence, and outcome language.",
+    body: "Given a lesson idea, return learner promise, lesson structure, reflection prompts, and one publishable takeaway in a calm instructional tone.",
+    status: "active",
+    updatedAt: "2026-04-12",
+  },
+  {
+    id: "prompt-mo-case-study",
+    title: "MO Studio Case Study Draft",
+    brandId: "mo-studio",
+    summary: "Turn delivery notes into a concise case-study structure with process and result sections.",
+    body: "Convert project notes into overview, challenge, approach, outcome, and one insight worth reusing across future client work.",
+    status: "planned",
+    updatedAt: "2026-04-12",
+  },
+  {
+    id: "prompt-personal-weekly-reset",
+    title: "Personal Weekly Reset",
+    brandId: "personal",
+    summary: "Use notes and open tasks to produce a weekly reset, focus list, and reflection prompt.",
+    body: "Summarize the week in calm, direct language. Return wins, open loops, next focus, and one reflection question.",
+    status: "active",
+    updatedAt: "2026-04-14",
+  },
+  {
+    id: "prompt-biro-story-seed",
+    title: "biro Story Seed",
+    brandId: "biro",
+    summary: "Generate short concept seeds and writing prompts for biro workspace development.",
+    body: "Use a curious, minimal tone. Return 5 prompt seeds, 3 themes, and 1 extended direction worth exploring further.",
+    status: "draft",
+    updatedAt: "2026-04-11",
+  },
+  {
+    id: "prompt-global-meeting-recap",
+    title: "Meeting Recap to Actions",
+    summary: "Convert unstructured meeting notes into actions, dates, and follow-up questions.",
+    body: "Extract decisions, owners, deadlines, unresolved questions, and suggested follow-up note structure.",
+    status: "active",
+    updatedAt: "2026-04-14",
+  },
+];

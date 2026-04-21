@@ -1,0 +1,15 @@
+.next
+node_modules
+.DS_Store
+dist
+coverage
+*.log
+.env
+.env.*
+.sync
+.local
+*.tsbuildinfo
+/PLAN.md
+/AGENTS.md
+/*.pdf
+/*.jpg

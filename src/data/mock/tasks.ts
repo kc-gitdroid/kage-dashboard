@@ -1,0 +1,88 @@
+import { Priority, Status, TaskCategory, TaskItem } from "@/types";
+
+export const taskPriorities: Priority[] = ["low", "medium", "high"];
+export const taskStatuses: Status[] = ["planned", "active", "in-progress", "completed"];
+export const taskCategories: TaskCategory[] = ["strategy", "content", "product", "admin", "client", "personal"];
+
+export const tasks: TaskItem[] = [
+  {
+    id: "task-001",
+    title: "Finalize AAI weekly content schedule",
+    brandId: "aai",
+    dueDate: "2026-04-12",
+    priority: "high",
+    category: "content",
+    status: "in-progress",
+    projectId: "proj-aai-april",
+    notes: "Align rollout timing with still selects and caption sequencing.",
+  },
+  {
+    id: "task-002",
+    title: "Review Masteryatelier product caption set",
+    brandId: "masteryatelier",
+    dueDate: "2026-04-13",
+    priority: "medium",
+    category: "content",
+    status: "planned",
+    notes: "Check tone against the current learning and craft positioning.",
+  },
+  {
+    id: "task-003",
+    title: "Update MO Studio client delivery map",
+    brandId: "mo-studio",
+    dueDate: "2026-04-12",
+    priority: "high",
+    category: "client",
+    status: "in-progress",
+    projectId: "proj-mo-client",
+  },
+  {
+    id: "task-004",
+    title: "Reset personal weekly priorities",
+    brandId: "personal",
+    dueDate: "2026-04-12",
+    priority: "medium",
+    category: "personal",
+    status: "planned",
+  },
+  {
+    id: "task-005",
+    title: "Review AAI product detail sequencing",
+    brandId: "aai",
+    dueDate: "2026-04-14",
+    priority: "medium",
+    category: "product",
+    status: "active",
+    projectId: "proj-aai-april",
+  },
+  {
+    id: "task-006",
+    title: "Refine Masteryatelier offer structure",
+    brandId: "masteryatelier",
+    dueDate: "2026-04-18",
+    priority: "medium",
+    category: "strategy",
+    status: "in-progress",
+    projectId: "proj-mastery-framework",
+  },
+  {
+    id: "task-007",
+    title: "Prepare MO Studio checkpoint notes",
+    brandId: "mo-studio",
+    dueDate: "2026-04-10",
+    priority: "high",
+    category: "admin",
+    status: "completed",
+    projectId: "proj-mo-client",
+  },
+  {
+    id: "task-008",
+    title: "Sort reading captures for personal review",
+    brandId: "personal",
+    dueDate: "2026-04-14",
+    priority: "low",
+    category: "personal",
+    status: "active",
+    projectId: "proj-personal-reset",
+  },
+];
