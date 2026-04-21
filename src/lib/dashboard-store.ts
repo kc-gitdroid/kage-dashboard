@@ -29,6 +29,20 @@ const META_KEY = "sync-meta";
 const LOCAL_FALLBACK_PREFIX = "kage-dashboard-fallback";
 const SYNC_REQUEST_TIMEOUT_MS = 7000;
 
+function summarizeState(state: DashboardState) {
+  return {
+    brands: state.brands.length,
+    brandSpaces: state.brandSpaces.length,
+    documents: state.documents.length,
+    tasks: state.tasks.length,
+    notes: state.notes.length,
+    calendarItems: state.calendarItems.length,
+    projects: state.projects.length,
+    contentItems: state.contentItems.length,
+    promptItems: state.promptItems.length,
+  };
+}
+
 function ensureDashboardStateShape(state: Partial<DashboardState> | null | undefined): DashboardState {
   return {
     brands: state?.brands ?? [],
@@ -398,6 +412,12 @@ export async function syncWithServer(
   queue: SyncOperation[],
   meta: PersistedMeta,
 ): Promise<SyncResponse> {
+  console.log("[sync-client] outgoing sync request", {
+    outgoingMutationCount: queue.length,
+    lastSyncedAt: meta.lastSyncedAt,
+    stateSummary: summarizeState(state),
+  });
+
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), SYNC_REQUEST_TIMEOUT_MS);
   let response: Response;

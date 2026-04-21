@@ -166,6 +166,20 @@ function markStateSynced(state: DashboardState, syncedAt: string) {
   });
 }
 
+function summarizeState(state: DashboardState) {
+  return {
+    brands: state.brands.length,
+    brandSpaces: state.brandSpaces.length,
+    documents: state.documents.length,
+    tasks: state.tasks.length,
+    notes: state.notes.length,
+    calendarItems: state.calendarItems.length,
+    projects: state.projects.length,
+    contentItems: state.contentItems.length,
+    promptItems: state.promptItems.length,
+  };
+}
+
 export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<StoreSnapshot>(createBootstrapStore);
   const syncInFlightRef = useRef(false);
@@ -249,16 +263,33 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       });
 
       setStore((current) => {
-        const mergedState = mergeDashboardStates(current.state, response.state);
-        const state = markStateSynced(mergedState, response.syncedAt);
         const queue = current.queue.filter((operation) => !response.acknowledgedOperationIds.includes(operation.id));
+        const incomingCanonicalState = sortDashboardState(response.state);
+        const mergedState =
+          queue.length === 0
+            ? incomingCanonicalState
+            : mergeDashboardStates(current.state, incomingCanonicalState);
+        const state = markStateSynced(mergedState, response.syncedAt);
+
+        console.log("[sync-client] incoming sync response", {
+          incomingCanonicalRevision: response.canonicalUpdatedAt,
+          previousCanonicalRevision: current.meta.lastSyncedAt,
+          acknowledgedOperationCount: response.acknowledgedOperationIds.length,
+          remainingQueueCount: queue.length,
+          remoteChangesApplied:
+            JSON.stringify(summarizeState(current.state)) !== JSON.stringify(summarizeState(state)),
+          mergedUsingCanonicalOnly: queue.length === 0,
+          incomingStateSummary: summarizeState(incomingCanonicalState),
+          resultingStateSummary: summarizeState(state),
+        });
+
         return withIndicator({
           ...current,
           state,
           queue,
           meta: {
             ...current.meta,
-            lastSyncedAt: response.syncedAt,
+            lastSyncedAt: response.canonicalUpdatedAt,
             lastSyncError: response.conflicts.length > 0 ? `Resolved ${response.conflicts.length} conflict${response.conflicts.length > 1 ? "s" : ""}.` : null,
             lastSyncAttemptAt: response.syncedAt,
           },

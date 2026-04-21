@@ -75,6 +75,7 @@ export type SyncResponse = {
   acknowledgedOperationIds: string[];
   conflicts: SyncConflict[];
   syncedAt: string;
+  canonicalUpdatedAt: string;
 };
 
 export type SyncableRecord = {
