@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { processSyncRequest } from "@/server/dashboard-sync-store";
-import { SyncOperation } from "@/types";
+import { DashboardState, SyncOperation } from "@/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,11 +11,13 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as {
       deviceId?: string;
       operations?: SyncOperation[];
+      state?: DashboardState;
     };
 
     const response = await processSyncRequest({
       deviceId: body.deviceId ?? "unknown-device",
       operations: body.operations ?? [],
+      state: body.state,
     });
 
     return NextResponse.json(response);

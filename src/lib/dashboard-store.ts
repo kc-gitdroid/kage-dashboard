@@ -411,6 +411,7 @@ export async function syncWithServer(
       body: JSON.stringify({
         deviceId: meta.deviceId,
         operations: queue,
+        state,
         lastSyncedAt: meta.lastSyncedAt,
         stateVersionHint: state.tasks.length + state.notes.length + state.calendarItems.length + state.contentItems.length,
       }),

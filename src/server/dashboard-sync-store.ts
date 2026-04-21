@@ -95,6 +95,38 @@ function sortState(state: DashboardState): DashboardState {
   };
 }
 
+function mergeSnapshotState(
+  canonicalState: DashboardState,
+  incomingState: Partial<DashboardState> | null | undefined,
+  syncedAt: string,
+): DashboardState {
+  const nextState = ensureDashboardStateShape(canonicalState);
+  const safeIncomingState = ensureDashboardStateShape(incomingState);
+
+  (Object.keys(nextState) as SyncEntityName[]).forEach((entity) => {
+    const incomingCollection = safeIncomingState[entity] as SyncableRecord[];
+    const canonicalCollection = [...(nextState[entity] as SyncableRecord[])];
+
+    incomingCollection.forEach((incomingRecord) => {
+      const existingIndex = canonicalCollection.findIndex((item) => item.id === incomingRecord.id);
+
+      if (existingIndex === -1) {
+        canonicalCollection.push(markCanonicalRecord(incomingRecord, syncedAt));
+        return;
+      }
+
+      const existingRecord = canonicalCollection[existingIndex];
+      if (getRecordTimestamp(incomingRecord) >= getRecordTimestamp(existingRecord)) {
+        canonicalCollection[existingIndex] = markCanonicalRecord(incomingRecord, syncedAt);
+      }
+    });
+
+    (nextState[entity] as SyncableRecord[]) = canonicalCollection;
+  });
+
+  return sortState(nextState);
+}
+
 async function ensureSyncFile() {
   await mkdir(dirname(SYNC_FILE_PATH), { recursive: true });
 }
@@ -276,12 +308,18 @@ function applyOperation(
 export async function processSyncRequest(input: {
   deviceId: string;
   operations: SyncOperation[];
+  state?: DashboardState;
 }): Promise<SyncResponse> {
   const canonical = await readCanonicalState();
-  let nextState = ensureDashboardStateShape(canonical.state);
+  const syncedAt = nowIso();
+  let nextState = mergeSnapshotState(canonical.state, input.state, syncedAt);
   const conflicts: SyncConflict[] = [];
   const acknowledgedOperationIds: string[] = [];
-  const syncedAt = nowIso();
+
+  logSyncDebug("Processing sync request", {
+    deviceId: input.deviceId,
+    operationCount: input.operations.length,
+  });
 
   const orderedOperations = [...input.operations].sort(
     (a, b) => new Date(a.enqueuedAt).getTime() - new Date(b.enqueuedAt).getTime(),
