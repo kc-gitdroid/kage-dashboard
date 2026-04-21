@@ -20,8 +20,24 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    return new NextResponse(error instanceof Error ? error.message : "Sync request failed.", {
-      status: 500,
+    const message = error instanceof Error ? error.message : "Sync request failed.";
+    const stack = error instanceof Error ? error.stack : undefined;
+
+    console.error("[sync] /api/sync failed", {
+      hasUpstashUrl: Boolean(process.env.UPSTASH_REDIS_REST_URL),
+      hasUpstashToken: Boolean(process.env.UPSTASH_REDIS_REST_TOKEN),
+      message,
+      stack,
     });
+
+    return NextResponse.json(
+      {
+        error: "Sync request failed.",
+        message,
+      },
+      {
+        status: 500,
+      },
+    );
   }
 }

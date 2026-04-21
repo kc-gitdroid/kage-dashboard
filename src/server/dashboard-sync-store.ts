@@ -18,6 +18,11 @@ function isProductionRuntime() {
   return process.env.NODE_ENV === "production";
 }
 
+function logSyncDebug(message: string, details?: Record<string, unknown>) {
+  const payload = details ? ` ${JSON.stringify(details)}` : "";
+  console.log(`[sync] ${message}${payload}`);
+}
+
 type PersistedCanonicalState = {
   state: DashboardState;
   conflictLog: SyncConflict[];
@@ -90,6 +95,12 @@ function getUpstashConfig() {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
+  logSyncDebug("Upstash env presence", {
+    hasUpstashUrl: Boolean(url),
+    hasUpstashToken: Boolean(token),
+    nodeEnv: process.env.NODE_ENV ?? "unknown",
+  });
+
   if (!url || !token) {
     return null;
   }
@@ -115,11 +126,22 @@ async function readFromUpstash(): Promise<PersistedCanonicalState | null> {
     return null;
   }
 
+  logSyncDebug("Starting Upstash read", {
+    operation: "read",
+    key: UPSTASH_KEY,
+  });
+
   const response = await fetch(`${config.url}/get/${encodeURIComponent(UPSTASH_KEY)}`, {
     headers: {
       Authorization: `Bearer ${config.token}`,
     },
     cache: "no-store",
+  });
+
+  logSyncDebug("Upstash read response", {
+    operation: "read",
+    status: response.status,
+    ok: response.ok,
   });
 
   if (!response.ok) {
@@ -140,6 +162,11 @@ async function writeToUpstash(payload: PersistedCanonicalState) {
     return false;
   }
 
+  logSyncDebug("Starting Upstash write", {
+    operation: "write",
+    key: UPSTASH_KEY,
+  });
+
   const response = await fetch(`${config.url}/set/${encodeURIComponent(UPSTASH_KEY)}`, {
     method: "POST",
     headers: {
@@ -148,6 +175,12 @@ async function writeToUpstash(payload: PersistedCanonicalState) {
     },
     body: JSON.stringify(JSON.stringify(payload)),
     cache: "no-store",
+  });
+
+  logSyncDebug("Upstash write response", {
+    operation: "write",
+    status: response.status,
+    ok: response.ok,
   });
 
   if (!response.ok) {
