@@ -14,6 +14,10 @@ import {
 const SYNC_FILE_PATH = join(process.cwd(), ".sync", "kage-dashboard-sync.json");
 const UPSTASH_KEY = "kage-dashboard:sync-state";
 
+function isProductionRuntime() {
+  return process.env.NODE_ENV === "production";
+}
+
 type PersistedCanonicalState = {
   state: DashboardState;
   conflictLog: SyncConflict[];
@@ -93,6 +97,18 @@ function getUpstashConfig() {
   return { url, token };
 }
 
+function assertHostedSyncAvailable() {
+  if (getUpstashConfig()) {
+    return;
+  }
+
+  if (isProductionRuntime()) {
+    throw new Error(
+      "Hosted sync is not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in production.",
+    );
+  }
+}
+
 async function readFromUpstash(): Promise<PersistedCanonicalState | null> {
   const config = getUpstashConfig();
   if (!config) {
@@ -142,9 +158,20 @@ async function writeToUpstash(payload: PersistedCanonicalState) {
 }
 
 export async function readCanonicalState(): Promise<PersistedCanonicalState> {
+  assertHostedSyncAvailable();
+
   const upstashState = await readFromUpstash();
   if (upstashState) {
-    return upstashState;
+    return {
+      ...upstashState,
+      state: sortState(ensureDashboardStateShape(upstashState.state)),
+    };
+  }
+
+  if (isProductionRuntime()) {
+    const initial = createInitialCanonicalState();
+    await writeCanonicalState(initial);
+    return initial;
   }
 
   try {
@@ -163,9 +190,15 @@ export async function readCanonicalState(): Promise<PersistedCanonicalState> {
 }
 
 export async function writeCanonicalState(payload: PersistedCanonicalState) {
+  assertHostedSyncAvailable();
+
   const wroteRemote = await writeToUpstash(payload).catch(() => false);
   if (wroteRemote) {
     return;
+  }
+
+  if (isProductionRuntime()) {
+    throw new Error("Hosted sync write failed. Check Upstash credentials and runtime environment variables.");
   }
 
   await ensureSyncFile();
