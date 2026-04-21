@@ -23,6 +23,25 @@ function logSyncDebug(message: string, details?: Record<string, unknown>) {
   console.log(`[sync] ${message}${payload}`);
 }
 
+function summarizeState(state: DashboardState) {
+  return {
+    brands: state.brands.length,
+    brandSpaces: state.brandSpaces.length,
+    documents: state.documents.length,
+    tasks: state.tasks.length,
+    notes: state.notes.length,
+    calendarItems: state.calendarItems.length,
+    projects: state.projects.length,
+    contentItems: state.contentItems.length,
+    promptItems: state.promptItems.length,
+  };
+}
+
+function isCanonicalStateEmpty(state: DashboardState) {
+  const summary = summarizeState(state);
+  return Object.values(summary).every((count) => count === 0);
+}
+
 type PersistedCanonicalState = {
   state: DashboardState;
   conflictLog: SyncConflict[];
@@ -244,7 +263,12 @@ export async function readCanonicalState(): Promise<PersistedCanonicalState> {
 
   const upstashState = await readFromUpstash();
   if (upstashState) {
-    return ensureCanonicalStateShape(upstashState);
+    const normalized = ensureCanonicalStateShape(upstashState);
+    logSyncDebug("Fetched canonical state from hosted store", {
+      canonicalRevision: normalized.updatedAt,
+      stateSummary: summarizeState(normalized.state),
+    });
+    return normalized;
   }
 
   if (isProductionRuntime()) {
@@ -257,7 +281,12 @@ export async function readCanonicalState(): Promise<PersistedCanonicalState> {
     await ensureSyncFile();
     const raw = await readFile(SYNC_FILE_PATH, "utf8");
     const parsed = JSON.parse(raw) as Partial<PersistedCanonicalState>;
-    return ensureCanonicalStateShape(parsed);
+    const normalized = ensureCanonicalStateShape(parsed);
+    logSyncDebug("Fetched canonical state from local fallback", {
+      canonicalRevision: normalized.updatedAt,
+      stateSummary: summarizeState(normalized.state),
+    });
+    return normalized;
   } catch {
     const initial = createInitialCanonicalState();
     await writeCanonicalState(initial);
@@ -269,9 +298,16 @@ export async function writeCanonicalState(payload: PersistedCanonicalState) {
   assertHostedSyncAvailable();
 
   const normalizedPayload = ensureCanonicalStateShape(payload);
+  logSyncDebug("Writing canonical state", {
+    canonicalRevision: normalizedPayload.updatedAt,
+    stateSummary: summarizeState(normalizedPayload.state),
+  });
 
   const wroteRemote = await writeToUpstash(normalizedPayload).catch(() => false);
   if (wroteRemote) {
+    logSyncDebug("Canonical state write completed", {
+      canonicalRevision: normalizedPayload.updatedAt,
+    });
     return;
   }
 
@@ -312,14 +348,41 @@ export async function processSyncRequest(input: {
 }): Promise<SyncResponse> {
   const canonical = await readCanonicalState();
   const syncedAt = nowIso();
-  let nextState = mergeSnapshotState(canonical.state, input.state, syncedAt);
+  const shouldBootstrapFromSnapshot =
+    input.operations.length === 0 &&
+    Boolean(input.state) &&
+    isCanonicalStateEmpty(canonical.state);
+
+  let nextState =
+    input.operations.length > 0 || shouldBootstrapFromSnapshot
+      ? mergeSnapshotState(canonical.state, input.state, syncedAt)
+      : ensureDashboardStateShape(canonical.state);
   const conflicts: SyncConflict[] = [];
   const acknowledgedOperationIds: string[] = [];
 
   logSyncDebug("Processing sync request", {
     deviceId: input.deviceId,
     operationCount: input.operations.length,
+    canonicalRevisionBeforeWrite: canonical.updatedAt,
+    incomingStateSummary: summarizeState(ensureDashboardStateShape(input.state)),
+    shouldBootstrapFromSnapshot,
   });
+
+  if (input.operations.length === 0 && !shouldBootstrapFromSnapshot) {
+    logSyncDebug("Pull-only sync request", {
+      deviceId: input.deviceId,
+      canonicalRevisionReturned: canonical.updatedAt,
+      stateSummary: summarizeState(canonical.state),
+    });
+
+    return {
+      state: canonical.state,
+      acknowledgedOperationIds: [],
+      conflicts: [],
+      syncedAt,
+      canonicalUpdatedAt: canonical.updatedAt,
+    };
+  }
 
   const orderedOperations = [...input.operations].sort(
     (a, b) => new Date(a.enqueuedAt).getTime() - new Date(b.enqueuedAt).getTime(),
@@ -367,10 +430,18 @@ export async function processSyncRequest(input: {
 
   await writeCanonicalState(persisted);
 
+  logSyncDebug("Sync request completed", {
+    deviceId: input.deviceId,
+    canonicalRevisionAfterWrite: persisted.updatedAt,
+    acknowledgedOperationCount: acknowledgedOperationIds.length,
+    stateSummary: summarizeState(persisted.state),
+  });
+
   return {
     state: persisted.state,
     acknowledgedOperationIds,
     conflicts,
     syncedAt,
+    canonicalUpdatedAt: persisted.updatedAt,
   };
 }

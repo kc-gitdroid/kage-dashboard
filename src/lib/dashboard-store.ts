@@ -412,9 +412,12 @@ export async function syncWithServer(
   queue: SyncOperation[],
   meta: PersistedMeta,
 ): Promise<SyncResponse> {
+  const shouldSendStateSnapshot = queue.length > 0 || !meta.lastSyncedAt;
+
   console.log("[sync-client] outgoing sync request", {
     outgoingMutationCount: queue.length,
     lastSyncedAt: meta.lastSyncedAt,
+    sendingStateSnapshot: shouldSendStateSnapshot,
     stateSummary: summarizeState(state),
   });
 
@@ -431,7 +434,7 @@ export async function syncWithServer(
       body: JSON.stringify({
         deviceId: meta.deviceId,
         operations: queue,
-        state,
+        state: shouldSendStateSnapshot ? state : undefined,
         lastSyncedAt: meta.lastSyncedAt,
         stateVersionHint: state.tasks.length + state.notes.length + state.calendarItems.length + state.contentItems.length,
       }),

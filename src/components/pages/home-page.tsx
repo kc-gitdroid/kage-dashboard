@@ -175,17 +175,6 @@ const quickActions: {
   },
 ];
 
-const initialTaskDraft: TaskDraft = {
-  title: "",
-  brandId: "aai",
-  dueDate: "2026-04-12",
-  priority: "medium",
-  category: "content",
-  status: "planned",
-  projectId: "",
-  notes: "",
-};
-
 const initialNoteDraft: NoteDraft = {
   title: "",
   brandId: "personal",
@@ -205,18 +194,52 @@ const initialContentDraft: ContentDraft = {
   linkedProjectId: "",
 };
 
-const initialCalendarDraft: CalendarDraft = {
-  title: "",
-  brandId: "aai",
-  type: "task",
-  start: "2026-04-13T10:00",
-  end: "",
-  status: "planned",
-  linkedTaskId: "",
-  linkedProjectId: "",
-  linkedContentId: "",
-  notes: "",
-};
+function formatLocalDateInput(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatLocalDateTimeInput(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  const hour = String(value.getHours()).padStart(2, "0");
+  const minute = String(value.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
+function createInitialTaskDraft(referenceDate = new Date()): TaskDraft {
+  return {
+    title: "",
+    brandId: "aai",
+    dueDate: formatLocalDateInput(referenceDate),
+    priority: "medium",
+    category: "content",
+    status: "planned",
+    projectId: "",
+    notes: "",
+  };
+}
+
+function createInitialCalendarDraft(referenceDate = new Date()): CalendarDraft {
+  const start = new Date(referenceDate);
+  start.setHours(10, 0, 0, 0);
+
+  return {
+    title: "",
+    brandId: "aai",
+    type: "task",
+    start: formatLocalDateTimeInput(start),
+    end: "",
+    status: "planned",
+    linkedTaskId: "",
+    linkedProjectId: "",
+    linkedContentId: "",
+    notes: "",
+  };
+}
 
 const noteTypeOptions = noteTypes.map((type) => ({ value: type, label: formatTokenLabel(type) }));
 const contentStatusOptions: Status[] = ["draft", "planned", "in-progress", "scheduled", "completed"];
@@ -298,13 +321,13 @@ export function HomePage() {
     deleteCalendarItem,
     deleteContentItem,
   } = useDashboardData();
-  const [taskDraft, setTaskDraft] = useState<TaskDraft>(initialTaskDraft);
+  const [taskDraft, setTaskDraft] = useState<TaskDraft>(() => createInitialTaskDraft());
   const [taskDrawerMode, setTaskDrawerMode] = useState<"create" | "edit" | null>(null);
   const [noteDraft, setNoteDraft] = useState<NoteDraft>(initialNoteDraft);
   const [noteDrawerMode, setNoteDrawerMode] = useState<"create" | "edit" | null>(null);
   const [contentDraft, setContentDraft] = useState<ContentDraft>(initialContentDraft);
   const [contentDrawerMode, setContentDrawerMode] = useState<"create" | "edit" | null>(null);
-  const [calendarDraft, setCalendarDraft] = useState<CalendarDraft>(initialCalendarDraft);
+  const [calendarDraft, setCalendarDraft] = useState<CalendarDraft>(() => createInitialCalendarDraft());
   const [calendarDrawerMode, setCalendarDrawerMode] = useState<"create" | "edit" | null>(null);
   const [taskConfirmDelete, setTaskConfirmDelete] = useState(false);
   const [noteConfirmDelete, setNoteConfirmDelete] = useState(false);
@@ -481,7 +504,7 @@ export function HomePage() {
     ...tasks
       .filter((task) => {
         const due = startOfDay(new Date(task.dueDate));
-        return task.status !== "completed" && task.priority === "high" && due >= tomorrowStart && due < nextWeekEnd;
+        return task.status !== "completed" && due >= tomorrowStart && due < nextWeekEnd;
       })
       .map((task) => ({
         key: task.id,
@@ -574,7 +597,7 @@ export function HomePage() {
   }
 
   function openTaskCreate() {
-    setTaskDraft(initialTaskDraft);
+    setTaskDraft(createInitialTaskDraft(today));
     setTaskDrawerMode("create");
     setTaskConfirmDelete(false);
   }
@@ -587,7 +610,7 @@ export function HomePage() {
 
   function closeTaskDrawer() {
     setTaskDrawerMode(null);
-    setTaskDraft(initialTaskDraft);
+    setTaskDraft(createInitialTaskDraft(today));
     setTaskConfirmDelete(false);
   }
 
@@ -714,7 +737,7 @@ export function HomePage() {
   }
 
   function openCalendarCreate() {
-    setCalendarDraft(initialCalendarDraft);
+    setCalendarDraft(createInitialCalendarDraft(today));
     setCalendarDrawerMode("create");
     setCalendarConfirmDelete(false);
   }
@@ -727,7 +750,7 @@ export function HomePage() {
 
   function closeCalendarDrawer() {
     setCalendarDrawerMode(null);
-    setCalendarDraft(initialCalendarDraft);
+    setCalendarDraft(createInitialCalendarDraft(today));
     setCalendarConfirmDelete(false);
   }
 
