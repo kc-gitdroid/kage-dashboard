@@ -37,11 +37,6 @@ function summarizeState(state: DashboardState) {
   };
 }
 
-function isCanonicalStateEmpty(state: DashboardState) {
-  const summary = summarizeState(state);
-  return Object.values(summary).every((count) => count === 0);
-}
-
 type PersistedCanonicalState = {
   state: DashboardState;
   conflictLog: SyncConflict[];
@@ -348,15 +343,7 @@ export async function processSyncRequest(input: {
 }): Promise<SyncResponse> {
   const canonical = await readCanonicalState();
   const syncedAt = nowIso();
-  const shouldBootstrapFromSnapshot =
-    input.operations.length === 0 &&
-    Boolean(input.state) &&
-    isCanonicalStateEmpty(canonical.state);
-
-  let nextState =
-    input.operations.length > 0 || shouldBootstrapFromSnapshot
-      ? mergeSnapshotState(canonical.state, input.state, syncedAt)
-      : ensureDashboardStateShape(canonical.state);
+  let nextState = mergeSnapshotState(canonical.state, input.state, syncedAt);
   const conflicts: SyncConflict[] = [];
   const acknowledgedOperationIds: string[] = [];
 
@@ -365,24 +352,7 @@ export async function processSyncRequest(input: {
     operationCount: input.operations.length,
     canonicalRevisionBeforeWrite: canonical.updatedAt,
     incomingStateSummary: summarizeState(ensureDashboardStateShape(input.state)),
-    shouldBootstrapFromSnapshot,
   });
-
-  if (input.operations.length === 0 && !shouldBootstrapFromSnapshot) {
-    logSyncDebug("Pull-only sync request", {
-      deviceId: input.deviceId,
-      canonicalRevisionReturned: canonical.updatedAt,
-      stateSummary: summarizeState(canonical.state),
-    });
-
-    return {
-      state: canonical.state,
-      acknowledgedOperationIds: [],
-      conflicts: [],
-      syncedAt,
-      canonicalUpdatedAt: canonical.updatedAt,
-    };
-  }
 
   const orderedOperations = [...input.operations].sort(
     (a, b) => new Date(a.enqueuedAt).getTime() - new Date(b.enqueuedAt).getTime(),
