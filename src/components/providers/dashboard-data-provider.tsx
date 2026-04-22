@@ -84,6 +84,7 @@ function createTasklessState(state: DashboardState): DashboardState {
   return {
     ...state,
     tasks: [],
+    notes: [],
   };
 }
 
@@ -245,8 +246,14 @@ type HostedTaskResponse = {
   canonicalUpdatedAt: string;
 };
 
+type HostedNoteResponse = {
+  note?: NoteItem;
+  notes: NoteItem[];
+  canonicalUpdatedAt: string;
+};
+
 function withoutTaskOperations(queue: SyncOperation[]) {
-  return queue.filter((operation) => operation.entity !== "tasks");
+  return queue.filter((operation) => operation.entity !== "tasks" && operation.entity !== "notes");
 }
 
 function mergeHostedTasksWithPending(localTasks: TaskItem[], hostedTasks: TaskItem[], pendingMutations: Map<string, "upsert" | "delete">) {
@@ -270,11 +277,33 @@ function mergeHostedTasksWithPending(localTasks: TaskItem[], hostedTasks: TaskIt
   }).tasks;
 }
 
+function mergeHostedNotesWithPending(localNotes: NoteItem[], hostedNotes: NoteItem[], pendingMutations: Map<string, "upsert" | "delete">) {
+  let nextNotes = [...hostedNotes];
+
+  localNotes.forEach((note) => {
+    const pendingMutation = pendingMutations.get(note.id);
+
+    if (pendingMutation === "upsert") {
+      nextNotes = updateCollection(nextNotes, note);
+    }
+
+    if (pendingMutation === "delete") {
+      nextNotes = nextNotes.filter((entry) => entry.id !== note.id);
+    }
+  });
+
+  return sortDashboardState({
+    ...createInitialState("merge-notes"),
+    notes: nextNotes,
+  }).notes;
+}
+
 export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<StoreSnapshot>(createBootstrapStore);
   const syncInFlightRef = useRef(false);
   const storeRef = useRef(store);
   const pendingTaskMutationsRef = useRef(new Map<string, "upsert" | "delete">());
+  const pendingNoteMutationsRef = useRef(new Map<string, "upsert" | "delete">());
 
   useEffect(() => {
     storeRef.current = store;
@@ -381,6 +410,42 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function fetchHostedNotes() {
+    const response = await fetch("/api/notes", {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Note fetch failed.");
+    }
+
+    return (await response.json()) as HostedNoteResponse;
+  }
+
+  async function refreshNotesFromServer() {
+    if (!storeRef.current.hydrated) {
+      return;
+    }
+
+    try {
+      const response = await fetchHostedNotes();
+      setStore((current) => {
+        const notes = mergeHostedNotesWithPending(current.state.notes, response.notes, pendingNoteMutationsRef.current);
+        return withIndicator({
+          ...current,
+          state: sortDashboardState({
+            ...current.state,
+            notes,
+          }),
+        });
+      });
+    } catch {
+      // Keep current optimistic/local note view when hosted read fails.
+    }
+  }
+
   async function createTaskOnServer(task: TaskItem) {
     console.log("[tasks-api-client] create task request", {
       taskId: task.id,
@@ -439,6 +504,57 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
 
     return (await response.json()) as HostedTaskResponse;
+  }
+
+  async function createNoteOnServer(note: NoteItem) {
+    const response = await fetch("/api/notes", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ note }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Note create failed.");
+    }
+
+    return (await response.json()) as HostedNoteResponse;
+  }
+
+  async function updateNoteOnServer(note: NoteItem) {
+    const response = await fetch("/api/notes", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ note }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Note update failed.");
+    }
+
+    return (await response.json()) as HostedNoteResponse;
+  }
+
+  async function removeNoteFromServer(id: string) {
+    const response = await fetch("/api/notes", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Note delete failed.");
+    }
+
+    return (await response.json()) as HostedNoteResponse;
   }
 
   function saveTaskDirect(item: TaskItem) {
@@ -520,6 +636,93 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       });
   }
 
+  function saveNoteDirect(item: NoteItem) {
+    const snapshot = storeRef.current;
+    const existing = snapshot.state.notes.find((entry) => entry.id === item.id);
+    const normalized = normalizeRecord(
+      {
+        ...item,
+        createdAt: item.createdAt ?? existing?.createdAt ?? nowIso(),
+      },
+      snapshot.meta.deviceId,
+      existing,
+    ) as NoteItem;
+
+    pendingNoteMutationsRef.current.set(normalized.id, "upsert");
+
+    setStore((current) =>
+      withIndicator({
+        ...current,
+        state: sortDashboardState({
+          ...current.state,
+          notes: updateCollection(current.state.notes, normalized),
+        }),
+      }),
+    );
+
+    void (existing ? updateNoteOnServer(normalized) : createNoteOnServer(normalized))
+      .then((response) => {
+        pendingNoteMutationsRef.current.delete(normalized.id);
+        setStore((current) =>
+          withIndicator({
+            ...current,
+            state: sortDashboardState({
+              ...current.state,
+              notes: response.notes,
+            }),
+          }),
+        );
+      })
+      .catch(() => {
+        setStore((current) =>
+          withIndicator(current, {
+            syncState: "failed",
+            lastSyncError: "Note save failed.",
+          }),
+        );
+      })
+      .finally(() => {
+        void refreshNotesFromServer();
+      });
+  }
+
+  function deleteNoteDirect(id: string) {
+    pendingNoteMutationsRef.current.set(id, "delete");
+    setStore((current) =>
+      withIndicator({
+        ...current,
+        state: sortDashboardState({
+          ...current.state,
+          notes: current.state.notes.filter((note) => note.id !== id),
+        }),
+      }),
+    );
+
+    void removeNoteFromServer(id)
+      .then((response) => {
+        pendingNoteMutationsRef.current.delete(id);
+        setStore((current) =>
+          withIndicator({
+            ...current,
+            state: sortDashboardState({
+              ...current.state,
+              notes: response.notes,
+            }),
+          }),
+        );
+      })
+      .catch(() => {
+        pendingNoteMutationsRef.current.delete(id);
+        void refreshNotesFromServer();
+        setStore((current) =>
+          withIndicator(current, {
+            syncState: "failed",
+            lastSyncError: "Note delete failed.",
+          }),
+        );
+      });
+  }
+
   async function runSync() {
     const snapshot = storeRef.current;
 
@@ -548,6 +751,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
 
       setStore((current) => {
         const preservedTasks = current.state.tasks;
+        const preservedNotes = current.state.notes;
         const queue = current.queue.filter((operation) => !response.acknowledgedOperationIds.includes(operation.id));
         const incomingCanonicalState = sortDashboardState(response.state);
         console.log("[tasks-source] ignored tasks from sync payload", {
@@ -556,6 +760,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           canonicalUpdatedAt: response.canonicalUpdatedAt,
         });
         incomingCanonicalState.tasks = preservedTasks;
+        incomingCanonicalState.notes = preservedNotes;
         const previousRevision = current.meta.lastSyncedAt;
         const incomingRevision = response.canonicalUpdatedAt;
         const revisionComparison = compareIsoTimestamps(incomingRevision, previousRevision);
@@ -567,6 +772,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         const state = {
           ...markStateSynced(mergedState, response.syncedAt, queue),
           tasks: preservedTasks,
+          notes: preservedNotes,
         };
         const previousStateSummary = summarizeState(current.state);
         const incomingStateSummary = summarizeState(incomingCanonicalState);
@@ -667,6 +873,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
 
     void runSync();
     void refreshTasksFromServer();
+    void refreshNotesFromServer();
   }, [store.hydrated]);
 
   useEffect(() => {
@@ -689,6 +896,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     const interval = window.setInterval(() => {
       void runSync();
       void refreshTasksFromServer();
+      void refreshNotesFromServer();
     }, 5000);
 
     return () => window.clearInterval(interval);
@@ -699,22 +907,26 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       if (document.visibilityState === "visible") {
         void runSync();
         void refreshTasksFromServer();
+        void refreshNotesFromServer();
       }
     }
 
     function onFocus() {
       void runSync();
       void refreshTasksFromServer();
+      void refreshNotesFromServer();
     }
 
     function onPageShow() {
       void runSync();
       void refreshTasksFromServer();
+      void refreshNotesFromServer();
     }
 
     function onOnline() {
       void runSync();
       void refreshTasksFromServer();
+      void refreshNotesFromServer();
     }
 
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -754,13 +966,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       syncIndicator: store.syncIndicator,
       syncNow: runSync,
       saveTask: saveTaskDirect,
-      saveNote: (item) =>
-        setStore((current) =>
-          updateEntityState(current, "notes", {
-            ...item,
-            createdAt: item.createdAt ?? nowIso(),
-          }),
-        ),
+      saveNote: saveNoteDirect,
       saveCalendarItem: (item) => setStore((current) => updateEntityState(current, "calendarItems", item)),
       saveContentItem: (item) => setStore((current) => updateEntityState(current, "contentItems", item)),
       saveProject: (item) => setStore((current) => updateEntityState(current, "projects", item)),
@@ -769,7 +975,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       saveBrand: (item) => setStore((current) => updateEntityState(current, "brands", item)),
       saveBrandSpace: (item) => setStore((current) => updateEntityState(current, "brandSpaces", item)),
       deleteTask: deleteTaskDirect,
-      deleteNote: (id) => setStore((current) => deleteEntityState(current, "notes", id)),
+      deleteNote: deleteNoteDirect,
       deleteCalendarItem: (id) => setStore((current) => deleteEntityState(current, "calendarItems", id)),
       deleteContentItem: (id) => setStore((current) => deleteEntityState(current, "contentItems", id)),
       deleteProject: (id) => setStore((current) => deleteEntityState(current, "projects", id)),

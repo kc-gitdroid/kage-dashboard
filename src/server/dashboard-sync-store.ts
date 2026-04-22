@@ -19,6 +19,7 @@ function stripTasksFromState(state: Partial<DashboardState> | null | undefined):
   return {
     ...safeState,
     tasks: [],
+    notes: [],
   };
 }
 
@@ -418,10 +419,11 @@ export async function processSyncRequest(input: {
   );
 
   for (const operation of orderedOperations) {
-    if (operation.entity === "tasks") {
-      logSyncDebug("Ignoring task operation in generic sync store", {
+    if (operation.entity === "tasks" || operation.entity === "notes") {
+      logSyncDebug("Ignoring direct-crud entity operation in generic sync store", {
         deviceId: input.deviceId,
         operationId: operation.id,
+        entity: operation.entity,
         recordId: operation.recordId,
       });
       acknowledgedOperationIds.push(operation.id);
