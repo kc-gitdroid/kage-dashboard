@@ -115,6 +115,7 @@ function updateEntityState<T extends SyncableRecord>(
   entity: SyncEntityName,
   item: T,
 ) {
+  const pendingBefore = snapshot.queue.length;
   const normalized = normalizeRecord(
     item,
     snapshot.meta.deviceId,
@@ -122,10 +123,29 @@ function updateEntityState<T extends SyncableRecord>(
   );
   const operation = createOperation(entity, "upsert", normalized, snapshot.meta.deviceId);
   const state = applyOperationToState(snapshot.state, operation);
+  const nextQueue = [...snapshot.queue, operation];
+
+  if (entity === "tasks") {
+    console.log("[sync-client] task created locally", {
+      taskId: normalized.id,
+      deviceId: snapshot.meta.deviceId,
+      pendingOperationCountBeforeEnqueue: pendingBefore,
+      pendingOperationCountAfterEnqueue: nextQueue.length,
+    });
+  }
+
+  console.log("[sync-client] operation enqueued", {
+    operationId: operation.id,
+    entity,
+    recordId: normalized.id,
+    pendingOperationCountBeforeEnqueue: pendingBefore,
+    pendingOperationCountAfterEnqueue: nextQueue.length,
+  });
+
   return withIndicator({
     ...snapshot,
     state,
-    queue: [...snapshot.queue, operation],
+    queue: nextQueue,
   });
 }
 
@@ -145,24 +165,32 @@ function deleteEntityState(snapshot: StoreSnapshot, entity: SyncEntityName, id: 
   });
 }
 
-function markStateSynced(state: DashboardState, syncedAt: string) {
-  const mark = <T extends SyncableRecord>(items: T[]) =>
+function markStateSynced(state: DashboardState, syncedAt: string, remainingQueue: SyncOperation[]) {
+  const pendingKeys = new Set(remainingQueue.map((operation) => `${operation.entity}:${operation.recordId}`));
+  const mark = <T extends SyncableRecord>(entity: SyncEntityName, items: T[]) =>
     items.map((item) => ({
-      ...item,
-      lastSyncedAt: item.deletedAt ? item.lastSyncedAt ?? syncedAt : syncedAt,
-      syncStatus: item.deletedAt ? item.syncStatus ?? "synced" : "synced",
+      ...(pendingKeys.has(`${entity}:${item.id}`)
+        ? {
+            ...item,
+            syncStatus: "pending" as const,
+          }
+        : {
+            ...item,
+            lastSyncedAt: item.deletedAt ? item.lastSyncedAt ?? syncedAt : syncedAt,
+            syncStatus: item.deletedAt ? item.syncStatus ?? "synced" : "synced",
+          }),
     }));
 
   return sortDashboardState({
-    brands: mark(state.brands),
-    brandSpaces: mark(state.brandSpaces),
-    documents: mark(state.documents),
-    tasks: mark(state.tasks),
-    notes: mark(state.notes),
-    calendarItems: mark(state.calendarItems),
-    projects: mark(state.projects),
-    contentItems: mark(state.contentItems),
-    promptItems: mark(state.promptItems),
+    brands: mark("brands", state.brands),
+    brandSpaces: mark("brandSpaces", state.brandSpaces),
+    documents: mark("documents", state.documents),
+    tasks: mark("tasks", state.tasks),
+    notes: mark("notes", state.notes),
+    calendarItems: mark("calendarItems", state.calendarItems),
+    projects: mark("projects", state.projects),
+    contentItems: mark("contentItems", state.contentItems),
+    promptItems: mark("promptItems", state.promptItems),
   });
 }
 
@@ -271,6 +299,11 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
 
     syncInFlightRef.current = true;
+    console.log("[sync-client] sync trigger", {
+      syncMode: snapshot.queue.length > 0 ? "push" : "pull",
+      pendingQueueSummary: summarizePendingQueue(snapshot.queue),
+      stateSummary: summarizeState(snapshot.state),
+    });
     setStore((current) => withIndicator(current, { syncState: "syncing" }));
 
     try {
@@ -290,7 +323,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           queue.length === 0
             ? incomingCanonicalState
             : mergeDashboardStates(current.state, incomingCanonicalState);
-        const state = markStateSynced(mergedState, response.syncedAt);
+        const state = markStateSynced(mergedState, response.syncedAt, queue);
         const previousStateSummary = summarizeState(current.state);
         const incomingStateSummary = summarizeState(incomingCanonicalState);
         const resultingStateSummary = summarizeState(state);
@@ -318,6 +351,22 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
             : revisionComparison <= 0
               ? "incoming-canonical-not-newer-than-local-revision"
               : "incoming-canonical-matched-existing-local-shape";
+        const pendingQueueExistsAtApply = queue.length > 0;
+        const removedTaskIds = current.state.tasks
+          .filter((task) => !state.tasks.some((nextTask) => nextTask.id === task.id))
+          .map((task) => task.id);
+
+        if (removedTaskIds.length > 0) {
+          console.warn("[sync-client] reconciliation removed local task(s)", {
+            removedTaskIds,
+            pendingQueueExistsAtApply,
+            pendingQueueSummary: summarizePendingQueue(queue),
+            previousCanonicalRevision: previousRevision,
+            incomingCanonicalRevision: incomingRevision,
+            remoteSkipReason,
+            applyStrategy,
+          });
+        }
 
         console.log("[sync-client] incoming sync response", {
           incomingCanonicalRevision: incomingRevision,
@@ -326,6 +375,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           acknowledgedOperationCount: response.acknowledgedOperationIds.length,
           remainingQueueCount: queue.length,
           localPendingQueueSummary: summarizePendingQueue(queue),
+          pendingQueueExistsAtApply,
           applyStrategy,
           remoteApplyReason,
           remoteChangesApplied: stateChanged,
