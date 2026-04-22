@@ -145,6 +145,29 @@ function sortState(state: DashboardState): DashboardState {
   };
 }
 
+function mergeRecordsById<T extends SyncableRecord>(canonicalItems: T[], nextItems: T[]) {
+  const merged = [...canonicalItems];
+
+  nextItems.forEach((nextItem) => {
+    const existingIndex = merged.findIndex((item) => item.id === nextItem.id);
+    if (existingIndex === -1) {
+      merged.push(nextItem);
+    } else {
+      merged[existingIndex] = nextItem;
+    }
+  });
+
+  return merged;
+}
+
+function preserveCanonicalBrandsOnWrite(canonicalState: DashboardState, nextState: DashboardState) {
+  return sortState({
+    ...nextState,
+    brands: mergeRecordsById(canonicalState.brands, nextState.brands),
+    brandSpaces: mergeRecordsById(canonicalState.brandSpaces, nextState.brandSpaces),
+  });
+}
+
 function mergeSnapshotState(
   canonicalState: DashboardState,
   incomingState: Partial<DashboardState> | null | undefined,
@@ -519,13 +542,27 @@ export async function processSyncRequest(input: {
     acknowledgedOperationIds.push(operation.id);
   }
 
+  if (includesBrandOperation) {
+    nextState = preserveCanonicalBrandsOnWrite(canonical.state, nextState);
+  }
+
   logSyncDebug("Canonical state prepared before write", {
     deviceId: input.deviceId,
     syncMode,
+    writeReason: includesBrandOperation ? "brand-sync-write" : hasOperations ? "operation-sync-write" : "snapshot-sync-write",
     bootstrapAllowed,
     canonicalRevisionBeforeWrite: canonical.updatedAt,
     canonicalStateSummaryBeforeWrite: summarizeState(canonical.state),
     mergedStateSummaryBeforeWrite: summarizeState(sortState(nextState)),
+    brandCountsBeforeWrite: {
+      brands: canonical.state.brands.length,
+      brandSpaces: canonical.state.brandSpaces.length,
+    },
+    brandCountsBeingWritten: {
+      brands: nextState.brands.length,
+      brandSpaces: nextState.brandSpaces.length,
+    },
+    operationSummary: summarizeOperations(input.operations),
     acknowledgedOperationCount: acknowledgedOperationIds.length,
     conflictCount: conflicts.length,
   });
@@ -533,6 +570,7 @@ export async function processSyncRequest(input: {
   if (includesBrandOperation) {
     logSyncDebug("Brand save counts written to storage", {
       deviceId: input.deviceId,
+      syncMode,
       brandsCountWritten: nextState.brands.length,
       brandSpacesCountWritten: nextState.brandSpaces.length,
       operationSummary: summarizeOperations(input.operations),
