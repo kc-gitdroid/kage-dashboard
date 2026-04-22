@@ -17,6 +17,7 @@ import {
   sortDashboardState,
   syncWithServer,
   tombstoneRecord,
+  updateCollection,
   visibleRecords,
 } from "@/lib/dashboard-store";
 import {
@@ -225,10 +226,42 @@ function summarizePendingQueue(queue: SyncOperation[]) {
   };
 }
 
+type HostedTaskResponse = {
+  task?: TaskItem;
+  tasks: TaskItem[];
+  canonicalUpdatedAt: string;
+};
+
+function withoutTaskOperations(queue: SyncOperation[]) {
+  return queue.filter((operation) => operation.entity !== "tasks");
+}
+
+function mergeHostedTasksWithPending(localTasks: TaskItem[], hostedTasks: TaskItem[], pendingMutations: Map<string, "upsert" | "delete">) {
+  let nextTasks = [...hostedTasks];
+
+  localTasks.forEach((task) => {
+    const pendingMutation = pendingMutations.get(task.id);
+
+    if (pendingMutation === "upsert") {
+      nextTasks = updateCollection(nextTasks, task);
+    }
+
+    if (pendingMutation === "delete") {
+      nextTasks = nextTasks.filter((entry) => entry.id !== task.id);
+    }
+  });
+
+  return sortDashboardState({
+    ...createInitialState("merge-tasks"),
+    tasks: nextTasks,
+  }).tasks;
+}
+
 export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<StoreSnapshot>(createBootstrapStore);
   const syncInFlightRef = useRef(false);
   const storeRef = useRef(store);
+  const pendingTaskMutationsRef = useRef(new Map<string, "upsert" | "delete">());
 
   useEffect(() => {
     storeRef.current = store;
@@ -259,12 +292,12 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         setStore(
           withIndicator({
             state: sortDashboardState(persisted.state),
-            queue: persisted.queue ?? [],
+            queue: withoutTaskOperations(persisted.queue ?? []),
             meta: persisted.meta,
             hydrated: true,
             syncIndicator: {
               syncState: "idle",
-              pendingCount: persisted.queue?.length ?? 0,
+              pendingCount: withoutTaskOperations(persisted.queue ?? []).length,
               lastSyncedAt: persisted.meta.lastSyncedAt,
               lastSyncError: persisted.meta.lastSyncError,
               deviceId: persisted.meta.deviceId,
@@ -291,6 +324,155 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     void persistStore(store.state, store.queue, store.meta);
   }, [store.state, store.queue, store.meta, store.hydrated]);
 
+  async function fetchHostedTasks() {
+    const response = await fetch("/api/tasks", {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Task fetch failed.");
+    }
+
+    return (await response.json()) as HostedTaskResponse;
+  }
+
+  async function refreshTasksFromServer() {
+    if (!storeRef.current.hydrated) {
+      return;
+    }
+
+    try {
+      const response = await fetchHostedTasks();
+      setStore((current) => {
+        const tasks = mergeHostedTasksWithPending(current.state.tasks, response.tasks, pendingTaskMutationsRef.current);
+        return withIndicator({
+          ...current,
+          state: sortDashboardState({
+            ...current.state,
+            tasks,
+          }),
+        });
+      });
+    } catch {
+      // Keep current optimistic/local task view when hosted read fails.
+    }
+  }
+
+  async function persistTaskToServer(task: TaskItem) {
+    const response = await fetch("/api/tasks", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ task }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Task save failed.");
+    }
+
+    return (await response.json()) as HostedTaskResponse;
+  }
+
+  async function removeTaskFromServer(id: string) {
+    const response = await fetch("/api/tasks", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Task delete failed.");
+    }
+
+    return (await response.json()) as HostedTaskResponse;
+  }
+
+  function saveTaskDirect(item: TaskItem) {
+    const snapshot = storeRef.current;
+    const existing = snapshot.state.tasks.find((entry) => entry.id === item.id);
+    const normalized = normalizeRecord(item, snapshot.meta.deviceId, existing);
+    pendingTaskMutationsRef.current.set(normalized.id, "upsert");
+
+    setStore((current) =>
+      withIndicator({
+        ...current,
+        state: sortDashboardState({
+          ...current.state,
+          tasks: updateCollection(current.state.tasks, normalized as TaskItem),
+        }),
+      }),
+    );
+
+    void persistTaskToServer(normalized as TaskItem)
+      .then((response) => {
+        pendingTaskMutationsRef.current.delete(normalized.id);
+        setStore((current) =>
+          withIndicator({
+            ...current,
+            state: sortDashboardState({
+              ...current.state,
+              tasks: response.tasks,
+            }),
+          }),
+        );
+      })
+      .catch(() => {
+        setStore((current) =>
+          withIndicator(current, {
+            syncState: "failed",
+            lastSyncError: "Task save failed.",
+          }),
+        );
+      })
+      .finally(() => {
+        void refreshTasksFromServer();
+      });
+  }
+
+  function deleteTaskDirect(id: string) {
+    pendingTaskMutationsRef.current.set(id, "delete");
+    setStore((current) =>
+      withIndicator({
+        ...current,
+        state: sortDashboardState({
+          ...current.state,
+          tasks: current.state.tasks.filter((task) => task.id !== id),
+        }),
+      }),
+    );
+
+    void removeTaskFromServer(id)
+      .then((response) => {
+        pendingTaskMutationsRef.current.delete(id);
+        setStore((current) =>
+          withIndicator({
+            ...current,
+            state: sortDashboardState({
+              ...current.state,
+              tasks: response.tasks,
+            }),
+          }),
+        );
+      })
+      .catch(() => {
+        pendingTaskMutationsRef.current.delete(id);
+        void refreshTasksFromServer();
+        setStore((current) =>
+          withIndicator(current, {
+            syncState: "failed",
+            lastSyncError: "Task delete failed.",
+          }),
+        );
+      });
+  }
+
   async function runSync() {
     const snapshot = storeRef.current;
 
@@ -315,6 +497,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       setStore((current) => {
         const queue = current.queue.filter((operation) => !response.acknowledgedOperationIds.includes(operation.id));
         const incomingCanonicalState = sortDashboardState(response.state);
+        incomingCanonicalState.tasks = current.state.tasks;
         const previousRevision = current.meta.lastSyncedAt;
         const incomingRevision = response.canonicalUpdatedAt;
         const revisionComparison = compareIsoTimestamps(incomingRevision, previousRevision);
@@ -422,6 +605,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
 
     void runSync();
+    void refreshTasksFromServer();
   }, [store.hydrated]);
 
   useEffect(() => {
@@ -443,6 +627,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
 
     const interval = window.setInterval(() => {
       void runSync();
+      void refreshTasksFromServer();
     }, 5000);
 
     return () => window.clearInterval(interval);
@@ -452,19 +637,23 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     function onVisibilityChange() {
       if (document.visibilityState === "visible") {
         void runSync();
+        void refreshTasksFromServer();
       }
     }
 
     function onFocus() {
       void runSync();
+      void refreshTasksFromServer();
     }
 
     function onPageShow() {
       void runSync();
+      void refreshTasksFromServer();
     }
 
     function onOnline() {
       void runSync();
+      void refreshTasksFromServer();
     }
 
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -498,7 +687,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       hydrated: store.hydrated,
       syncIndicator: store.syncIndicator,
       syncNow: runSync,
-      saveTask: (item) => setStore((current) => updateEntityState(current, "tasks", item)),
+      saveTask: saveTaskDirect,
       saveNote: (item) =>
         setStore((current) =>
           updateEntityState(current, "notes", {
@@ -513,7 +702,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       saveDocument: (item) => setStore((current) => updateEntityState(current, "documents", item)),
       saveBrand: (item) => setStore((current) => updateEntityState(current, "brands", item)),
       saveBrandSpace: (item) => setStore((current) => updateEntityState(current, "brandSpaces", item)),
-      deleteTask: (id) => setStore((current) => deleteEntityState(current, "tasks", id)),
+      deleteTask: deleteTaskDirect,
       deleteNote: (id) => setStore((current) => deleteEntityState(current, "notes", id)),
       deleteCalendarItem: (id) => setStore((current) => deleteEntityState(current, "calendarItems", id)),
       deleteContentItem: (id) => setStore((current) => deleteEntityState(current, "contentItems", id)),
