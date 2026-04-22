@@ -410,13 +410,16 @@ export async function processSyncRequest(input: {
 
   for (const operation of orderedOperations) {
     const incoming = operation.payload as SyncableRecord;
+    const taskCountBeforeApply = nextState.tasks.length;
     const currentCollection = ensureDashboardStateShape(nextState)[operation.entity] as SyncableRecord[];
     const existing = currentCollection.find((item) => item.id === incoming.id);
     const incomingTime = getRecordTimestamp(incoming);
     const existingTime = getRecordTimestamp(existing);
+    let operationApplied = false;
 
     if (!existing || incomingTime >= existingTime) {
       nextState = applyOperation(nextState, operation.entity, incoming, syncedAt);
+      operationApplied = true;
 
       if (existing && existing.deviceUpdatedAt && incoming.deviceUpdatedAt && existing.deviceUpdatedAt !== incoming.deviceUpdatedAt) {
         conflicts.push({
@@ -438,6 +441,19 @@ export async function processSyncRequest(input: {
         detectedAt: syncedAt,
       });
     }
+
+    logSyncDebug("Push operation processed", {
+      deviceId: input.deviceId,
+      operationId: operation.id,
+      entity: operation.entity,
+      action: operation.action,
+      recordId: operation.recordId,
+      operationApplied,
+      taskCountBeforeApply,
+      taskCountAfterApply: nextState.tasks.length,
+      taskInsertedIntoCanonical:
+        operation.entity === "tasks" ? nextState.tasks.some((task) => task.id === operation.recordId) : undefined,
+    });
 
     acknowledgedOperationIds.push(operation.id);
   }
