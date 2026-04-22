@@ -519,6 +519,13 @@ async function readSyncState(): Promise<PersistedCanonicalState> {
     }
 
     const payload = (await response.json()) as { result?: string | null };
+    if (payload.result) {
+      console.log("[restore-brand-data] raw canonical value on read", {
+        key: SYNC_UPSTASH_KEY,
+        rawLength: payload.result.length,
+        rawPreview: payload.result.slice(0, 400),
+      });
+    }
     return ensureCanonicalStateShape(parseJsonValue<PersistedCanonicalState>(payload.result));
   }
 
@@ -539,19 +546,26 @@ async function writeSyncState(state: PersistedCanonicalState) {
   const config = getUpstashConfig();
 
   if (config) {
+    const serialized = JSON.stringify(normalized);
     const response = await fetch(`${config.url}/set/${encodeURIComponent(SYNC_UPSTASH_KEY)}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${config.token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(normalized),
+      body: serialized,
       cache: "no-store",
     });
 
     if (!response.ok) {
       throw new Error(`Sync store write failed with status ${response.status}.`);
     }
+
+    console.log("[restore-brand-data] raw canonical value written", {
+      key: SYNC_UPSTASH_KEY,
+      rawLength: serialized.length,
+      rawPreview: serialized.slice(0, 400),
+    });
 
     return;
   }
@@ -663,6 +677,7 @@ async function main() {
     },
     updatedAt: syncUpdatedAt,
   });
+  const readBackSyncState = await readSyncState();
 
   let contentImported = 0;
   let contentSkipped = 0;
@@ -693,6 +708,8 @@ async function main() {
   console.log(`Brands after: ${nextBrands.length}`);
   console.log(`BrandSpaces before: ${currentBrandSpaces.length}`);
   console.log(`BrandSpaces after: ${nextBrandSpaces.length}`);
+  console.log(`Canonical brands after readback: ${readBackSyncState.state.brands.length}`);
+  console.log(`Canonical brandSpaces after readback: ${readBackSyncState.state.brandSpaces.length}`);
   console.log(`Authoritative brands restore: ${authoritativeBrands ? "yes" : "no"}`);
   console.log(`Content imported: ${contentImported}`);
   console.log(`Content skipped: ${contentSkipped}`);

@@ -252,6 +252,12 @@ async function readFromUpstash(): Promise<PersistedCanonicalState | null> {
     return null;
   }
 
+  logSyncDebug("Raw hosted canonical value on read", {
+    key: UPSTASH_KEY,
+    rawLength: payload.result.length,
+    rawPreview: payload.result.slice(0, 400),
+  });
+
   return ensureCanonicalStateShape(parsePersistedPayload<PersistedCanonicalState>(payload.result));
 }
 
