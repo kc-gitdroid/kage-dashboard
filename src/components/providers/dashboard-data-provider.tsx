@@ -274,6 +274,10 @@ function preserveBootstrapBrands(currentState: DashboardState, incomingState: Da
   };
 }
 
+function hasHostedBrandData(state: DashboardState) {
+  return state.brands.length > 0 || state.brandSpaces.length > 0;
+}
+
 type HostedTaskResponse = {
   task?: TaskItem;
   tasks: TaskItem[];
@@ -473,21 +477,54 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const hydratedState = sortDashboardState(
+        const localHydratedState = sortDashboardState(
           preserveBootstrapBrands(createBootstrapStore().state, createTasklessState(persisted.state)),
         );
 
-        console.log("[brands-runtime] initial load complete", {
-          source: "persisted-hydration",
+        console.log("[brands-runtime] local persisted state on startup", {
           persistedBrandsCount: persisted.state.brands?.length ?? 0,
           persistedBrandSpacesCount: persisted.state.brandSpaces?.length ?? 0,
-          brandsCountAfterHydration: hydratedState.brands.length,
-          brandSpacesCountAfterHydration: hydratedState.brandSpaces.length,
+          brandsCountAfterHydration: localHydratedState.brands.length,
+          brandSpacesCountAfterHydration: localHydratedState.brandSpaces.length,
+        });
+
+        let startupState = localHydratedState;
+        let startupWinner = "local-persisted";
+
+        try {
+          const hostedResponse = await syncWithServer(createTasklessState(localHydratedState), [], persisted.meta);
+          const hostedState = sortDashboardState(hostedResponse.state);
+
+          console.log("[brands-runtime] hosted state on startup", {
+            hostedBrandsCount: hostedState.brands.length,
+            hostedBrandSpacesCount: hostedState.brandSpaces.length,
+            canonicalUpdatedAt: hostedResponse.canonicalUpdatedAt,
+          });
+
+          if (hasHostedBrandData(hostedState)) {
+            startupState = sortDashboardState({
+              ...localHydratedState,
+              brands: hostedState.brands,
+              brandSpaces: hostedState.brandSpaces,
+            });
+            startupWinner = "hosted-shared";
+          }
+        } catch (error) {
+          console.log("[brands-runtime] hosted state fetch on startup failed", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+
+        console.log("[brands-runtime] initial load complete", {
+          source: "persisted-hydration",
+          winner: startupWinner,
+          brandsCountAfterHydration: startupState.brands.length,
+          brandSpacesCountAfterHydration: startupState.brandSpaces.length,
         });
 
         setStore(
           withIndicator({
-            state: hydratedState,
+            state: startupState,
             queue: withoutTaskOperations(persisted.queue ?? []),
             meta: persisted.meta,
             hydrated: true,
@@ -1473,9 +1510,19 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
             mergedBrandSpacesCount: preservedBrandSpaces.length,
             canonicalUpdatedAt: response.canonicalUpdatedAt,
           });
+          console.log("[brands-save] brand save confirmation from hosted source", {
+            target: "/api/sync hosted canonical store",
+            canonicalUpdatedAt: response.canonicalUpdatedAt,
+            hostedBrandsCount: response.state.brands.length,
+            hostedBrandSpacesCount: response.state.brandSpaces.length,
+          });
           console.log("[brands-save] brands count after local state apply", {
             brandsCount: state.brands.length,
             brandSpacesCount: state.brandSpaces.length,
+          });
+          console.log("[brands-save] brand count seen by refetch after save", {
+            brandsCount: incomingCanonicalState.brands.length,
+            brandSpacesCount: incomingCanonicalState.brandSpaces.length,
           });
         }
         console.log("[brands-runtime] after sync apply", {
@@ -1702,6 +1749,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
             brandsCount: current.state.brands.length,
             brandSpacesCount: current.state.brandSpaces.length,
             savedBrandId: item.id,
+            target: "/api/sync hosted canonical store",
           });
           return updateEntityState(current, "brands", item);
         }),
@@ -1711,6 +1759,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
             brandsCount: current.state.brands.length,
             brandSpacesCount: current.state.brandSpaces.length,
             savedBrandSpaceId: item.id,
+            target: "/api/sync hosted canonical store",
           });
           return updateEntityState(current, "brandSpaces", item);
         }),

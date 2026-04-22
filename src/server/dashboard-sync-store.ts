@@ -66,6 +66,19 @@ type PersistedCanonicalState = {
   updatedAt: string;
 };
 
+function parsePersistedPayload<T>(raw: string | null | undefined): T | null {
+  if (!raw) {
+    return null;
+  }
+
+  const parsed = JSON.parse(raw) as unknown;
+  if (typeof parsed === "string") {
+    return JSON.parse(parsed) as T;
+  }
+
+  return parsed as T;
+}
+
 function ensureConflictLogShape(conflictLog: unknown): SyncConflict[] {
   return Array.isArray(conflictLog) ? (conflictLog as SyncConflict[]) : [];
 }
@@ -239,7 +252,7 @@ async function readFromUpstash(): Promise<PersistedCanonicalState | null> {
     return null;
   }
 
-  return ensureCanonicalStateShape(JSON.parse(payload.result) as Partial<PersistedCanonicalState>);
+  return ensureCanonicalStateShape(parsePersistedPayload<PersistedCanonicalState>(payload.result));
 }
 
 async function writeToUpstash(payload: PersistedCanonicalState) {
@@ -259,7 +272,7 @@ async function writeToUpstash(payload: PersistedCanonicalState) {
       Authorization: `Bearer ${config.token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(JSON.stringify(payload)),
+    body: JSON.stringify(payload),
     cache: "no-store",
   });
 
