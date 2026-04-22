@@ -190,7 +190,7 @@ function markStateSynced(state: DashboardState, syncedAt: string, remainingQueue
           }),
     }));
 
-  return sortDashboardState({
+  const marked = sortDashboardState({
     brands: mark("brands", state.brands),
     brandSpaces: mark("brandSpaces", state.brandSpaces),
     documents: mark("documents", state.documents),
@@ -201,6 +201,11 @@ function markStateSynced(state: DashboardState, syncedAt: string, remainingQueue
     contentItems: mark("contentItems", state.contentItems),
     promptItems: mark("promptItems", state.promptItems),
   });
+
+  return {
+    ...marked,
+    tasks: state.tasks,
+  };
 }
 
 function summarizeState(state: DashboardState) {
@@ -538,9 +543,10 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       });
 
       setStore((current) => {
+        const preservedTasks = current.state.tasks;
         const queue = current.queue.filter((operation) => !response.acknowledgedOperationIds.includes(operation.id));
         const incomingCanonicalState = sortDashboardState(response.state);
-        incomingCanonicalState.tasks = current.state.tasks;
+        incomingCanonicalState.tasks = preservedTasks;
         const previousRevision = current.meta.lastSyncedAt;
         const incomingRevision = response.canonicalUpdatedAt;
         const revisionComparison = compareIsoTimestamps(incomingRevision, previousRevision);
@@ -549,7 +555,10 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           queue.length === 0
             ? incomingCanonicalState
             : mergeDashboardStates(current.state, incomingCanonicalState);
-        const state = markStateSynced(mergedState, response.syncedAt, queue);
+        const state = {
+          ...markStateSynced(mergedState, response.syncedAt, queue),
+          tasks: preservedTasks,
+        };
         const previousStateSummary = summarizeState(current.state);
         const incomingStateSummary = summarizeState(incomingCanonicalState);
         const resultingStateSummary = summarizeState(state);
