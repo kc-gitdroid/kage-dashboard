@@ -364,6 +364,10 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       });
       setStore((current) => {
         const tasks = mergeHostedTasksWithPending(current.state.tasks, response.tasks, pendingTaskMutationsRef.current);
+        console.log("[tasks-source] applied tasks from tasks-api only", {
+          taskCount: tasks.length,
+          canonicalUpdatedAt: response.canonicalUpdatedAt,
+        });
         return withIndicator({
           ...current,
           state: sortDashboardState({
@@ -546,6 +550,11 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         const preservedTasks = current.state.tasks;
         const queue = current.queue.filter((operation) => !response.acknowledgedOperationIds.includes(operation.id));
         const incomingCanonicalState = sortDashboardState(response.state);
+        console.log("[tasks-source] ignored tasks from sync payload", {
+          syncPayloadTaskCount: incomingCanonicalState.tasks.length,
+          preservedTaskCount: preservedTasks.length,
+          canonicalUpdatedAt: response.canonicalUpdatedAt,
+        });
         incomingCanonicalState.tasks = preservedTasks;
         const previousRevision = current.meta.lastSyncedAt;
         const incomingRevision = response.canonicalUpdatedAt;
@@ -733,6 +742,11 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       contentItems: visibleRecords(store.state.contentItems),
       promptItems: visibleRecords(store.state.promptItems),
     };
+
+    console.log("[tasks-source] using direct tasks store", {
+      taskCount: visibleState.tasks.length,
+      pendingTaskMutations: Array.from(pendingTaskMutationsRef.current.entries()),
+    });
 
     return {
       ...visibleState,
