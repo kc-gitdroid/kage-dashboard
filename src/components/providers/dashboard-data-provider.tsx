@@ -87,6 +87,7 @@ function createTasklessState(state: DashboardState): DashboardState {
     notes: [],
     calendarItems: [],
     projects: [],
+    contentItems: [],
   };
 }
 
@@ -266,13 +267,20 @@ type HostedProjectResponse = {
   canonicalUpdatedAt: string;
 };
 
+type HostedContentResponse = {
+  contentItem?: ContentItem;
+  contentItems: ContentItem[];
+  canonicalUpdatedAt: string;
+};
+
 function withoutTaskOperations(queue: SyncOperation[]) {
   return queue.filter(
     (operation) =>
       operation.entity !== "tasks" &&
       operation.entity !== "notes" &&
       operation.entity !== "calendarItems" &&
-      operation.entity !== "projects",
+      operation.entity !== "projects" &&
+      operation.entity !== "contentItems",
   );
 }
 
@@ -368,6 +376,31 @@ function mergeHostedProjectsWithPending(
   }).projects;
 }
 
+function mergeHostedContentWithPending(
+  localItems: ContentItem[],
+  hostedItems: ContentItem[],
+  pendingMutations: Map<string, "upsert" | "delete">,
+) {
+  let nextItems = [...hostedItems];
+
+  localItems.forEach((item) => {
+    const pendingMutation = pendingMutations.get(item.id);
+
+    if (pendingMutation === "upsert") {
+      nextItems = updateCollection(nextItems, item);
+    }
+
+    if (pendingMutation === "delete") {
+      nextItems = nextItems.filter((entry) => entry.id !== item.id);
+    }
+  });
+
+  return sortDashboardState({
+    ...createInitialState("merge-content"),
+    contentItems: nextItems,
+  }).contentItems;
+}
+
 export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<StoreSnapshot>(createBootstrapStore);
   const syncInFlightRef = useRef(false);
@@ -376,6 +409,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const pendingNoteMutationsRef = useRef(new Map<string, "upsert" | "delete">());
   const pendingCalendarMutationsRef = useRef(new Map<string, "upsert" | "delete">());
   const pendingProjectMutationsRef = useRef(new Map<string, "upsert" | "delete">());
+  const pendingContentMutationsRef = useRef(new Map<string, "upsert" | "delete">());
 
   useEffect(() => {
     storeRef.current = store;
@@ -598,6 +632,46 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function fetchHostedContentItems() {
+    const response = await fetch("/api/content-items", {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Content fetch failed.");
+    }
+
+    return (await response.json()) as HostedContentResponse;
+  }
+
+  async function refreshContentItemsFromServer() {
+    if (!storeRef.current.hydrated) {
+      return;
+    }
+
+    try {
+      const response = await fetchHostedContentItems();
+      setStore((current) => {
+        const contentItems = mergeHostedContentWithPending(
+          current.state.contentItems,
+          response.contentItems,
+          pendingContentMutationsRef.current,
+        );
+        return withIndicator({
+          ...current,
+          state: sortDashboardState({
+            ...current.state,
+            contentItems,
+          }),
+        });
+      });
+    } catch {
+      // Keep current optimistic/local content view when hosted read fails.
+    }
+  }
+
   async function createTaskOnServer(task: TaskItem) {
     console.log("[tasks-api-client] create task request", {
       taskId: task.id,
@@ -809,6 +883,57 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
 
     return (await response.json()) as HostedProjectResponse;
+  }
+
+  async function createContentItemOnServer(contentItem: ContentItem) {
+    const response = await fetch("/api/content-items", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ contentItem }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Content create failed.");
+    }
+
+    return (await response.json()) as HostedContentResponse;
+  }
+
+  async function updateContentItemOnServer(contentItem: ContentItem) {
+    const response = await fetch("/api/content-items", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ contentItem }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Content update failed.");
+    }
+
+    return (await response.json()) as HostedContentResponse;
+  }
+
+  async function removeContentItemFromServer(id: string) {
+    const response = await fetch("/api/content-items", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Content delete failed.");
+    }
+
+    return (await response.json()) as HostedContentResponse;
   }
 
   function saveTaskDirect(item: TaskItem) {
@@ -1137,6 +1262,86 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       });
   }
 
+  function saveContentDirect(item: ContentItem) {
+    const snapshot = storeRef.current;
+    const existing = snapshot.state.contentItems.find((entry) => entry.id === item.id);
+    const normalized = normalizeRecord(item, snapshot.meta.deviceId, existing) as ContentItem;
+
+    pendingContentMutationsRef.current.set(normalized.id, "upsert");
+
+    setStore((current) =>
+      withIndicator({
+        ...current,
+        state: sortDashboardState({
+          ...current.state,
+          contentItems: updateCollection(current.state.contentItems, normalized),
+        }),
+      }),
+    );
+
+    void (existing ? updateContentItemOnServer(normalized) : createContentItemOnServer(normalized))
+      .then((response) => {
+        pendingContentMutationsRef.current.delete(normalized.id);
+        setStore((current) =>
+          withIndicator({
+            ...current,
+            state: sortDashboardState({
+              ...current.state,
+              contentItems: response.contentItems,
+            }),
+          }),
+        );
+      })
+      .catch(() => {
+        setStore((current) =>
+          withIndicator(current, {
+            syncState: "failed",
+            lastSyncError: "Content save failed.",
+          }),
+        );
+      })
+      .finally(() => {
+        void refreshContentItemsFromServer();
+      });
+  }
+
+  function deleteContentDirect(id: string) {
+    pendingContentMutationsRef.current.set(id, "delete");
+    setStore((current) =>
+      withIndicator({
+        ...current,
+        state: sortDashboardState({
+          ...current.state,
+          contentItems: current.state.contentItems.filter((item) => item.id !== id),
+        }),
+      }),
+    );
+
+    void removeContentItemFromServer(id)
+      .then((response) => {
+        pendingContentMutationsRef.current.delete(id);
+        setStore((current) =>
+          withIndicator({
+            ...current,
+            state: sortDashboardState({
+              ...current.state,
+              contentItems: response.contentItems,
+            }),
+          }),
+        );
+      })
+      .catch(() => {
+        pendingContentMutationsRef.current.delete(id);
+        void refreshContentItemsFromServer();
+        setStore((current) =>
+          withIndicator(current, {
+            syncState: "failed",
+            lastSyncError: "Content delete failed.",
+          }),
+        );
+      });
+  }
+
   async function runSync() {
     const snapshot = storeRef.current;
 
@@ -1168,6 +1373,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         const preservedNotes = current.state.notes;
         const preservedCalendarItems = current.state.calendarItems;
         const preservedProjects = current.state.projects;
+        const preservedContentItems = current.state.contentItems;
         const queue = current.queue.filter((operation) => !response.acknowledgedOperationIds.includes(operation.id));
         const incomingCanonicalState = sortDashboardState(response.state);
         console.log("[tasks-source] ignored tasks from sync payload", {
@@ -1179,6 +1385,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         incomingCanonicalState.notes = preservedNotes;
         incomingCanonicalState.calendarItems = preservedCalendarItems;
         incomingCanonicalState.projects = preservedProjects;
+        incomingCanonicalState.contentItems = preservedContentItems;
         const previousRevision = current.meta.lastSyncedAt;
         const incomingRevision = response.canonicalUpdatedAt;
         const revisionComparison = compareIsoTimestamps(incomingRevision, previousRevision);
@@ -1193,6 +1400,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           notes: preservedNotes,
           calendarItems: preservedCalendarItems,
           projects: preservedProjects,
+          contentItems: preservedContentItems,
         };
         const previousStateSummary = summarizeState(current.state);
         const incomingStateSummary = summarizeState(incomingCanonicalState);
@@ -1296,6 +1504,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     void refreshNotesFromServer();
     void refreshCalendarItemsFromServer();
     void refreshProjectsFromServer();
+    void refreshContentItemsFromServer();
   }, [store.hydrated]);
 
   useEffect(() => {
@@ -1321,6 +1530,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       void refreshNotesFromServer();
       void refreshCalendarItemsFromServer();
       void refreshProjectsFromServer();
+      void refreshContentItemsFromServer();
     }, 5000);
 
     return () => window.clearInterval(interval);
@@ -1334,6 +1544,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         void refreshNotesFromServer();
         void refreshCalendarItemsFromServer();
         void refreshProjectsFromServer();
+        void refreshContentItemsFromServer();
       }
     }
 
@@ -1343,6 +1554,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       void refreshNotesFromServer();
       void refreshCalendarItemsFromServer();
       void refreshProjectsFromServer();
+      void refreshContentItemsFromServer();
     }
 
     function onPageShow() {
@@ -1351,6 +1563,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       void refreshNotesFromServer();
       void refreshCalendarItemsFromServer();
       void refreshProjectsFromServer();
+      void refreshContentItemsFromServer();
     }
 
     function onOnline() {
@@ -1400,7 +1613,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       saveTask: saveTaskDirect,
       saveNote: saveNoteDirect,
       saveCalendarItem: saveCalendarDirect,
-      saveContentItem: (item) => setStore((current) => updateEntityState(current, "contentItems", item)),
+      saveContentItem: saveContentDirect,
       saveProject: saveProjectDirect,
       savePromptItem: (item) => setStore((current) => updateEntityState(current, "promptItems", item)),
       saveDocument: (item) => setStore((current) => updateEntityState(current, "documents", item)),
@@ -1409,7 +1622,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       deleteTask: deleteTaskDirect,
       deleteNote: deleteNoteDirect,
       deleteCalendarItem: deleteCalendarDirect,
-      deleteContentItem: (id) => setStore((current) => deleteEntityState(current, "contentItems", id)),
+      deleteContentItem: deleteContentDirect,
       deleteProject: deleteProjectDirect,
       deletePromptItem: (id) => setStore((current) => deleteEntityState(current, "promptItems", id)),
       getBrandSpaceById: (id) => visibleState.brandSpaces.find((brand) => brand.id === id),
