@@ -95,6 +95,41 @@ function writeLocalFallback<T>(key: string, value: T) {
   }
 }
 
+function summarizePersistedValue(value: DashboardState | SyncOperation[] | PersistedMeta | null) {
+  if (!value) {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    return {
+      kind: "queue",
+      count: value.length,
+    };
+  }
+
+  if ("deviceId" in value) {
+    return {
+      kind: "meta",
+      deviceId: value.deviceId,
+      lastSyncedAt: value.lastSyncedAt,
+      brandStateVersion: value.brandStateVersion ?? null,
+    };
+  }
+
+  return {
+    kind: "state",
+    brands: value.brands.length,
+    brandSpaces: value.brandSpaces.length,
+    documents: value.documents.length,
+    tasks: value.tasks.length,
+    notes: value.notes.length,
+    calendarItems: value.calendarItems.length,
+    projects: value.projects.length,
+    contentItems: value.contentItems.length,
+    promptItems: value.promptItems.length,
+  };
+}
+
 export function nowIso() {
   return new Date().toISOString();
 }
@@ -351,11 +386,35 @@ export async function loadPersistedStore() {
     return null;
   }
 
+  const localFallbackState = readLocalFallback<DashboardState>(STATE_KEY);
+  const localFallbackQueue = readLocalFallback<SyncOperation[]>(QUEUE_KEY) ?? [];
+  const localFallbackMeta = readLocalFallback<PersistedMeta>(META_KEY);
+
+  console.log("[brands-runtime] persistence read on boot", {
+    source: "localStorage",
+    keys: [
+      `${LOCAL_FALLBACK_PREFIX}.${STATE_KEY}`,
+      `${LOCAL_FALLBACK_PREFIX}.${QUEUE_KEY}`,
+      `${LOCAL_FALLBACK_PREFIX}.${META_KEY}`,
+    ],
+    state: summarizePersistedValue(localFallbackState),
+    queue: summarizePersistedValue(localFallbackQueue),
+    meta: summarizePersistedValue(localFallbackMeta),
+  });
+
+  console.log("[brands-runtime] persistence read on boot", {
+    source: "sessionStorage",
+    keys: [],
+    state: null,
+    queue: null,
+    meta: null,
+  });
+
   if (!("indexedDB" in window)) {
     return {
-      state: readLocalFallback<DashboardState>(STATE_KEY),
-      queue: readLocalFallback<SyncOperation[]>(QUEUE_KEY) ?? [],
-      meta: readLocalFallback<PersistedMeta>(META_KEY),
+      state: localFallbackState,
+      queue: localFallbackQueue,
+      meta: localFallbackMeta,
     };
   }
 
@@ -367,6 +426,14 @@ export async function loadPersistedStore() {
       readFromStore<PersistedMeta>(database, META_STORE, META_KEY),
     ]);
 
+    console.log("[brands-runtime] persistence read on boot", {
+      source: "indexedDB",
+      keys: [STATE_KEY, QUEUE_KEY, META_KEY],
+      state: summarizePersistedValue(state),
+      queue: summarizePersistedValue(queue ?? []),
+      meta: summarizePersistedValue(meta),
+    });
+
     return {
       state,
       queue: queue ?? [],
@@ -374,9 +441,9 @@ export async function loadPersistedStore() {
     };
   } catch {
     return {
-      state: readLocalFallback<DashboardState>(STATE_KEY),
-      queue: readLocalFallback<SyncOperation[]>(QUEUE_KEY) ?? [],
-      meta: readLocalFallback<PersistedMeta>(META_KEY),
+      state: localFallbackState,
+      queue: localFallbackQueue,
+      meta: localFallbackMeta,
     };
   };
 }
