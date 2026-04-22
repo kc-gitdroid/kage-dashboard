@@ -79,11 +79,19 @@ type StoreSnapshot = {
 };
 
 const DashboardDataContext = createContext<DashboardDataContextValue | null>(null);
+
+function createTasklessState(state: DashboardState): DashboardState {
+  return {
+    ...state,
+    tasks: [],
+  };
+}
+
 function createBootstrapStore(): StoreSnapshot {
   const deviceId = createDeviceId();
   const meta = createInitialMeta(deviceId);
   return {
-    state: createInitialState(deviceId),
+    state: createTasklessState(createInitialState(deviceId)),
     queue: [],
     meta,
     hydrated: false,
@@ -291,7 +299,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
 
         setStore(
           withIndicator({
-            state: sortDashboardState(persisted.state),
+            state: sortDashboardState(createTasklessState(persisted.state)),
             queue: withoutTaskOperations(persisted.queue ?? []),
             meta: persisted.meta,
             hydrated: true,
@@ -345,6 +353,10 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await fetchHostedTasks();
+      console.log("[tasks-api] task list returned", {
+        count: response.tasks.length,
+        canonicalUpdatedAt: response.canonicalUpdatedAt,
+      });
       setStore((current) => {
         const tasks = mergeHostedTasksWithPending(current.state.tasks, response.tasks, pendingTaskMutationsRef.current);
         return withIndicator({
@@ -361,6 +373,9 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
   }
 
   async function createTaskOnServer(task: TaskItem) {
+    console.log("[tasks-api-client] create task request", {
+      taskId: task.id,
+    });
     const response = await fetch("/api/tasks", {
       method: "POST",
       headers: {
@@ -378,6 +393,9 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
   }
 
   async function updateTaskOnServer(task: TaskItem) {
+    console.log("[tasks-api-client] update task request", {
+      taskId: task.id,
+    });
     const response = await fetch("/api/tasks", {
       method: "PUT",
       headers: {
@@ -395,6 +413,9 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
   }
 
   async function removeTaskFromServer(id: string) {
+    console.log("[tasks-api-client] delete task request", {
+      taskId: id,
+    });
     const response = await fetch("/api/tasks", {
       method: "DELETE",
       headers: {
@@ -506,7 +527,12 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     setStore((current) => withIndicator(current, { syncState: "syncing" }));
 
     try {
-      const response = await syncWithServer(snapshot.state, snapshot.queue, {
+      const syncState = createTasklessState(snapshot.state);
+      console.log("[tasks-sync-bypassed] tasks excluded from sync reconciliation", {
+        localTaskCount: snapshot.state.tasks.length,
+        queuedTaskMutations: Array.from(pendingTaskMutationsRef.current.entries()),
+      });
+      const response = await syncWithServer(syncState, snapshot.queue, {
         ...snapshot.meta,
         lastSyncAttemptAt: nowIso(),
       });
