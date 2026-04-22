@@ -10,13 +10,18 @@ export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as {
       deviceId?: string;
+      syncMode?: "pull" | "push" | "bootstrap";
+      bootstrapAllowed?: boolean;
       operations?: SyncOperation[];
       state?: DashboardState;
     };
 
     console.log("[sync] /api/sync request body summary", {
       deviceId: body.deviceId ?? "unknown-device",
+      syncMode: body.syncMode ?? "unspecified",
+      bootstrapAllowed: body.bootstrapAllowed === true,
       operationCount: body.operations?.length ?? 0,
+      includesStateSnapshot: Boolean(body.state),
       operationIds: (body.operations ?? []).map((operation) => `${operation.entity}:${operation.recordId}`).slice(0, 25),
       stateSummary: {
         brands: body.state?.brands?.length ?? 0,
@@ -33,6 +38,8 @@ export async function POST(request: NextRequest) {
 
     const response = await processSyncRequest({
       deviceId: body.deviceId ?? "unknown-device",
+      syncMode: body.syncMode,
+      bootstrapAllowed: body.bootstrapAllowed === true,
       operations: body.operations ?? [],
       state: body.state,
     });

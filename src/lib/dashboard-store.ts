@@ -412,8 +412,14 @@ export async function syncWithServer(
   queue: SyncOperation[],
   meta: PersistedMeta,
 ): Promise<SyncResponse> {
+  const hasOperations = queue.length > 0;
+  const syncMode = hasOperations ? "push" : "pull";
+
   console.log("[sync-client] outgoing sync request", {
+    syncMode,
     outgoingMutationCount: queue.length,
+    includesStateSnapshot: false,
+    bootstrapAllowed: false,
     lastSyncedAt: meta.lastSyncedAt,
     stateSummary: summarizeState(state),
   });
@@ -430,8 +436,9 @@ export async function syncWithServer(
       },
       body: JSON.stringify({
         deviceId: meta.deviceId,
+        syncMode,
+        bootstrapAllowed: false,
         operations: queue,
-        state,
         lastSyncedAt: meta.lastSyncedAt,
         stateVersionHint: state.tasks.length + state.notes.length + state.calendarItems.length + state.contentItems.length,
       }),

@@ -48,11 +48,6 @@ function summarizeOperations(operations: SyncOperation[]) {
   };
 }
 
-function isCanonicalStateEmpty(state: DashboardState) {
-  const summary = summarizeState(ensureDashboardStateShape(state));
-  return Object.values(summary).every((count) => count === 0);
-}
-
 type PersistedCanonicalState = {
   state: DashboardState;
   conflictLog: SyncConflict[];
@@ -354,28 +349,60 @@ function applyOperation(
 
 export async function processSyncRequest(input: {
   deviceId: string;
+  syncMode?: "pull" | "push" | "bootstrap";
+  bootstrapAllowed?: boolean;
   operations: SyncOperation[];
   state?: DashboardState;
 }): Promise<SyncResponse> {
   const canonical = await readCanonicalState();
   const syncedAt = nowIso();
   const hasOperations = input.operations.length > 0;
-  const canonicalIsEmpty = isCanonicalStateEmpty(canonical.state);
-  const shouldMergeSnapshot = Boolean(input.state) && (hasOperations || canonicalIsEmpty);
-  let nextState = shouldMergeSnapshot ? mergeSnapshotState(canonical.state, input.state, syncedAt) : canonical.state;
+  const bootstrapAllowed = input.bootstrapAllowed === true;
+  const syncMode = input.syncMode ?? (hasOperations ? "push" : "pull");
+  const snapshotMergeAttempted = Boolean(input.state);
+  const snapshotMergeApplied = bootstrapAllowed && Boolean(input.state);
+  const snapshotMergeSkipReason = snapshotMergeApplied
+    ? null
+    : !snapshotMergeAttempted
+      ? "no-state-payload"
+      : !bootstrapAllowed
+        ? "bootstrap-not-allowed"
+        : "snapshot-not-applied";
+  let nextState = snapshotMergeApplied ? mergeSnapshotState(canonical.state, input.state, syncedAt) : canonical.state;
   const conflicts: SyncConflict[] = [];
   const acknowledgedOperationIds: string[] = [];
 
   logSyncDebug("Processing sync request", {
     deviceId: input.deviceId,
+    syncMode,
+    bootstrapAllowed,
     operationCount: input.operations.length,
     canonicalRevisionBeforeWrite: canonical.updatedAt,
     canonicalStateSummaryBeforeWrite: summarizeState(canonical.state),
-    snapshotMergeApplied: shouldMergeSnapshot,
-    snapshotMergeReason: shouldMergeSnapshot ? (hasOperations ? "operations-present" : "canonical-empty") : "pull-only",
+    snapshotMergeAttempted,
+    snapshotMergeApplied,
+    snapshotMergeSkipReason,
     incomingOperationSummary: summarizeOperations(input.operations),
     incomingStateSummary: summarizeState(ensureDashboardStateShape(input.state)),
   });
+
+  if (!hasOperations && !snapshotMergeApplied) {
+    logSyncDebug("Read-only sync request completed", {
+      deviceId: input.deviceId,
+      syncMode,
+      bootstrapAllowed,
+      canonicalRevisionReturned: canonical.updatedAt,
+      stateSummary: summarizeState(canonical.state),
+    });
+
+    return {
+      state: canonical.state,
+      acknowledgedOperationIds: [],
+      conflicts: [],
+      syncedAt,
+      canonicalUpdatedAt: canonical.updatedAt,
+    };
+  }
 
   const orderedOperations = [...input.operations].sort(
     (a, b) => new Date(a.enqueuedAt).getTime() - new Date(b.enqueuedAt).getTime(),
@@ -417,6 +444,8 @@ export async function processSyncRequest(input: {
 
   logSyncDebug("Canonical state prepared before write", {
     deviceId: input.deviceId,
+    syncMode,
+    bootstrapAllowed,
     canonicalRevisionBeforeWrite: canonical.updatedAt,
     canonicalStateSummaryBeforeWrite: summarizeState(canonical.state),
     mergedStateSummaryBeforeWrite: summarizeState(sortState(nextState)),
