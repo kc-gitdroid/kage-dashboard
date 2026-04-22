@@ -247,6 +247,14 @@ function preserveCollectionIfIncomingEmpty<T extends SyncableRecord>(currentItem
   return incomingItems.length === 0 && currentItems.length > 0 ? currentItems : incomingItems;
 }
 
+function preserveBootstrapBrands(currentState: DashboardState, incomingState: DashboardState): DashboardState {
+  return {
+    ...incomingState,
+    brands: preserveCollectionIfIncomingEmpty(currentState.brands, incomingState.brands),
+    brandSpaces: preserveCollectionIfIncomingEmpty(currentState.brandSpaces, incomingState.brandSpaces),
+  };
+}
+
 type HostedTaskResponse = {
   task?: TaskItem;
   tasks: TaskItem[];
@@ -430,6 +438,11 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         }
 
         if (!persisted?.state || !persisted.meta) {
+          console.log("[brands-runtime] initial load complete", {
+            source: "bootstrap-only",
+            brandsCount: storeRef.current.state.brands.length,
+            brandSpacesCount: storeRef.current.state.brandSpaces.length,
+          });
           setStore((current) =>
             withIndicator(
               {
@@ -441,9 +454,21 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        const hydratedState = sortDashboardState(
+          preserveBootstrapBrands(createBootstrapStore().state, createTasklessState(persisted.state)),
+        );
+
+        console.log("[brands-runtime] initial load complete", {
+          source: "persisted-hydration",
+          persistedBrandsCount: persisted.state.brands?.length ?? 0,
+          persistedBrandSpacesCount: persisted.state.brandSpaces?.length ?? 0,
+          brandsCountAfterHydration: hydratedState.brands.length,
+          brandSpacesCountAfterHydration: hydratedState.brandSpaces.length,
+        });
+
         setStore(
           withIndicator({
-            state: sortDashboardState(createTasklessState(persisted.state)),
+            state: hydratedState,
             queue: withoutTaskOperations(persisted.queue ?? []),
             meta: persisted.meta,
             hydrated: true,
@@ -1416,6 +1441,12 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         const previousStateSummary = summarizeState(current.state);
         const incomingStateSummary = summarizeState(incomingCanonicalState);
         const resultingStateSummary = summarizeState(state);
+        console.log("[brands-runtime] after sync apply", {
+          incomingBrandsCount: response.state.brands.length,
+          incomingBrandSpacesCount: response.state.brandSpaces.length,
+          brandsCountAfterApply: state.brands.length,
+          brandSpacesCountAfterApply: state.brandSpaces.length,
+        });
         const stateChanged =
           JSON.stringify(previousStateSummary) !== JSON.stringify(resultingStateSummary);
         const remoteApplyReason = (() => {

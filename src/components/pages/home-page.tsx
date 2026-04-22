@@ -565,6 +565,11 @@ export function HomePage() {
       };
     });
 
+  console.log("[brands-runtime] task form selector render", {
+    brandsCount: brands.length,
+    brandOptionCount: brands.length,
+  });
+
   const activeProjectRows = projects
     .filter((project) => project.status === "active")
     .sort((a, b) => {

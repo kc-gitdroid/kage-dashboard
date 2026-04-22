@@ -13,6 +13,12 @@ export function BrandsPage() {
   );
   const brandSpaceById = new Map(brandSpaces.map((brandSpace) => [brandSpace.id, brandSpace]));
 
+  console.log("[brands-runtime] brands page render", {
+    brandsCount: brands.length,
+    brandSpacesCount: brandSpaces.length,
+    renderedBrandCards: orderedBrands.length,
+  });
+
   return (
     <div className="space-y-5 md:space-y-6">
       <Panel
