@@ -14,6 +14,14 @@ import {
 const SYNC_FILE_PATH = join(process.cwd(), ".sync", "kage-dashboard-sync.json");
 const UPSTASH_KEY = "kage-dashboard:sync-state";
 
+function stripTasksFromState(state: Partial<DashboardState> | null | undefined): DashboardState {
+  const safeState = ensureDashboardStateShape(state);
+  return {
+    ...safeState,
+    tasks: [],
+  };
+}
+
 function isProductionRuntime() {
   return process.env.NODE_ENV === "production";
 }
@@ -65,7 +73,7 @@ function ensureCanonicalStateShape(
     typeof payload?.updatedAt === "string" && payload.updatedAt.length > 0 ? payload.updatedAt : nowIso();
 
   return {
-    state: sortState(ensureDashboardStateShape(payload?.state)),
+    state: sortState(stripTasksFromState(payload?.state)),
     conflictLog: ensureConflictLogShape(payload?.conflictLog),
     updatedAt: normalizedUpdatedAt,
   };
@@ -356,6 +364,7 @@ export async function processSyncRequest(input: {
 }): Promise<SyncResponse> {
   const canonical = await readCanonicalState();
   const syncedAt = nowIso();
+  const incomingState = stripTasksFromState(input.state);
   const hasOperations = input.operations.length > 0;
   const bootstrapAllowed = input.bootstrapAllowed === true;
   const syncMode = input.syncMode ?? (hasOperations ? "push" : "pull");
@@ -368,7 +377,7 @@ export async function processSyncRequest(input: {
       : !bootstrapAllowed
         ? "bootstrap-not-allowed"
         : "snapshot-not-applied";
-  let nextState = snapshotMergeApplied ? mergeSnapshotState(canonical.state, input.state, syncedAt) : canonical.state;
+  let nextState = snapshotMergeApplied ? mergeSnapshotState(canonical.state, incomingState, syncedAt) : canonical.state;
   const conflicts: SyncConflict[] = [];
   const acknowledgedOperationIds: string[] = [];
 
@@ -383,7 +392,7 @@ export async function processSyncRequest(input: {
     snapshotMergeApplied,
     snapshotMergeSkipReason,
     incomingOperationSummary: summarizeOperations(input.operations),
-    incomingStateSummary: summarizeState(ensureDashboardStateShape(input.state)),
+    incomingStateSummary: summarizeState(incomingState),
   });
 
   if (!hasOperations && !snapshotMergeApplied) {
@@ -409,6 +418,16 @@ export async function processSyncRequest(input: {
   );
 
   for (const operation of orderedOperations) {
+    if (operation.entity === "tasks") {
+      logSyncDebug("Ignoring task operation in generic sync store", {
+        deviceId: input.deviceId,
+        operationId: operation.id,
+        recordId: operation.recordId,
+      });
+      acknowledgedOperationIds.push(operation.id);
+      continue;
+    }
+
     const incoming = operation.payload as SyncableRecord;
     const taskCountBeforeApply = nextState.tasks.length;
     const currentCollection = ensureDashboardStateShape(nextState)[operation.entity] as SyncableRecord[];
