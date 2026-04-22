@@ -624,30 +624,32 @@ async function writeContentState(state: PersistedContentState) {
 function parseArgs(args: string[]) {
   return {
     includeContent: args.includes("--include-content"),
+    authoritativeBrands: args.includes("--authoritative-brands"),
   };
 }
 
 async function main() {
-  const { includeContent } = parseArgs(process.argv.slice(2));
+  const { includeContent, authoritativeBrands } = parseArgs(process.argv.slice(2));
   const syncState = await readSyncState();
   const currentBrands = syncState.state.brands;
   const currentBrandSpaces = syncState.state.brandSpaces;
 
-  const nextBrands = [...currentBrands];
-  const nextBrandSpaces = [...currentBrandSpaces];
-
   const seededBrands = withSeedMetadata(brandsSource);
   const seededBrandSpaces = withSeedMetadata(brandSpacesSource);
+  const nextBrands = authoritativeBrands ? [...seededBrands] : [...currentBrands];
+  const nextBrandSpaces = authoritativeBrands ? [...seededBrandSpaces] : [...currentBrandSpaces];
 
-  for (const brand of seededBrands) {
-    if (!nextBrands.some((item) => item.id === brand.id)) {
-      nextBrands.push(brand);
+  if (!authoritativeBrands) {
+    for (const brand of seededBrands) {
+      if (!nextBrands.some((item) => item.id === brand.id)) {
+        nextBrands.push(brand);
+      }
     }
-  }
 
-  for (const brandSpace of seededBrandSpaces) {
-    if (!nextBrandSpaces.some((item) => item.id === brandSpace.id)) {
-      nextBrandSpaces.push(brandSpace);
+    for (const brandSpace of seededBrandSpaces) {
+      if (!nextBrandSpaces.some((item) => item.id === brandSpace.id)) {
+        nextBrandSpaces.push(brandSpace);
+      }
     }
   }
 
@@ -691,6 +693,7 @@ async function main() {
   console.log(`Brands after: ${nextBrands.length}`);
   console.log(`BrandSpaces before: ${currentBrandSpaces.length}`);
   console.log(`BrandSpaces after: ${nextBrandSpaces.length}`);
+  console.log(`Authoritative brands restore: ${authoritativeBrands ? "yes" : "no"}`);
   console.log(`Content imported: ${contentImported}`);
   console.log(`Content skipped: ${contentSkipped}`);
   console.log(`Content import enabled: ${includeContent ? "yes" : "no"}`);
