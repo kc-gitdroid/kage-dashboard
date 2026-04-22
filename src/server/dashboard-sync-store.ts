@@ -499,6 +499,15 @@ export async function processSyncRequest(input: {
     conflictCount: conflicts.length,
   });
 
+  if (input.operations.some((operation) => operation.entity === "brands" || operation.entity === "brandSpaces")) {
+    logSyncDebug("Brand save counts written to storage", {
+      deviceId: input.deviceId,
+      brandsCountWritten: nextState.brands.length,
+      brandSpacesCountWritten: nextState.brandSpaces.length,
+      operationSummary: summarizeOperations(input.operations),
+    });
+  }
+
   const persisted: PersistedCanonicalState = {
     state: sortState(nextState),
     conflictLog: [...ensureConflictLogShape(canonical.conflictLog), ...conflicts].slice(-100),

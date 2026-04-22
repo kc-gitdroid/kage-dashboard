@@ -247,6 +247,25 @@ function preserveCollectionIfIncomingEmpty<T extends SyncableRecord>(currentItem
   return incomingItems.length === 0 && currentItems.length > 0 ? currentItems : incomingItems;
 }
 
+function mergeCollectionById<T extends SyncableRecord>(currentItems: T[], incomingItems: T[]) {
+  if (incomingItems.length === 0) {
+    return currentItems;
+  }
+
+  const merged = [...currentItems];
+
+  incomingItems.forEach((incomingItem) => {
+    const existingIndex = merged.findIndex((item) => item.id === incomingItem.id);
+    if (existingIndex === -1) {
+      merged.push(incomingItem);
+    } else {
+      merged[existingIndex] = incomingItem;
+    }
+  });
+
+  return merged;
+}
+
 function preserveBootstrapBrands(currentState: DashboardState, incomingState: DashboardState): DashboardState {
   return {
     ...incomingState,
@@ -1405,10 +1424,15 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         const preservedContentItems = current.state.contentItems;
         const queue = current.queue.filter((operation) => !response.acknowledgedOperationIds.includes(operation.id));
         const incomingCanonicalState = sortDashboardState(response.state);
-        const preservedBrands = preserveCollectionIfIncomingEmpty(current.state.brands, incomingCanonicalState.brands);
+        const savingBrand =
+          current.queue.some((operation) => operation.entity === "brands") ||
+          current.queue.some((operation) => operation.entity === "brandSpaces");
+        const mergedBrands = mergeCollectionById(current.state.brands, incomingCanonicalState.brands);
+        const mergedBrandSpaces = mergeCollectionById(current.state.brandSpaces, incomingCanonicalState.brandSpaces);
+        const preservedBrands = preserveCollectionIfIncomingEmpty(current.state.brands, mergedBrands);
         const preservedBrandSpaces = preserveCollectionIfIncomingEmpty(
           current.state.brandSpaces,
-          incomingCanonicalState.brandSpaces,
+          mergedBrandSpaces,
         );
         console.log("[tasks-source] ignored tasks from sync payload", {
           syncPayloadTaskCount: incomingCanonicalState.tasks.length,
@@ -1441,6 +1465,19 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         const previousStateSummary = summarizeState(current.state);
         const incomingStateSummary = summarizeState(incomingCanonicalState);
         const resultingStateSummary = summarizeState(state);
+        if (savingBrand) {
+          console.log("[brands-save] brands count after save response", {
+            incomingBrandsCount: response.state.brands.length,
+            incomingBrandSpacesCount: response.state.brandSpaces.length,
+            mergedBrandsCount: preservedBrands.length,
+            mergedBrandSpacesCount: preservedBrandSpaces.length,
+            canonicalUpdatedAt: response.canonicalUpdatedAt,
+          });
+          console.log("[brands-save] brands count after local state apply", {
+            brandsCount: state.brands.length,
+            brandSpacesCount: state.brandSpaces.length,
+          });
+        }
         console.log("[brands-runtime] after sync apply", {
           incomingBrandsCount: response.state.brands.length,
           incomingBrandSpacesCount: response.state.brandSpaces.length,
@@ -1659,8 +1696,24 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       saveProject: saveProjectDirect,
       savePromptItem: (item) => setStore((current) => updateEntityState(current, "promptItems", item)),
       saveDocument: (item) => setStore((current) => updateEntityState(current, "documents", item)),
-      saveBrand: (item) => setStore((current) => updateEntityState(current, "brands", item)),
-      saveBrandSpace: (item) => setStore((current) => updateEntityState(current, "brandSpaces", item)),
+      saveBrand: (item) =>
+        setStore((current) => {
+          console.log("[brands-save] brands count before save", {
+            brandsCount: current.state.brands.length,
+            brandSpacesCount: current.state.brandSpaces.length,
+            savedBrandId: item.id,
+          });
+          return updateEntityState(current, "brands", item);
+        }),
+      saveBrandSpace: (item) =>
+        setStore((current) => {
+          console.log("[brands-save] brands count before save", {
+            brandsCount: current.state.brands.length,
+            brandSpacesCount: current.state.brandSpaces.length,
+            savedBrandSpaceId: item.id,
+          });
+          return updateEntityState(current, "brandSpaces", item);
+        }),
       deleteTask: deleteTaskDirect,
       deleteNote: deleteNoteDirect,
       deleteCalendarItem: deleteCalendarDirect,
