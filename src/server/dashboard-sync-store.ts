@@ -21,6 +21,7 @@ function stripTasksFromState(state: Partial<DashboardState> | null | undefined):
     tasks: [],
     notes: [],
     calendarItems: [],
+    projects: [],
   };
 }
 
@@ -420,7 +421,12 @@ export async function processSyncRequest(input: {
   );
 
   for (const operation of orderedOperations) {
-    if (operation.entity === "tasks" || operation.entity === "notes" || operation.entity === "calendarItems") {
+    if (
+      operation.entity === "tasks" ||
+      operation.entity === "notes" ||
+      operation.entity === "calendarItems" ||
+      operation.entity === "projects"
+    ) {
       logSyncDebug("Ignoring direct-crud entity operation in generic sync store", {
         deviceId: input.deviceId,
         operationId: operation.id,

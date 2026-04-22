@@ -86,6 +86,7 @@ function createTasklessState(state: DashboardState): DashboardState {
     tasks: [],
     notes: [],
     calendarItems: [],
+    projects: [],
   };
 }
 
@@ -259,8 +260,20 @@ type HostedCalendarResponse = {
   canonicalUpdatedAt: string;
 };
 
+type HostedProjectResponse = {
+  project?: ProjectItem;
+  projects: ProjectItem[];
+  canonicalUpdatedAt: string;
+};
+
 function withoutTaskOperations(queue: SyncOperation[]) {
-  return queue.filter((operation) => operation.entity !== "tasks" && operation.entity !== "notes" && operation.entity !== "calendarItems");
+  return queue.filter(
+    (operation) =>
+      operation.entity !== "tasks" &&
+      operation.entity !== "notes" &&
+      operation.entity !== "calendarItems" &&
+      operation.entity !== "projects",
+  );
 }
 
 function mergeHostedTasksWithPending(localTasks: TaskItem[], hostedTasks: TaskItem[], pendingMutations: Map<string, "upsert" | "delete">) {
@@ -330,6 +343,31 @@ function mergeHostedCalendarWithPending(
   }).calendarItems;
 }
 
+function mergeHostedProjectsWithPending(
+  localItems: ProjectItem[],
+  hostedItems: ProjectItem[],
+  pendingMutations: Map<string, "upsert" | "delete">,
+) {
+  let nextItems = [...hostedItems];
+
+  localItems.forEach((item) => {
+    const pendingMutation = pendingMutations.get(item.id);
+
+    if (pendingMutation === "upsert") {
+      nextItems = updateCollection(nextItems, item);
+    }
+
+    if (pendingMutation === "delete") {
+      nextItems = nextItems.filter((entry) => entry.id !== item.id);
+    }
+  });
+
+  return sortDashboardState({
+    ...createInitialState("merge-projects"),
+    projects: nextItems,
+  }).projects;
+}
+
 export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<StoreSnapshot>(createBootstrapStore);
   const syncInFlightRef = useRef(false);
@@ -337,6 +375,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const pendingTaskMutationsRef = useRef(new Map<string, "upsert" | "delete">());
   const pendingNoteMutationsRef = useRef(new Map<string, "upsert" | "delete">());
   const pendingCalendarMutationsRef = useRef(new Map<string, "upsert" | "delete">());
+  const pendingProjectMutationsRef = useRef(new Map<string, "upsert" | "delete">());
 
   useEffect(() => {
     storeRef.current = store;
@@ -519,6 +558,46 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function fetchHostedProjects() {
+    const response = await fetch("/api/projects", {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Project fetch failed.");
+    }
+
+    return (await response.json()) as HostedProjectResponse;
+  }
+
+  async function refreshProjectsFromServer() {
+    if (!storeRef.current.hydrated) {
+      return;
+    }
+
+    try {
+      const response = await fetchHostedProjects();
+      setStore((current) => {
+        const projects = mergeHostedProjectsWithPending(
+          current.state.projects,
+          response.projects,
+          pendingProjectMutationsRef.current,
+        );
+        return withIndicator({
+          ...current,
+          state: sortDashboardState({
+            ...current.state,
+            projects,
+          }),
+        });
+      });
+    } catch {
+      // Keep current optimistic/local project view when hosted read fails.
+    }
+  }
+
   async function createTaskOnServer(task: TaskItem) {
     console.log("[tasks-api-client] create task request", {
       taskId: task.id,
@@ -679,6 +758,57 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
 
     return (await response.json()) as HostedCalendarResponse;
+  }
+
+  async function createProjectOnServer(project: ProjectItem) {
+    const response = await fetch("/api/projects", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ project }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Project create failed.");
+    }
+
+    return (await response.json()) as HostedProjectResponse;
+  }
+
+  async function updateProjectOnServer(project: ProjectItem) {
+    const response = await fetch("/api/projects", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ project }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Project update failed.");
+    }
+
+    return (await response.json()) as HostedProjectResponse;
+  }
+
+  async function removeProjectFromServer(id: string) {
+    const response = await fetch("/api/projects", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Project delete failed.");
+    }
+
+    return (await response.json()) as HostedProjectResponse;
   }
 
   function saveTaskDirect(item: TaskItem) {
@@ -927,6 +1057,86 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       });
   }
 
+  function saveProjectDirect(item: ProjectItem) {
+    const snapshot = storeRef.current;
+    const existing = snapshot.state.projects.find((entry) => entry.id === item.id);
+    const normalized = normalizeRecord(item, snapshot.meta.deviceId, existing) as ProjectItem;
+
+    pendingProjectMutationsRef.current.set(normalized.id, "upsert");
+
+    setStore((current) =>
+      withIndicator({
+        ...current,
+        state: sortDashboardState({
+          ...current.state,
+          projects: updateCollection(current.state.projects, normalized),
+        }),
+      }),
+    );
+
+    void (existing ? updateProjectOnServer(normalized) : createProjectOnServer(normalized))
+      .then((response) => {
+        pendingProjectMutationsRef.current.delete(normalized.id);
+        setStore((current) =>
+          withIndicator({
+            ...current,
+            state: sortDashboardState({
+              ...current.state,
+              projects: response.projects,
+            }),
+          }),
+        );
+      })
+      .catch(() => {
+        setStore((current) =>
+          withIndicator(current, {
+            syncState: "failed",
+            lastSyncError: "Project save failed.",
+          }),
+        );
+      })
+      .finally(() => {
+        void refreshProjectsFromServer();
+      });
+  }
+
+  function deleteProjectDirect(id: string) {
+    pendingProjectMutationsRef.current.set(id, "delete");
+    setStore((current) =>
+      withIndicator({
+        ...current,
+        state: sortDashboardState({
+          ...current.state,
+          projects: current.state.projects.filter((project) => project.id !== id),
+        }),
+      }),
+    );
+
+    void removeProjectFromServer(id)
+      .then((response) => {
+        pendingProjectMutationsRef.current.delete(id);
+        setStore((current) =>
+          withIndicator({
+            ...current,
+            state: sortDashboardState({
+              ...current.state,
+              projects: response.projects,
+            }),
+          }),
+        );
+      })
+      .catch(() => {
+        pendingProjectMutationsRef.current.delete(id);
+        void refreshProjectsFromServer();
+        setStore((current) =>
+          withIndicator(current, {
+            syncState: "failed",
+            lastSyncError: "Project delete failed.",
+          }),
+        );
+      });
+  }
+
   async function runSync() {
     const snapshot = storeRef.current;
 
@@ -957,6 +1167,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         const preservedTasks = current.state.tasks;
         const preservedNotes = current.state.notes;
         const preservedCalendarItems = current.state.calendarItems;
+        const preservedProjects = current.state.projects;
         const queue = current.queue.filter((operation) => !response.acknowledgedOperationIds.includes(operation.id));
         const incomingCanonicalState = sortDashboardState(response.state);
         console.log("[tasks-source] ignored tasks from sync payload", {
@@ -967,6 +1178,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         incomingCanonicalState.tasks = preservedTasks;
         incomingCanonicalState.notes = preservedNotes;
         incomingCanonicalState.calendarItems = preservedCalendarItems;
+        incomingCanonicalState.projects = preservedProjects;
         const previousRevision = current.meta.lastSyncedAt;
         const incomingRevision = response.canonicalUpdatedAt;
         const revisionComparison = compareIsoTimestamps(incomingRevision, previousRevision);
@@ -980,6 +1192,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           tasks: preservedTasks,
           notes: preservedNotes,
           calendarItems: preservedCalendarItems,
+          projects: preservedProjects,
         };
         const previousStateSummary = summarizeState(current.state);
         const incomingStateSummary = summarizeState(incomingCanonicalState);
@@ -1082,6 +1295,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     void refreshTasksFromServer();
     void refreshNotesFromServer();
     void refreshCalendarItemsFromServer();
+    void refreshProjectsFromServer();
   }, [store.hydrated]);
 
   useEffect(() => {
@@ -1106,6 +1320,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       void refreshTasksFromServer();
       void refreshNotesFromServer();
       void refreshCalendarItemsFromServer();
+      void refreshProjectsFromServer();
     }, 5000);
 
     return () => window.clearInterval(interval);
@@ -1118,6 +1333,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         void refreshTasksFromServer();
         void refreshNotesFromServer();
         void refreshCalendarItemsFromServer();
+        void refreshProjectsFromServer();
       }
     }
 
@@ -1126,6 +1342,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       void refreshTasksFromServer();
       void refreshNotesFromServer();
       void refreshCalendarItemsFromServer();
+      void refreshProjectsFromServer();
     }
 
     function onPageShow() {
@@ -1133,6 +1350,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       void refreshTasksFromServer();
       void refreshNotesFromServer();
       void refreshCalendarItemsFromServer();
+      void refreshProjectsFromServer();
     }
 
     function onOnline() {
@@ -1140,6 +1358,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       void refreshTasksFromServer();
       void refreshNotesFromServer();
       void refreshCalendarItemsFromServer();
+      void refreshProjectsFromServer();
     }
 
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -1182,7 +1401,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       saveNote: saveNoteDirect,
       saveCalendarItem: saveCalendarDirect,
       saveContentItem: (item) => setStore((current) => updateEntityState(current, "contentItems", item)),
-      saveProject: (item) => setStore((current) => updateEntityState(current, "projects", item)),
+      saveProject: saveProjectDirect,
       savePromptItem: (item) => setStore((current) => updateEntityState(current, "promptItems", item)),
       saveDocument: (item) => setStore((current) => updateEntityState(current, "documents", item)),
       saveBrand: (item) => setStore((current) => updateEntityState(current, "brands", item)),
@@ -1191,7 +1410,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       deleteNote: deleteNoteDirect,
       deleteCalendarItem: deleteCalendarDirect,
       deleteContentItem: (id) => setStore((current) => deleteEntityState(current, "contentItems", id)),
-      deleteProject: (id) => setStore((current) => deleteEntityState(current, "projects", id)),
+      deleteProject: deleteProjectDirect,
       deletePromptItem: (id) => setStore((current) => deleteEntityState(current, "promptItems", id)),
       getBrandSpaceById: (id) => visibleState.brandSpaces.find((brand) => brand.id === id),
       getProjectById: (id) => visibleState.projects.find((project) => project.id === id),
