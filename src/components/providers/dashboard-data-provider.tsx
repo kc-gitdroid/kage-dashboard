@@ -360,7 +360,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function persistTaskToServer(task: TaskItem) {
+  async function createTaskOnServer(task: TaskItem) {
     const response = await fetch("/api/tasks", {
       method: "POST",
       headers: {
@@ -372,6 +372,23 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(errorText || "Task save failed.");
+    }
+
+    return (await response.json()) as HostedTaskResponse;
+  }
+
+  async function updateTaskOnServer(task: TaskItem) {
+    const response = await fetch("/api/tasks", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ task }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Task update failed.");
     }
 
     return (await response.json()) as HostedTaskResponse;
@@ -410,7 +427,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       }),
     );
 
-    void persistTaskToServer(normalized as TaskItem)
+    void (existing ? updateTaskOnServer(normalized as TaskItem) : createTaskOnServer(normalized as TaskItem))
       .then((response) => {
         pendingTaskMutationsRef.current.delete(normalized.id);
         setStore((current) =>

@@ -16,18 +16,37 @@ export async function GET() {
   }
 }
 
+async function parseTaskBody(request: NextRequest) {
+  return (await request.json()) as { task?: TaskItem };
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as { task?: TaskItem };
+    const body = await parseTaskBody(request);
     if (!body.task?.id) {
-      return NextResponse.json({ error: "Task save failed.", message: "Task id is required." }, { status: 400 });
+      return NextResponse.json({ error: "Task create failed.", message: "Task id is required." }, { status: 400 });
     }
 
     const response = await upsertHostedTask(body.task);
     return NextResponse.json(response);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Task save failed.";
-    return NextResponse.json({ error: "Task save failed.", message }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Task create failed.";
+    return NextResponse.json({ error: "Task create failed.", message }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await parseTaskBody(request);
+    if (!body.task?.id) {
+      return NextResponse.json({ error: "Task update failed.", message: "Task id is required." }, { status: 400 });
+    }
+
+    const response = await upsertHostedTask(body.task);
+    return NextResponse.json(response);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Task update failed.";
+    return NextResponse.json({ error: "Task update failed.", message }, { status: 500 });
   }
 }
 
