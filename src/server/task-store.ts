@@ -100,7 +100,31 @@ async function readTasksFromUpstash(): Promise<PersistedTasksState | null> {
     return null;
   }
 
-  return ensureTasksStateShape(JSON.parse(payload.result) as Partial<PersistedTasksState>);
+  logTasksDebug("raw stored value before/after read", {
+    key: TASKS_UPSTASH_KEY,
+    rawType: typeof payload.result,
+    rawPreview: payload.result.slice(0, 240),
+  });
+
+  let normalizedPayload: unknown = payload.result;
+
+  if (typeof normalizedPayload === "string") {
+    try {
+      normalizedPayload = JSON.parse(normalizedPayload);
+    } catch {
+      normalizedPayload = null;
+    }
+  }
+
+  if (typeof normalizedPayload === "string") {
+    try {
+      normalizedPayload = JSON.parse(normalizedPayload);
+    } catch {
+      normalizedPayload = null;
+    }
+  }
+
+  return ensureTasksStateShape((normalizedPayload as Partial<PersistedTasksState> | null) ?? null);
 }
 
 async function writeTasksToUpstash(payload: PersistedTasksState) {
@@ -114,13 +138,20 @@ async function writeTasksToUpstash(payload: PersistedTasksState) {
     mode: "write",
   });
 
+  logTasksDebug("payload written", {
+    key: TASKS_UPSTASH_KEY,
+    count: payload.tasks.length,
+    updatedAt: payload.updatedAt,
+    payloadPreview: JSON.stringify(payload).slice(0, 240),
+  });
+
   const response = await fetch(`${config.url}/set/${encodeURIComponent(TASKS_UPSTASH_KEY)}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(JSON.stringify(payload)),
+    body: JSON.stringify(payload),
     cache: "no-store",
   });
 
