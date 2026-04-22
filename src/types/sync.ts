@@ -60,6 +60,7 @@ export type PersistedSyncMeta = {
   lastSyncedAt: string | null;
   lastSyncError: string | null;
   lastSyncAttemptAt: string | null;
+  brandStateVersion?: number;
 };
 
 export type SyncIndicatorState = {

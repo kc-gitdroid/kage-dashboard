@@ -62,6 +62,7 @@ export type PersistedMeta = {
   lastSyncedAt: string | null;
   lastSyncError: string | null;
   lastSyncAttemptAt: string | null;
+  brandStateVersion?: number;
 };
 
 type PersistedRecord<T> = {
@@ -467,6 +468,7 @@ export function createInitialMeta(deviceId: string): PersistedMeta {
     lastSyncedAt: null,
     lastSyncError: null,
     lastSyncAttemptAt: null,
+    brandStateVersion: 1,
   };
 }
 

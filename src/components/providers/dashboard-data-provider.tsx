@@ -79,6 +79,7 @@ type StoreSnapshot = {
 };
 
 const DashboardDataContext = createContext<DashboardDataContextValue | null>(null);
+const BRAND_STATE_PERSISTENCE_VERSION = 1;
 
 function createTasklessState(state: DashboardState): DashboardState {
   return {
@@ -477,13 +478,18 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        const shouldInvalidatePersistedBrandState =
+          persisted.meta.brandStateVersion !== BRAND_STATE_PERSISTENCE_VERSION;
         const localHydratedState = sortDashboardState(
-          preserveBootstrapBrands(createBootstrapStore().state, createTasklessState(persisted.state)),
+          shouldInvalidatePersistedBrandState
+            ? preserveBootstrapBrands(createBootstrapStore().state, createTasklessState(persisted.state))
+            : createTasklessState(persisted.state),
         );
 
         console.log("[brands-runtime] local persisted state on startup", {
           persistedBrandsCount: persisted.state.brands?.length ?? 0,
           persistedBrandSpacesCount: persisted.state.brandSpaces?.length ?? 0,
+          invalidatedPersistedBrandState: shouldInvalidatePersistedBrandState,
           brandsCountAfterHydration: localHydratedState.brands.length,
           brandSpacesCountAfterHydration: localHydratedState.brandSpaces.length,
         });
@@ -526,7 +532,10 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           withIndicator({
             state: startupState,
             queue: withoutTaskOperations(persisted.queue ?? []),
-            meta: persisted.meta,
+            meta: {
+              ...persisted.meta,
+              brandStateVersion: BRAND_STATE_PERSISTENCE_VERSION,
+            },
             hydrated: true,
             syncIndicator: {
               syncState: "idle",
