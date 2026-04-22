@@ -243,6 +243,10 @@ function summarizePendingQueue(queue: SyncOperation[]) {
   };
 }
 
+function preserveCollectionIfIncomingEmpty<T extends SyncableRecord>(currentItems: T[], incomingItems: T[]) {
+  return incomingItems.length === 0 && currentItems.length > 0 ? currentItems : incomingItems;
+}
+
 type HostedTaskResponse = {
   task?: TaskItem;
   tasks: TaskItem[];
@@ -1376,11 +1380,18 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         const preservedContentItems = current.state.contentItems;
         const queue = current.queue.filter((operation) => !response.acknowledgedOperationIds.includes(operation.id));
         const incomingCanonicalState = sortDashboardState(response.state);
+        const preservedBrands = preserveCollectionIfIncomingEmpty(current.state.brands, incomingCanonicalState.brands);
+        const preservedBrandSpaces = preserveCollectionIfIncomingEmpty(
+          current.state.brandSpaces,
+          incomingCanonicalState.brandSpaces,
+        );
         console.log("[tasks-source] ignored tasks from sync payload", {
           syncPayloadTaskCount: incomingCanonicalState.tasks.length,
           preservedTaskCount: preservedTasks.length,
           canonicalUpdatedAt: response.canonicalUpdatedAt,
         });
+        incomingCanonicalState.brands = preservedBrands;
+        incomingCanonicalState.brandSpaces = preservedBrandSpaces;
         incomingCanonicalState.tasks = preservedTasks;
         incomingCanonicalState.notes = preservedNotes;
         incomingCanonicalState.calendarItems = preservedCalendarItems;
