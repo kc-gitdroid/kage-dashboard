@@ -397,6 +397,9 @@ export async function processSyncRequest(input: {
   let nextState = snapshotMergeApplied ? mergeSnapshotState(canonical.state, incomingState, syncedAt) : canonical.state;
   const conflicts: SyncConflict[] = [];
   const acknowledgedOperationIds: string[] = [];
+  const includesBrandOperation = input.operations.some(
+    (operation) => operation.entity === "brands" || operation.entity === "brandSpaces",
+  );
 
   logSyncDebug("Processing sync request", {
     deviceId: input.deviceId,
@@ -411,6 +414,15 @@ export async function processSyncRequest(input: {
     incomingOperationSummary: summarizeOperations(input.operations),
     incomingStateSummary: summarizeState(incomingState),
   });
+
+  if (includesBrandOperation) {
+    logSyncDebug("Canonical brand count before brand save", {
+      deviceId: input.deviceId,
+      brandsCount: canonical.state.brands.length,
+      brandSpacesCount: canonical.state.brandSpaces.length,
+      canonicalRevisionBeforeWrite: canonical.updatedAt,
+    });
+  }
 
   if (!hasOperations && !snapshotMergeApplied) {
     logSyncDebug("Read-only sync request completed", {
@@ -512,7 +524,7 @@ export async function processSyncRequest(input: {
     conflictCount: conflicts.length,
   });
 
-  if (input.operations.some((operation) => operation.entity === "brands" || operation.entity === "brandSpaces")) {
+  if (includesBrandOperation) {
     logSyncDebug("Brand save counts written to storage", {
       deviceId: input.deviceId,
       brandsCountWritten: nextState.brands.length,
@@ -528,6 +540,16 @@ export async function processSyncRequest(input: {
   };
 
   await writeCanonicalState(persisted);
+
+  if (includesBrandOperation) {
+    const readBack = await readCanonicalState();
+    logSyncDebug("Canonical brand count after immediate readback", {
+      deviceId: input.deviceId,
+      brandsCount: readBack.state.brands.length,
+      brandSpacesCount: readBack.state.brandSpaces.length,
+      canonicalRevisionReadBack: readBack.updatedAt,
+    });
+  }
 
   logSyncDebug("Sync request completed", {
     deviceId: input.deviceId,
