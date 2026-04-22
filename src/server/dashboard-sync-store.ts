@@ -213,6 +213,26 @@ function createInitialCanonicalState(): PersistedCanonicalState {
   });
 }
 
+function getUpstashTargetFingerprint(url: string, key: string) {
+  try {
+    const parsed = new URL(url);
+    const pathParts = parsed.pathname.split("/").filter(Boolean);
+    const databaseId = pathParts.at(0) ?? null;
+
+    return {
+      hostname: parsed.hostname,
+      databaseId,
+      key,
+    };
+  } catch {
+    return {
+      hostname: "invalid-url",
+      databaseId: null,
+      key,
+    };
+  }
+}
+
 function getUpstashConfig() {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -226,6 +246,8 @@ function getUpstashConfig() {
   if (!url || !token) {
     return null;
   }
+
+  logSyncDebug("Upstash target fingerprint", getUpstashTargetFingerprint(url, UPSTASH_KEY));
 
   return { url, token };
 }

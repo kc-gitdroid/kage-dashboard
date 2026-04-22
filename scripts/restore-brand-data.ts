@@ -424,13 +424,45 @@ function isProductionRuntime() {
   return process.env.NODE_ENV === "production";
 }
 
+function getUpstashTargetFingerprint(url: string, key: string) {
+  try {
+    const parsed = new URL(url);
+    const pathParts = parsed.pathname.split("/").filter(Boolean);
+    const databaseId = pathParts.at(0) ?? null;
+
+    return {
+      hostname: parsed.hostname,
+      databaseId,
+      key,
+    };
+  } catch {
+    return {
+      hostname: "invalid-url",
+      databaseId: null,
+      key,
+    };
+  }
+}
+
+function readArgValue(args: string[], flag: string) {
+  const index = args.indexOf(flag);
+  if (index === -1) {
+    return undefined;
+  }
+
+  return args[index + 1];
+}
+
 function getUpstashConfig() {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const args = process.argv.slice(2);
+  const url = readArgValue(args, "--upstash-url") ?? process.env.UPSTASH_REDIS_REST_URL;
+  const token = readArgValue(args, "--upstash-token") ?? process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (!url || !token) {
     return null;
   }
+
+  console.log("[restore-brand-data] Upstash target fingerprint", getUpstashTargetFingerprint(url, SYNC_UPSTASH_KEY));
 
   return { url, token };
 }
@@ -639,11 +671,17 @@ function parseArgs(args: string[]) {
   return {
     includeContent: args.includes("--include-content"),
     authoritativeBrands: args.includes("--authoritative-brands"),
+    upstashUrl: readArgValue(args, "--upstash-url"),
+    upstashTokenProvided: Boolean(readArgValue(args, "--upstash-token")),
   };
 }
 
 async function main() {
-  const { includeContent, authoritativeBrands } = parseArgs(process.argv.slice(2));
+  const { includeContent, authoritativeBrands, upstashUrl, upstashTokenProvided } = parseArgs(process.argv.slice(2));
+  console.log("[restore-brand-data] restore target selection", {
+    explicitUpstashUrlProvided: Boolean(upstashUrl),
+    explicitUpstashTokenProvided: upstashTokenProvided,
+  });
   const syncState = await readSyncState();
   const currentBrands = syncState.state.brands;
   const currentBrandSpaces = syncState.state.brandSpaces;
