@@ -85,6 +85,7 @@ function createTasklessState(state: DashboardState): DashboardState {
     ...state,
     tasks: [],
     notes: [],
+    calendarItems: [],
   };
 }
 
@@ -252,8 +253,14 @@ type HostedNoteResponse = {
   canonicalUpdatedAt: string;
 };
 
+type HostedCalendarResponse = {
+  calendarItem?: CalendarItem;
+  calendarItems: CalendarItem[];
+  canonicalUpdatedAt: string;
+};
+
 function withoutTaskOperations(queue: SyncOperation[]) {
-  return queue.filter((operation) => operation.entity !== "tasks" && operation.entity !== "notes");
+  return queue.filter((operation) => operation.entity !== "tasks" && operation.entity !== "notes" && operation.entity !== "calendarItems");
 }
 
 function mergeHostedTasksWithPending(localTasks: TaskItem[], hostedTasks: TaskItem[], pendingMutations: Map<string, "upsert" | "delete">) {
@@ -298,12 +305,38 @@ function mergeHostedNotesWithPending(localNotes: NoteItem[], hostedNotes: NoteIt
   }).notes;
 }
 
+function mergeHostedCalendarWithPending(
+  localItems: CalendarItem[],
+  hostedItems: CalendarItem[],
+  pendingMutations: Map<string, "upsert" | "delete">,
+) {
+  let nextItems = [...hostedItems];
+
+  localItems.forEach((item) => {
+    const pendingMutation = pendingMutations.get(item.id);
+
+    if (pendingMutation === "upsert") {
+      nextItems = updateCollection(nextItems, item);
+    }
+
+    if (pendingMutation === "delete") {
+      nextItems = nextItems.filter((entry) => entry.id !== item.id);
+    }
+  });
+
+  return sortDashboardState({
+    ...createInitialState("merge-calendar"),
+    calendarItems: nextItems,
+  }).calendarItems;
+}
+
 export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<StoreSnapshot>(createBootstrapStore);
   const syncInFlightRef = useRef(false);
   const storeRef = useRef(store);
   const pendingTaskMutationsRef = useRef(new Map<string, "upsert" | "delete">());
   const pendingNoteMutationsRef = useRef(new Map<string, "upsert" | "delete">());
+  const pendingCalendarMutationsRef = useRef(new Map<string, "upsert" | "delete">());
 
   useEffect(() => {
     storeRef.current = store;
@@ -446,6 +479,46 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function fetchHostedCalendarItems() {
+    const response = await fetch("/api/calendar-items", {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Calendar fetch failed.");
+    }
+
+    return (await response.json()) as HostedCalendarResponse;
+  }
+
+  async function refreshCalendarItemsFromServer() {
+    if (!storeRef.current.hydrated) {
+      return;
+    }
+
+    try {
+      const response = await fetchHostedCalendarItems();
+      setStore((current) => {
+        const calendarItems = mergeHostedCalendarWithPending(
+          current.state.calendarItems,
+          response.calendarItems,
+          pendingCalendarMutationsRef.current,
+        );
+        return withIndicator({
+          ...current,
+          state: sortDashboardState({
+            ...current.state,
+            calendarItems,
+          }),
+        });
+      });
+    } catch {
+      // Keep current optimistic/local calendar view when hosted read fails.
+    }
+  }
+
   async function createTaskOnServer(task: TaskItem) {
     console.log("[tasks-api-client] create task request", {
       taskId: task.id,
@@ -555,6 +628,57 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
 
     return (await response.json()) as HostedNoteResponse;
+  }
+
+  async function createCalendarItemOnServer(calendarItem: CalendarItem) {
+    const response = await fetch("/api/calendar-items", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ calendarItem }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Calendar create failed.");
+    }
+
+    return (await response.json()) as HostedCalendarResponse;
+  }
+
+  async function updateCalendarItemOnServer(calendarItem: CalendarItem) {
+    const response = await fetch("/api/calendar-items", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ calendarItem }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Calendar update failed.");
+    }
+
+    return (await response.json()) as HostedCalendarResponse;
+  }
+
+  async function removeCalendarItemFromServer(id: string) {
+    const response = await fetch("/api/calendar-items", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Calendar delete failed.");
+    }
+
+    return (await response.json()) as HostedCalendarResponse;
   }
 
   function saveTaskDirect(item: TaskItem) {
@@ -723,6 +847,86 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       });
   }
 
+  function saveCalendarDirect(item: CalendarItem) {
+    const snapshot = storeRef.current;
+    const existing = snapshot.state.calendarItems.find((entry) => entry.id === item.id);
+    const normalized = normalizeRecord(item, snapshot.meta.deviceId, existing) as CalendarItem;
+
+    pendingCalendarMutationsRef.current.set(normalized.id, "upsert");
+
+    setStore((current) =>
+      withIndicator({
+        ...current,
+        state: sortDashboardState({
+          ...current.state,
+          calendarItems: updateCollection(current.state.calendarItems, normalized),
+        }),
+      }),
+    );
+
+    void (existing ? updateCalendarItemOnServer(normalized) : createCalendarItemOnServer(normalized))
+      .then((response) => {
+        pendingCalendarMutationsRef.current.delete(normalized.id);
+        setStore((current) =>
+          withIndicator({
+            ...current,
+            state: sortDashboardState({
+              ...current.state,
+              calendarItems: response.calendarItems,
+            }),
+          }),
+        );
+      })
+      .catch(() => {
+        setStore((current) =>
+          withIndicator(current, {
+            syncState: "failed",
+            lastSyncError: "Calendar save failed.",
+          }),
+        );
+      })
+      .finally(() => {
+        void refreshCalendarItemsFromServer();
+      });
+  }
+
+  function deleteCalendarDirect(id: string) {
+    pendingCalendarMutationsRef.current.set(id, "delete");
+    setStore((current) =>
+      withIndicator({
+        ...current,
+        state: sortDashboardState({
+          ...current.state,
+          calendarItems: current.state.calendarItems.filter((item) => item.id !== id),
+        }),
+      }),
+    );
+
+    void removeCalendarItemFromServer(id)
+      .then((response) => {
+        pendingCalendarMutationsRef.current.delete(id);
+        setStore((current) =>
+          withIndicator({
+            ...current,
+            state: sortDashboardState({
+              ...current.state,
+              calendarItems: response.calendarItems,
+            }),
+          }),
+        );
+      })
+      .catch(() => {
+        pendingCalendarMutationsRef.current.delete(id);
+        void refreshCalendarItemsFromServer();
+        setStore((current) =>
+          withIndicator(current, {
+            syncState: "failed",
+            lastSyncError: "Calendar delete failed.",
+          }),
+        );
+      });
+  }
+
   async function runSync() {
     const snapshot = storeRef.current;
 
@@ -752,6 +956,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       setStore((current) => {
         const preservedTasks = current.state.tasks;
         const preservedNotes = current.state.notes;
+        const preservedCalendarItems = current.state.calendarItems;
         const queue = current.queue.filter((operation) => !response.acknowledgedOperationIds.includes(operation.id));
         const incomingCanonicalState = sortDashboardState(response.state);
         console.log("[tasks-source] ignored tasks from sync payload", {
@@ -761,6 +966,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         });
         incomingCanonicalState.tasks = preservedTasks;
         incomingCanonicalState.notes = preservedNotes;
+        incomingCanonicalState.calendarItems = preservedCalendarItems;
         const previousRevision = current.meta.lastSyncedAt;
         const incomingRevision = response.canonicalUpdatedAt;
         const revisionComparison = compareIsoTimestamps(incomingRevision, previousRevision);
@@ -773,6 +979,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           ...markStateSynced(mergedState, response.syncedAt, queue),
           tasks: preservedTasks,
           notes: preservedNotes,
+          calendarItems: preservedCalendarItems,
         };
         const previousStateSummary = summarizeState(current.state);
         const incomingStateSummary = summarizeState(incomingCanonicalState);
@@ -874,6 +1081,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     void runSync();
     void refreshTasksFromServer();
     void refreshNotesFromServer();
+    void refreshCalendarItemsFromServer();
   }, [store.hydrated]);
 
   useEffect(() => {
@@ -897,6 +1105,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       void runSync();
       void refreshTasksFromServer();
       void refreshNotesFromServer();
+      void refreshCalendarItemsFromServer();
     }, 5000);
 
     return () => window.clearInterval(interval);
@@ -908,6 +1117,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         void runSync();
         void refreshTasksFromServer();
         void refreshNotesFromServer();
+        void refreshCalendarItemsFromServer();
       }
     }
 
@@ -915,18 +1125,21 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       void runSync();
       void refreshTasksFromServer();
       void refreshNotesFromServer();
+      void refreshCalendarItemsFromServer();
     }
 
     function onPageShow() {
       void runSync();
       void refreshTasksFromServer();
       void refreshNotesFromServer();
+      void refreshCalendarItemsFromServer();
     }
 
     function onOnline() {
       void runSync();
       void refreshTasksFromServer();
       void refreshNotesFromServer();
+      void refreshCalendarItemsFromServer();
     }
 
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -967,7 +1180,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       syncNow: runSync,
       saveTask: saveTaskDirect,
       saveNote: saveNoteDirect,
-      saveCalendarItem: (item) => setStore((current) => updateEntityState(current, "calendarItems", item)),
+      saveCalendarItem: saveCalendarDirect,
       saveContentItem: (item) => setStore((current) => updateEntityState(current, "contentItems", item)),
       saveProject: (item) => setStore((current) => updateEntityState(current, "projects", item)),
       savePromptItem: (item) => setStore((current) => updateEntityState(current, "promptItems", item)),
@@ -976,7 +1189,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       saveBrandSpace: (item) => setStore((current) => updateEntityState(current, "brandSpaces", item)),
       deleteTask: deleteTaskDirect,
       deleteNote: deleteNoteDirect,
-      deleteCalendarItem: (id) => setStore((current) => deleteEntityState(current, "calendarItems", id)),
+      deleteCalendarItem: deleteCalendarDirect,
       deleteContentItem: (id) => setStore((current) => deleteEntityState(current, "contentItems", id)),
       deleteProject: (id) => setStore((current) => deleteEntityState(current, "projects", id)),
       deletePromptItem: (id) => setStore((current) => deleteEntityState(current, "promptItems", id)),
