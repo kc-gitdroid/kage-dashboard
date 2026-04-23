@@ -3,7 +3,7 @@ import { BrandId, ProjectStatus, SyncMetadata } from "@/types/common";
 export interface ProjectItem extends SyncMetadata {
   id: string;
   title: string;
-  brandId: BrandId;
+  brandId?: BrandId;
   goal: string;
   startDate: string;
   dueDate?: string;
