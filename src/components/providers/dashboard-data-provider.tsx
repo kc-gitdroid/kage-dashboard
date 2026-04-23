@@ -89,6 +89,7 @@ function createTasklessState(state: DashboardState): DashboardState {
     calendarItems: [],
     projects: [],
     contentItems: [],
+    promptItems: [],
   };
 }
 
@@ -309,6 +310,12 @@ type HostedContentResponse = {
   canonicalUpdatedAt: string;
 };
 
+type HostedPromptResponse = {
+  promptItem?: PromptItem;
+  promptItems: PromptItem[];
+  canonicalUpdatedAt: string;
+};
+
 function withoutTaskOperations(queue: SyncOperation[]) {
   return queue.filter(
     (operation) =>
@@ -316,7 +323,8 @@ function withoutTaskOperations(queue: SyncOperation[]) {
       operation.entity !== "notes" &&
       operation.entity !== "calendarItems" &&
       operation.entity !== "projects" &&
-      operation.entity !== "contentItems",
+      operation.entity !== "contentItems" &&
+      operation.entity !== "promptItems",
   );
 }
 
@@ -437,6 +445,31 @@ function mergeHostedContentWithPending(
   }).contentItems;
 }
 
+function mergeHostedPromptsWithPending(
+  localItems: PromptItem[],
+  hostedItems: PromptItem[],
+  pendingMutations: Map<string, "upsert" | "delete">,
+) {
+  let nextItems = [...hostedItems];
+
+  localItems.forEach((item) => {
+    const pendingMutation = pendingMutations.get(item.id);
+
+    if (pendingMutation === "upsert") {
+      nextItems = updateCollection(nextItems, item);
+    }
+
+    if (pendingMutation === "delete") {
+      nextItems = nextItems.filter((entry) => entry.id !== item.id);
+    }
+  });
+
+  return sortDashboardState({
+    ...createInitialState("merge-prompts"),
+    promptItems: nextItems,
+  }).promptItems;
+}
+
 export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<StoreSnapshot>(createBootstrapStore);
   const syncInFlightRef = useRef(false);
@@ -446,6 +479,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const pendingCalendarMutationsRef = useRef(new Map<string, "upsert" | "delete">());
   const pendingProjectMutationsRef = useRef(new Map<string, "upsert" | "delete">());
   const pendingContentMutationsRef = useRef(new Map<string, "upsert" | "delete">());
+  const pendingPromptMutationsRef = useRef(new Map<string, "upsert" | "delete">());
 
   useEffect(() => {
     storeRef.current = store;
@@ -740,6 +774,20 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     return (await response.json()) as HostedContentResponse;
   }
 
+  async function fetchHostedPrompts() {
+    const response = await fetch("/api/prompts", {
+      method: "GET",
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Prompt fetch failed.");
+    }
+
+    return (await response.json()) as HostedPromptResponse;
+  }
+
   async function refreshContentItemsFromServer() {
     if (!storeRef.current.hydrated) {
       return;
@@ -763,6 +811,32 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       });
     } catch {
       // Keep current optimistic/local content view when hosted read fails.
+    }
+  }
+
+  async function refreshPromptsFromServer() {
+    if (!storeRef.current.hydrated) {
+      return;
+    }
+
+    try {
+      const response = await fetchHostedPrompts();
+      setStore((current) => {
+        const promptItems = mergeHostedPromptsWithPending(
+          current.state.promptItems,
+          response.promptItems,
+          pendingPromptMutationsRef.current,
+        );
+        return withIndicator({
+          ...current,
+          state: sortDashboardState({
+            ...current.state,
+            promptItems,
+          }),
+        });
+      });
+    } catch {
+      // Keep current optimistic/local prompt view when hosted read fails.
     }
   }
 
@@ -1028,6 +1102,57 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
 
     return (await response.json()) as HostedContentResponse;
+  }
+
+  async function createPromptOnServer(promptItem: PromptItem) {
+    const response = await fetch("/api/prompts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ promptItem }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Prompt create failed.");
+    }
+
+    return (await response.json()) as HostedPromptResponse;
+  }
+
+  async function updatePromptOnServer(promptItem: PromptItem) {
+    const response = await fetch("/api/prompts", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ promptItem }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Prompt update failed.");
+    }
+
+    return (await response.json()) as HostedPromptResponse;
+  }
+
+  async function removePromptFromServer(id: string) {
+    const response = await fetch("/api/prompts", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Prompt delete failed.");
+    }
+
+    return (await response.json()) as HostedPromptResponse;
   }
 
   function saveTaskDirect(item: TaskItem) {
@@ -1436,6 +1561,86 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       });
   }
 
+  function savePromptDirect(item: PromptItem) {
+    const snapshot = storeRef.current;
+    const existing = snapshot.state.promptItems.find((entry) => entry.id === item.id);
+    const normalized = normalizeRecord(item, snapshot.meta.deviceId, existing) as PromptItem;
+
+    pendingPromptMutationsRef.current.set(normalized.id, "upsert");
+
+    setStore((current) =>
+      withIndicator({
+        ...current,
+        state: sortDashboardState({
+          ...current.state,
+          promptItems: updateCollection(current.state.promptItems, normalized),
+        }),
+      }),
+    );
+
+    void (existing ? updatePromptOnServer(normalized) : createPromptOnServer(normalized))
+      .then((response) => {
+        pendingPromptMutationsRef.current.delete(normalized.id);
+        setStore((current) =>
+          withIndicator({
+            ...current,
+            state: sortDashboardState({
+              ...current.state,
+              promptItems: response.promptItems,
+            }),
+          }),
+        );
+      })
+      .catch(() => {
+        setStore((current) =>
+          withIndicator(current, {
+            syncState: "failed",
+            lastSyncError: "Prompt save failed.",
+          }),
+        );
+      })
+      .finally(() => {
+        void refreshPromptsFromServer();
+      });
+  }
+
+  function deletePromptDirect(id: string) {
+    pendingPromptMutationsRef.current.set(id, "delete");
+    setStore((current) =>
+      withIndicator({
+        ...current,
+        state: sortDashboardState({
+          ...current.state,
+          promptItems: current.state.promptItems.filter((item) => item.id !== id),
+        }),
+      }),
+    );
+
+    void removePromptFromServer(id)
+      .then((response) => {
+        pendingPromptMutationsRef.current.delete(id);
+        setStore((current) =>
+          withIndicator({
+            ...current,
+            state: sortDashboardState({
+              ...current.state,
+              promptItems: response.promptItems,
+            }),
+          }),
+        );
+      })
+      .catch(() => {
+        pendingPromptMutationsRef.current.delete(id);
+        void refreshPromptsFromServer();
+        setStore((current) =>
+          withIndicator(current, {
+            syncState: "failed",
+            lastSyncError: "Prompt delete failed.",
+          }),
+        );
+      });
+  }
+
   async function runSync() {
     const snapshot = storeRef.current;
 
@@ -1468,6 +1673,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         const preservedCalendarItems = current.state.calendarItems;
         const preservedProjects = current.state.projects;
         const preservedContentItems = current.state.contentItems;
+        const preservedPromptItems = current.state.promptItems;
         const queue = current.queue.filter((operation) => !response.acknowledgedOperationIds.includes(operation.id));
         const incomingCanonicalState = sortDashboardState(response.state);
         const savingBrand =
@@ -1492,6 +1698,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         incomingCanonicalState.calendarItems = preservedCalendarItems;
         incomingCanonicalState.projects = preservedProjects;
         incomingCanonicalState.contentItems = preservedContentItems;
+        incomingCanonicalState.promptItems = preservedPromptItems;
         const previousRevision = current.meta.lastSyncedAt;
         const incomingRevision = response.canonicalUpdatedAt;
         const revisionComparison = compareIsoTimestamps(incomingRevision, previousRevision);
@@ -1507,6 +1714,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
           calendarItems: preservedCalendarItems,
           projects: preservedProjects,
           contentItems: preservedContentItems,
+          promptItems: preservedPromptItems,
         };
         const previousStateSummary = summarizeState(current.state);
         const incomingStateSummary = summarizeState(incomingCanonicalState);
@@ -1640,6 +1848,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     void refreshCalendarItemsFromServer();
     void refreshProjectsFromServer();
     void refreshContentItemsFromServer();
+    void refreshPromptsFromServer();
   }, [store.hydrated]);
 
   useEffect(() => {
@@ -1666,6 +1875,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       void refreshCalendarItemsFromServer();
       void refreshProjectsFromServer();
       void refreshContentItemsFromServer();
+      void refreshPromptsFromServer();
     }, 5000);
 
     return () => window.clearInterval(interval);
@@ -1680,6 +1890,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
         void refreshCalendarItemsFromServer();
         void refreshProjectsFromServer();
         void refreshContentItemsFromServer();
+        void refreshPromptsFromServer();
       }
     }
 
@@ -1690,6 +1901,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       void refreshCalendarItemsFromServer();
       void refreshProjectsFromServer();
       void refreshContentItemsFromServer();
+      void refreshPromptsFromServer();
     }
 
     function onPageShow() {
@@ -1699,6 +1911,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       void refreshCalendarItemsFromServer();
       void refreshProjectsFromServer();
       void refreshContentItemsFromServer();
+      void refreshPromptsFromServer();
     }
 
     function onOnline() {
@@ -1750,7 +1963,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       saveCalendarItem: saveCalendarDirect,
       saveContentItem: saveContentDirect,
       saveProject: saveProjectDirect,
-      savePromptItem: (item) => setStore((current) => updateEntityState(current, "promptItems", item)),
+      savePromptItem: savePromptDirect,
       saveDocument: (item) => setStore((current) => updateEntityState(current, "documents", item)),
       saveBrand: (item) =>
         setStore((current) => {
@@ -1777,7 +1990,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       deleteCalendarItem: deleteCalendarDirect,
       deleteContentItem: deleteContentDirect,
       deleteProject: deleteProjectDirect,
-      deletePromptItem: (id) => setStore((current) => deleteEntityState(current, "promptItems", id)),
+      deletePromptItem: deletePromptDirect,
       getBrandSpaceById: (id) => visibleState.brandSpaces.find((brand) => brand.id === id),
       getProjectById: (id) => visibleState.projects.find((project) => project.id === id),
     };
