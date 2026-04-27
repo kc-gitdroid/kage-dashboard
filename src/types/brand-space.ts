@@ -60,16 +60,36 @@ export interface ContentSeries {
   id: string;
   order?: number;
   name: string;
+  title?: string;
   description?: string;
   pillarId?: string;
+  relatedPillarIds?: string[];
+  episodeStructure?: string;
+  productLogic?: string;
+  format?: string;
   active?: boolean;
+}
+
+export interface ContentPillarRotationItem {
+  postNumber?: number;
+  pillarId?: string;
+  format?: string;
+  direction?: string;
+}
+
+export interface ContentRules {
+  productRole?: string;
+  captionRules?: string;
+  visualRules?: string;
+  postingRules?: string;
+  avoid?: string;
 }
 
 export interface BrandContentSystem {
   contentPillars?: ContentPillar[];
   contentSeries?: ContentSeries[];
-  pillarRotation?: string[];
-  contentRules?: string[];
+  pillarRotation?: Array<string | ContentPillarRotationItem>;
+  contentRules?: string[] | ContentRules;
 }
 
 export interface ContentConcept {
