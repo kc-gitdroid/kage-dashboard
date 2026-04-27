@@ -8,4 +8,11 @@ export interface PromptItem extends SyncMetadata {
   body: string;
   status: Status;
   updatedAt: string;
+  platform?: string;
+  type?: string;
+  promptBody?: string;
+  resultNotes?: string;
+  bestVersion?: boolean;
+  linkedContentConceptIds?: string[];
+  linkedScheduledPostIds?: string[];
 }

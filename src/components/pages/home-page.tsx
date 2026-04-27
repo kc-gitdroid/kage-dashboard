@@ -312,6 +312,7 @@ export function HomePage() {
     notes,
     calendarItems,
     contentItems,
+    promptItems,
     saveTask,
     saveNote,
     saveCalendarItem,
@@ -520,16 +521,87 @@ export function HomePage() {
     .sort((a, b) => a.sortTime - b.sortTime)
     .slice(0, 6);
 
+  const allBrandActions = brandSpaces.flatMap((brand) => {
+    const structuredActions = brand.actions ?? [];
+    const actions = structuredActions.length > 0
+      ? structuredActions
+      : brand.tasks.map((task, index) => ({
+          id: `legacy-action-${brand.id}-${index}`,
+          brandId: brand.id,
+          title: task,
+          status: "Next",
+          linkedItemType: "Brand",
+          linkedItemId: brand.id,
+          nextMove: "",
+          dueDate: undefined,
+        }));
+
+    return actions.map((action) => ({ ...action, brand }));
+  });
+  const todaysActions = allBrandActions
+    .filter((item) => {
+      const dueToday = item.dueDate ? startOfDay(new Date(item.dueDate)).getTime() === todayStart.getTime() : false;
+      return item.status === "Next" || dueToday;
+    })
+    .slice(0, 6);
+  const publishingThisWeek = brandSpaces
+    .flatMap((brand) =>
+      (brand.publishingCalendar ?? []).map((post) => ({
+        ...post,
+        brand,
+        pillar: brand.contentSystem?.contentPillars?.find((pillar) => pillar.id === post.pillarId),
+      })),
+    )
+    .filter((post) => {
+      const date = startOfDay(new Date(post.date));
+      return date >= todayStart && date < nextWeekEnd;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 6);
+  const recentPromptRows = [...promptItems]
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 5);
+  const recentThinkingRows = brandSpaces
+    .flatMap((brand) => (brand.thinking ?? []).map((item) => ({ ...item, brand })))
+    .sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() - new Date(a.updatedAt ?? a.createdAt ?? 0).getTime())
+    .slice(0, 5);
+
   const brandSnapshots = [...brandSpaces]
     .sort((a, b) => brandWorkspaceOrder.indexOf(a.id) - brandWorkspaceOrder.indexOf(b.id))
     .map((brand) => {
     const activeProjectCount = projects.filter((project) => project.brandId === brand.id && project.status === "active").length;
-    const openTaskCount = tasks.filter((task) => task.brandId === brand.id && task.status !== "completed").length;
-    const scheduledContentCount = contentItems.filter(
+    const activeActionCount =
+      (brand.actions ?? []).filter((action) => action.status !== "Done").length ||
+      tasks.filter((task) => task.brandId === brand.id && task.status !== "completed").length ||
+      brand.tasks.length;
+    const upcomingScheduledPosts = (brand.publishingCalendar ?? []).filter((post) => {
+      const date = startOfDay(new Date(post.date));
+      return date >= todayStart && date < nextWeekEnd;
+    }).length;
+    const scheduledContentCount = upcomingScheduledPosts || contentItems.filter(
       (item) => item.brandId === brand.id && item.status === "scheduled" && item.scheduleDate,
     ).length;
+    const recentActivityCount =
+      promptItems.filter((prompt) => prompt.brandId === brand.id).length +
+      (brand.thinking ?? []).length;
 
     const nextCandidates: BrandSnapshotRow[] = [
+      ...(brand.actions ?? [])
+        .filter((action) => action.status !== "Done")
+        .map((action) => ({
+          id: action.id,
+          label: action.title,
+          timing: action.dueDate ? `Action / Due ${formatRelativeDay(action.dueDate, today)}` : `Action / ${action.status ?? "Next"}`,
+          sortTime: action.dueDate ? new Date(action.dueDate).getTime() : todayStart.getTime(),
+        })),
+      ...(brand.publishingCalendar ?? [])
+        .filter((post) => new Date(post.date) >= todayStart)
+        .map((post) => ({
+          id: post.id,
+          label: post.title,
+          timing: `Publishing / ${formatMonthDay(post.date)}`,
+          sortTime: new Date(post.date).getTime(),
+        })),
       ...tasks
         .filter((task) => task.brandId === brand.id && task.status !== "completed")
         .map((task) => ({
@@ -559,8 +631,9 @@ export function HomePage() {
       return {
         ...brand,
         activeProjectCount,
-        openTaskCount,
+        openTaskCount: activeActionCount,
         scheduledContentCount,
+        recentActivityCount,
         nextPriority: nextCandidates[0],
       };
     });
@@ -870,6 +943,38 @@ export function HomePage() {
           </Panel>
 
           <Panel
+            eyebrow="Home / Actions"
+            title="Today’s Actions"
+            subtitle="Next moves from brand workspaces, including legacy task lines when structured actions are not available yet."
+            accent="yellow"
+          >
+            <div className="space-y-3">
+              {todaysActions.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => router.push(`/brands/${item.brand.id}`)}
+                  className="w-full rounded-2xl border border-white/6 bg-black/10 p-4 text-left transition hover:border-white/12"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <p className="text-sm font-medium text-ink">{item.title}</p>
+                    <BrandPill color={item.brand.color}>{item.brand.shortName}</BrandPill>
+                  </div>
+                  <p className="mt-2 text-sm text-mute">{item.nextMove || item.linkedItemType || "Brand action"}</p>
+                  <p className="mt-2 font-display text-[10px] uppercase tracking-[0.18em] text-mute">
+                    {item.status ?? "Next"}{item.dueDate ? ` / Due ${formatMonthDay(item.dueDate)}` : ""}
+                  </p>
+                </button>
+              ))}
+              {todaysActions.length === 0 ? (
+                <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
+                  No next actions are marked for today.
+                </div>
+              ) : null}
+            </div>
+          </Panel>
+
+          <Panel
             eyebrow="Home / Brand Snapshot"
             title="Brand Snapshot"
             subtitle="What matters across AAI, Masteryatelier, Massiveoutfit / MO Studio, Personal, and biro at a glance."
@@ -900,14 +1005,17 @@ export function HomePage() {
                       <p className="mt-2 text-lg font-medium leading-none text-ink">{brand.activeProjectCount}</p>
                     </div>
                     <div className="rounded-xl border border-white/6 bg-black/10 px-3 py-3 text-right">
-                      <p className="ui-micro-label min-h-[1.8rem] leading-tight">Open Tasks</p>
+                      <p className="ui-micro-label min-h-[1.8rem] leading-tight">Actions</p>
                       <p className="mt-2 text-lg font-medium leading-none text-ink">{brand.openTaskCount}</p>
                     </div>
                     <div className="rounded-xl border border-white/6 bg-black/10 px-3 py-3 text-right">
-                      <p className="ui-micro-label min-h-[1.8rem] leading-tight">Scheduled</p>
+                      <p className="ui-micro-label min-h-[1.8rem] leading-tight">Posts</p>
                       <p className="mt-2 text-lg font-medium leading-none text-ink">{brand.scheduledContentCount}</p>
                     </div>
                   </div>
+                  {brand.recentActivityCount > 0 ? (
+                    <p className="mt-3 text-right text-xs text-mute">{brand.recentActivityCount} prompt/thinking records</p>
+                  ) : null}
 
                   <div className="mt-4 rounded-xl border border-white/6 bg-black/10 px-3 py-3">
                     <p className="ui-micro-label">Next Priority</p>
@@ -961,6 +1069,44 @@ export function HomePage() {
               </div>
             )}
           </div>
+          </Panel>
+
+          <Panel
+            eyebrow="Home / Publishing"
+            title="Publishing This Week"
+            subtitle="Scheduled brand posts from the publishing calendars across all workspaces."
+            accent="lime"
+          >
+            <div className="space-y-3">
+              {publishingThisWeek.map((post) => (
+                <button
+                  key={post.id}
+                  type="button"
+                  onClick={() => router.push(`/brands/${post.brand.id}#publishing-calendar`)}
+                  className="w-full rounded-2xl border border-white/6 bg-black/10 p-4 text-left transition hover:border-white/12"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <p className="text-sm font-medium text-ink">{post.title}</p>
+                    <BrandPill color={post.brand.color}>{post.brand.shortName}</BrandPill>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{formatMonthDay(post.date)}</span>
+                    <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{post.status ?? "Scheduled"}</span>
+                    {post.pillar ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: post.pillar.color }} />
+                        {post.pillar.name}
+                      </span>
+                    ) : null}
+                  </div>
+                </button>
+              ))}
+              {publishingThisWeek.length === 0 ? (
+                <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
+                  No brand publishing posts are scheduled in the next 7 days.
+                </div>
+              ) : null}
+            </div>
           </Panel>
 
           <Panel
@@ -1029,6 +1175,58 @@ export function HomePage() {
               </div>
             )}
           </div>
+          </Panel>
+
+          <Panel eyebrow="Home / Prompts" title="Recent Prompts" subtitle="Recently updated prompt records across brands.">
+            <div className="space-y-3">
+              {recentPromptRows.map((prompt) => {
+                const brand = prompt.brandId ? brands.find((entry) => entry.id === prompt.brandId) : undefined;
+                return (
+                  <button
+                    key={prompt.id}
+                    type="button"
+                    onClick={() => prompt.brandId ? router.push(`/brands/${prompt.brandId}#prompts`) : router.push("/prompts")}
+                    className="w-full rounded-2xl border border-white/6 bg-black/10 p-4 text-left transition hover:border-white/12"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <p className="text-sm font-medium text-ink">{prompt.title}</p>
+                      {brand ? <BrandPill color={brand.color}>{brand.shortName}</BrandPill> : null}
+                    </div>
+                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-mute">{prompt.resultNotes ?? prompt.summary}</p>
+                  </button>
+                );
+              })}
+              {recentPromptRows.length === 0 ? (
+                <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
+                  No prompt records yet.
+                </div>
+              ) : null}
+            </div>
+          </Panel>
+
+          <Panel eyebrow="Home / Thinking" title="Recent Thinking" subtitle="Recent observations, references, and creative notes from brand workspaces.">
+            <div className="space-y-3">
+              {recentThinkingRows.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => router.push(`/brands/${item.brand.id}#thinking`)}
+                  className="w-full rounded-2xl border border-white/6 bg-black/10 p-4 text-left transition hover:border-white/12"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <p className="text-sm font-medium text-ink">{item.title}</p>
+                    <BrandPill color={item.brand.color}>{item.brand.shortName}</BrandPill>
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-mute">{item.body}</p>
+                  <p className="mt-2 text-xs text-mute">{item.type ?? "Other"} / {item.status ?? "Raw"}</p>
+                </button>
+              ))}
+              {recentThinkingRows.length === 0 ? (
+                <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
+                  No structured thinking items yet. Legacy notes still live inside each workspace.
+                </div>
+              ) : null}
+            </div>
           </Panel>
         </div>
       </section>

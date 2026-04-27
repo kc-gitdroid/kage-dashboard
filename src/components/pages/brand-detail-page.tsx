@@ -12,14 +12,17 @@ import type {
   BrandCompassVisualLanguage,
   BrandCompassVoice,
   BrandCompassWorld,
+  BrandAction,
   BrandContentSystem,
   BrandSpace,
+  BrandThinkingItem,
   ContentConcept,
   ContentPillar,
   ContentPillarRotationItem,
   ContentRules,
   ContentSeries,
   PublishingCalendarItem,
+  PromptItem,
 } from "@/types";
 
 type BrandDetailPageProps = {
@@ -70,22 +73,32 @@ const sectionIds = {
   "Content System": "content-system",
   Concepts: "concepts",
   "Publishing Calendar": "publishing-calendar",
-  Projects: "projects",
   Prompts: "prompts",
-  Notes: "notes",
-  Tasks: "tasks",
+  Actions: "actions",
+  Thinking: "thinking",
+  Projects: "projects",
 } as const;
 
-const brandPageSections = ["Compass", "Content System", "Concepts", "Publishing Calendar", "Projects", "Prompts", "Notes", "Tasks"] as const;
+const brandPageSections = ["Compass", "Content System", "Concepts", "Publishing Calendar", "Prompts", "Actions", "Thinking", "Projects"] as const;
 
 const emptyText = "Not defined yet";
 
 const conceptStatuses = ["Idea", "Draft", "Ready", "Scheduled", "Published", "Archived"] as const;
 const publishingStatuses = ["Idea", "Draft", "Ready", "Scheduled", "Published"] as const;
 const publishingFormats = ["Single", "Carousel", "Reel", "Story", "Other"] as const;
+const promptPlatforms = ["Nano Banana", "Midjourney", "ChatGPT Image", "Veo", "Seedance", "Kling", "Higgsfield", "Other"] as const;
+const promptTypes = ["Image", "Video", "Edit", "Caption", "Strategy", "Character", "Product", "Other"] as const;
+const promptCreativeStatuses = ["Draft", "Tested", "Working", "Needs Refinement", "Final"] as const;
+const actionStatuses = ["Next", "In Progress", "Waiting", "Done"] as const;
+const actionLinkedItemTypes = ["Brand", "Project", "Content Concept", "Scheduled Post", "Prompt", "Thinking"] as const;
+const thinkingTypes = ["Strategy", "Visual", "Product", "Caption", "Reference", "Observation", "Other"] as const;
+const thinkingStatuses = ["Raw", "Useful", "Archived"] as const;
 
 type ConceptModalMode = "create" | "edit" | "view";
 type PublishingModalMode = "create" | "edit" | "view";
+type PromptModalMode = "create" | "edit" | "view";
+type ActionModalMode = "create" | "edit";
+type ThinkingModalMode = "create" | "edit" | "view";
 
 type ConceptDraft = {
   id: string;
@@ -121,6 +134,38 @@ type PublishingDraft = {
   workingNotes: string;
   linkedPromptIds: string;
   linkedActionIds: string;
+};
+
+type CreativePromptDraft = {
+  id: string;
+  title: string;
+  platform: string;
+  type: string;
+  promptBody: string;
+  resultNotes: string;
+  status: string;
+  bestVersion: boolean;
+  linkedContentConceptIds: string[];
+  linkedScheduledPostIds: string[];
+};
+
+type ActionDraft = {
+  id: string;
+  title: string;
+  status: string;
+  linkedItemType: string;
+  linkedItemId: string;
+  nextMove: string;
+  dueDate: string;
+};
+
+type ThinkingDraft = {
+  id: string;
+  title: string;
+  body: string;
+  type: string;
+  possibleUse: string;
+  status: string;
 };
 
 function SectionList({ items, empty = emptyText }: { items: string[]; empty?: string }) {
@@ -538,6 +583,147 @@ function PublishingForm({
         <TextAreaField label="Linked Action IDs" value={draft.linkedActionIds} onChange={(value) => setDraft((current) => ({ ...current, linkedActionIds: value }))} rows={3} />
       </div>
       <div className="flex flex-wrap justify-end gap-2">
+        <SaveCancel onCancel={onCancel} onSave={onSave} />
+      </div>
+    </div>
+  );
+}
+
+function CheckboxGroup({
+  label,
+  selected,
+  options,
+  onChange,
+}: {
+  label: string;
+  selected: string[];
+  options: Array<{ value: string; label: string }>;
+  onChange: (next: string[]) => void;
+}) {
+  return (
+    <div>
+      <p className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">{label}</p>
+      <div className="max-h-40 space-y-2 overflow-y-auto rounded-2xl border border-white/8 bg-white/[0.03] p-3">
+        {options.length > 0 ? (
+          options.map((option) => {
+            const checked = selected.includes(option.value);
+
+            return (
+              <label key={option.value} className="flex items-center gap-2 text-sm text-mute">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() =>
+                    onChange(checked ? selected.filter((id) => id !== option.value) : [...selected, option.value])
+                  }
+                />
+                <span>{option.label}</span>
+              </label>
+            );
+          })
+        ) : (
+          <p className="text-sm text-mute/60">No linkable records yet.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PromptForm({
+  draft,
+  setDraft,
+  conceptOptions,
+  scheduledPostOptions,
+  onSave,
+  onCancel,
+}: {
+  draft: CreativePromptDraft;
+  setDraft: Dispatch<SetStateAction<CreativePromptDraft>>;
+  conceptOptions: Array<{ value: string; label: string }>;
+  scheduledPostOptions: Array<{ value: string; label: string }>;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <TextInputField label="Title" value={draft.title} onChange={(value) => setDraft((current) => ({ ...current, title: value }))} />
+        <SelectField label="Platform" value={draft.platform} onChange={(value) => setDraft((current) => ({ ...current, platform: value }))} options={promptPlatforms.map((platform) => ({ value: platform, label: platform }))} placeholder="Select platform" />
+        <SelectField label="Type" value={draft.type} onChange={(value) => setDraft((current) => ({ ...current, type: value }))} options={promptTypes.map((type) => ({ value: type, label: type }))} placeholder="Select type" />
+        <SelectField label="Status" value={draft.status} onChange={(value) => setDraft((current) => ({ ...current, status: value }))} options={promptCreativeStatuses.map((status) => ({ value: status, label: status }))} placeholder="Select status" />
+      </div>
+      <label className="flex items-center gap-2 rounded-2xl border border-white/8 bg-white/[0.03] p-3 text-sm text-mute">
+        <input
+          type="checkbox"
+          checked={draft.bestVersion}
+          onChange={(event) => setDraft((current) => ({ ...current, bestVersion: event.target.checked }))}
+        />
+        Best version
+      </label>
+      <TextAreaField label="Prompt Body" value={draft.promptBody} onChange={(value) => setDraft((current) => ({ ...current, promptBody: value }))} rows={8} />
+      <TextAreaField label="Result Notes" value={draft.resultNotes} onChange={(value) => setDraft((current) => ({ ...current, resultNotes: value }))} rows={4} />
+      <div className="grid gap-4 md:grid-cols-2">
+        <CheckboxGroup label="Linked Content Concepts" selected={draft.linkedContentConceptIds} options={conceptOptions} onChange={(next) => setDraft((current) => ({ ...current, linkedContentConceptIds: next }))} />
+        <CheckboxGroup label="Linked Scheduled Posts" selected={draft.linkedScheduledPostIds} options={scheduledPostOptions} onChange={(next) => setDraft((current) => ({ ...current, linkedScheduledPostIds: next }))} />
+      </div>
+      <div className="flex justify-end">
+        <SaveCancel onCancel={onCancel} onSave={onSave} />
+      </div>
+    </div>
+  );
+}
+
+function ActionForm({
+  draft,
+  setDraft,
+  linkedItemOptions,
+  onSave,
+  onCancel,
+}: {
+  draft: ActionDraft;
+  setDraft: Dispatch<SetStateAction<ActionDraft>>;
+  linkedItemOptions: Array<{ value: string; label: string }>;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <TextInputField label="Title" value={draft.title} onChange={(value) => setDraft((current) => ({ ...current, title: value }))} />
+      <div className="grid gap-4 md:grid-cols-2">
+        <SelectField label="Status" value={draft.status} onChange={(value) => setDraft((current) => ({ ...current, status: value }))} options={actionStatuses.map((status) => ({ value: status, label: status }))} placeholder="Select status" />
+        <SelectField label="Linked Item Type" value={draft.linkedItemType} onChange={(value) => setDraft((current) => ({ ...current, linkedItemType: value, linkedItemId: value === "Brand" ? current.linkedItemId : "" }))} options={actionLinkedItemTypes.map((type) => ({ value: type, label: type }))} placeholder="Select type" />
+        <SelectField label="Linked Item" value={draft.linkedItemId} onChange={(value) => setDraft((current) => ({ ...current, linkedItemId: value }))} options={linkedItemOptions} placeholder="No linked item" />
+        <TextInputField label="Due Date" type="date" value={draft.dueDate} onChange={(value) => setDraft((current) => ({ ...current, dueDate: value }))} />
+      </div>
+      <TextAreaField label="Next Move" value={draft.nextMove} onChange={(value) => setDraft((current) => ({ ...current, nextMove: value }))} rows={4} />
+      <div className="flex justify-end">
+        <SaveCancel onCancel={onCancel} onSave={onSave} />
+      </div>
+    </div>
+  );
+}
+
+function ThinkingForm({
+  draft,
+  setDraft,
+  onSave,
+  onCancel,
+}: {
+  draft: ThinkingDraft;
+  setDraft: Dispatch<SetStateAction<ThinkingDraft>>;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <TextInputField label="Title" value={draft.title} onChange={(value) => setDraft((current) => ({ ...current, title: value }))} />
+      <div className="grid gap-4 md:grid-cols-2">
+        <SelectField label="Type" value={draft.type} onChange={(value) => setDraft((current) => ({ ...current, type: value }))} options={thinkingTypes.map((type) => ({ value: type, label: type }))} placeholder="Select type" />
+        <SelectField label="Status" value={draft.status} onChange={(value) => setDraft((current) => ({ ...current, status: value }))} options={thinkingStatuses.map((status) => ({ value: status, label: status }))} placeholder="Select status" />
+      </div>
+      <TextAreaField label="Body" value={draft.body} onChange={(value) => setDraft((current) => ({ ...current, body: value }))} rows={8} />
+      <TextAreaField label="Possible Use" value={draft.possibleUse} onChange={(value) => setDraft((current) => ({ ...current, possibleUse: value }))} rows={3} />
+      <div className="flex justify-end">
         <SaveCancel onCancel={onCancel} onSave={onSave} />
       </div>
     </div>
@@ -988,8 +1174,185 @@ function publishingFromDraft(draft: PublishingDraft, brand: BrandSpace, existing
   };
 }
 
+function createEmptyPromptDraft(): CreativePromptDraft {
+  return {
+    id: createLocalId("prompt"),
+    title: "",
+    platform: promptPlatforms[0],
+    type: promptTypes[0],
+    promptBody: "",
+    resultNotes: "",
+    status: promptCreativeStatuses[0],
+    bestVersion: false,
+    linkedContentConceptIds: [],
+    linkedScheduledPostIds: [],
+  };
+}
+
+function toPromptDraft(prompt: PromptItem): CreativePromptDraft {
+  return {
+    id: prompt.id,
+    title: prompt.title,
+    platform: prompt.platform ?? "Other",
+    type: prompt.type ?? "Other",
+    promptBody: prompt.promptBody ?? prompt.body ?? "",
+    resultNotes: prompt.resultNotes ?? prompt.summary ?? "",
+    status: prompt.status && prompt.status !== "draft" ? prompt.status : promptCreativeStatuses[0],
+    bestVersion: prompt.bestVersion ?? false,
+    linkedContentConceptIds: prompt.linkedContentConceptIds ?? [],
+    linkedScheduledPostIds: prompt.linkedScheduledPostIds ?? [],
+  };
+}
+
+function promptFromDraft(draft: CreativePromptDraft, brand: BrandSpace, existing?: PromptItem): PromptItem {
+  const timestamp = nowIso();
+  const status = draft.status || promptCreativeStatuses[0];
+  const promptBody = draft.promptBody.trim();
+  const resultNotes = draft.resultNotes.trim();
+
+  return {
+    ...existing,
+    id: draft.id || existing?.id || createLocalId("prompt"),
+    brandId: brand.id,
+    title: draft.title.trim() || "Untitled prompt",
+    platform: draft.platform,
+    type: draft.type,
+    promptBody,
+    resultNotes,
+    summary: resultNotes || promptBody.slice(0, 140) || "No result notes yet.",
+    body: promptBody,
+    status: status === "Final" ? "completed" : status === "Working" ? "active" : "draft",
+    bestVersion: draft.bestVersion,
+    linkedContentConceptIds: draft.linkedContentConceptIds,
+    linkedScheduledPostIds: draft.linkedScheduledPostIds,
+    createdAt: existing?.createdAt ?? timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+function createEmptyActionDraft(brand: BrandSpace): ActionDraft {
+  return {
+    id: createLocalId("action"),
+    title: "",
+    status: actionStatuses[0],
+    linkedItemType: "Brand",
+    linkedItemId: brand.id,
+    nextMove: "",
+    dueDate: "",
+  };
+}
+
+function toActionDraft(action: BrandAction): ActionDraft {
+  return {
+    id: action.id,
+    title: action.title,
+    status: action.status ?? actionStatuses[0],
+    linkedItemType: action.linkedItemType ?? "Brand",
+    linkedItemId: action.linkedItemId ?? "",
+    nextMove: action.nextMove ?? "",
+    dueDate: action.dueDate ?? "",
+  };
+}
+
+function actionFromDraft(draft: ActionDraft, brand: BrandSpace, existing?: BrandAction): BrandAction {
+  const timestamp = nowIso();
+
+  return {
+    id: draft.id || existing?.id || createLocalId("action"),
+    brandId: brand.id,
+    title: draft.title.trim() || "Untitled action",
+    status: draft.status || actionStatuses[0],
+    linkedItemType: draft.linkedItemType || "Brand",
+    linkedItemId: draft.linkedItemId || undefined,
+    nextMove: draft.nextMove.trim(),
+    dueDate: draft.dueDate || undefined,
+    createdAt: existing?.createdAt ?? timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+function createLegacyActions(brand: BrandSpace): BrandAction[] {
+  return brand.tasks.map((task, index) => ({
+    id: `legacy-action-${brand.id}-${index}`,
+    brandId: brand.id,
+    title: task,
+    status: actionStatuses[0],
+    linkedItemType: "Brand",
+    linkedItemId: brand.id,
+  }));
+}
+
+function createEmptyThinkingDraft(): ThinkingDraft {
+  return {
+    id: createLocalId("thinking"),
+    title: "",
+    body: "",
+    type: thinkingTypes[0],
+    possibleUse: "",
+    status: thinkingStatuses[0],
+  };
+}
+
+function toThinkingDraft(item: BrandThinkingItem): ThinkingDraft {
+  return {
+    id: item.id,
+    title: item.title,
+    body: item.body,
+    type: item.type ?? thinkingTypes[0],
+    possibleUse: item.possibleUse ?? "",
+    status: item.status ?? thinkingStatuses[0],
+  };
+}
+
+function thinkingFromDraft(draft: ThinkingDraft, brand: BrandSpace, existing?: BrandThinkingItem): BrandThinkingItem {
+  const timestamp = nowIso();
+
+  return {
+    id: draft.id || existing?.id || createLocalId("thinking"),
+    brandId: brand.id,
+    title: draft.title.trim() || "Untitled thinking",
+    body: draft.body.trim(),
+    type: draft.type || thinkingTypes[0],
+    possibleUse: draft.possibleUse.trim(),
+    status: draft.status || thinkingStatuses[0],
+    createdAt: existing?.createdAt ?? timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+function resolveLinkedItemLabel({
+  type,
+  id,
+  brand,
+  projects,
+  concepts,
+  posts,
+  prompts,
+  thinking,
+}: {
+  type?: string;
+  id?: string;
+  brand: BrandSpace;
+  projects: Array<{ id: string; title: string }>;
+  concepts: ContentConcept[];
+  posts: PublishingCalendarItem[];
+  prompts: PromptItem[];
+  thinking: BrandThinkingItem[];
+}) {
+  if (!id) {
+    return type === "Brand" ? brand.name : emptyText;
+  }
+
+  if (type === "Project") return projects.find((item) => item.id === id)?.title ?? id;
+  if (type === "Content Concept") return concepts.find((item) => item.id === id)?.title ?? id;
+  if (type === "Scheduled Post") return posts.find((item) => item.id === id)?.title ?? id;
+  if (type === "Prompt") return prompts.find((item) => item.id === id)?.title ?? id;
+  if (type === "Thinking") return thinking.find((item) => item.id === id)?.title ?? id;
+  return brand.name;
+}
+
 export function BrandDetailPage({ brand }: BrandDetailPageProps) {
-  const { brands, projects, promptItems, saveBrand, saveBrandSpace } = useDashboardData();
+  const { brands, projects, promptItems, saveBrand, saveBrandSpace, savePromptItem, deletePromptItem } = useDashboardData();
   const linkedProjects = projects.filter((project) => project.brandId === brand.id);
   const linkedPrompts = promptItems.filter((prompt) => prompt.brandId === brand.id);
   const contentSystem = normalizeContentSystem(brand.contentSystem);
@@ -999,9 +1362,13 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const contentRules = contentSystem.contentRules;
   const contentConcepts = brand.contentConcepts ?? [];
   const publishingCalendar = brand.publishingCalendar ?? [];
+  const actions = brand.actions ?? [];
+  const thinkingItems = brand.thinking ?? [];
+  const visibleActions = actions.length > 0 ? actions : createLegacyActions(brand);
   const seriesOptions = contentSeries.map((series) => ({ value: series.id, label: getSeriesTitle(series) }));
   const pillarOptions = contentPillars.map((pillar) => ({ value: pillar.id, label: pillar.name }));
   const conceptOptions = contentConcepts.map((concept) => ({ value: concept.id, label: concept.title }));
+  const scheduledPostOptions = publishingCalendar.map((post) => ({ value: post.id, label: `${post.date} / ${post.title}` }));
   const hasStructuredContentSystem =
     contentPillars.length > 0 ||
     contentSeries.length > 0 ||
@@ -1030,6 +1397,21 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const [publishingDraft, setPublishingDraft] = useState<PublishingDraft>(() => createEmptyPublishingDraft(brand, contentPillars));
   const [selectedPublishingId, setSelectedPublishingId] = useState<string | null>(null);
   const [publishingNotesSaved, setPublishingNotesSaved] = useState(false);
+  const [promptModalMode, setPromptModalMode] = useState<PromptModalMode | null>(null);
+  const [promptDraft, setPromptDraft] = useState<CreativePromptDraft>(() => createEmptyPromptDraft());
+  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
+  const [promptPlatformFilter, setPromptPlatformFilter] = useState("");
+  const [promptTypeFilter, setPromptTypeFilter] = useState("");
+  const [promptStatusFilter, setPromptStatusFilter] = useState("");
+  const [actionModalMode, setActionModalMode] = useState<ActionModalMode | null>(null);
+  const [actionDraft, setActionDraft] = useState<ActionDraft>(() => createEmptyActionDraft(brand));
+  const [actionStatusFilter, setActionStatusFilter] = useState("");
+  const [actionTypeFilter, setActionTypeFilter] = useState("");
+  const [thinkingModalMode, setThinkingModalMode] = useState<ThinkingModalMode | null>(null);
+  const [thinkingDraft, setThinkingDraft] = useState<ThinkingDraft>(() => createEmptyThinkingDraft());
+  const [selectedThinkingId, setSelectedThinkingId] = useState<string | null>(null);
+  const [thinkingTypeFilter, setThinkingTypeFilter] = useState("");
+  const [thinkingStatusFilter, setThinkingStatusFilter] = useState("");
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1055,6 +1437,38 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   });
   const activeConcept = selectedConcept ?? conceptFromDraft(conceptDraft, brand);
   const activePublishingItem = selectedPublishingItem ?? publishingFromDraft(publishingDraft, brand);
+  const selectedPrompt = selectedPromptId ? linkedPrompts.find((prompt) => prompt.id === selectedPromptId) : undefined;
+  const activePrompt = selectedPrompt ?? promptFromDraft(promptDraft, brand);
+  const selectedThinking = selectedThinkingId ? thinkingItems.find((item) => item.id === selectedThinkingId) : undefined;
+  const activeThinking = selectedThinking ?? thinkingFromDraft(thinkingDraft, brand);
+  const filteredPrompts = linkedPrompts.filter((prompt) => {
+    const platformMatches = promptPlatformFilter ? (prompt.platform ?? "Other") === promptPlatformFilter : true;
+    const typeMatches = promptTypeFilter ? (prompt.type ?? "Other") === promptTypeFilter : true;
+    const statusMatches = promptStatusFilter ? (prompt.status === promptStatusFilter || prompt.status === promptStatusFilter.toLowerCase()) : true;
+    return platformMatches && typeMatches && statusMatches;
+  });
+  const filteredActions = visibleActions.filter((action) => {
+    const statusMatches = actionStatusFilter ? action.status === actionStatusFilter : true;
+    const typeMatches = actionTypeFilter ? action.linkedItemType === actionTypeFilter : true;
+    return statusMatches && typeMatches;
+  });
+  const filteredThinking = thinkingItems.filter((item) => {
+    const typeMatches = thinkingTypeFilter ? item.type === thinkingTypeFilter : true;
+    const statusMatches = thinkingStatusFilter ? item.status === thinkingStatusFilter : true;
+    return typeMatches && statusMatches;
+  });
+  const actionLinkedItemOptions =
+    actionDraft.linkedItemType === "Project"
+      ? linkedProjects.map((project) => ({ value: project.id, label: project.title }))
+      : actionDraft.linkedItemType === "Content Concept"
+        ? conceptOptions
+        : actionDraft.linkedItemType === "Scheduled Post"
+          ? scheduledPostOptions
+          : actionDraft.linkedItemType === "Prompt"
+            ? linkedPrompts.map((prompt) => ({ value: prompt.id, label: prompt.title }))
+            : actionDraft.linkedItemType === "Thinking"
+              ? thinkingItems.map((item) => ({ value: item.id, label: item.title }))
+              : [{ value: brand.id, label: brand.name }];
 
   function resetSection(section: EditingSection) {
     if (section === "overview") {
@@ -1306,6 +1720,164 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
     setSelectedPublishingId(nextPost.id);
     setPublishingNotesSaved(true);
     window.setTimeout(() => setPublishingNotesSaved(false), 1800);
+  }
+
+  function openNewPrompt() {
+    setPromptDraft(createEmptyPromptDraft());
+    setSelectedPromptId(null);
+    setPromptModalMode("create");
+  }
+
+  function openPrompt(prompt: PromptItem, mode: PromptModalMode = "view") {
+    setPromptDraft(toPromptDraft(prompt));
+    setSelectedPromptId(prompt.id);
+    setPromptModalMode(mode);
+  }
+
+  function closePromptModal() {
+    setPromptModalMode(null);
+    setSelectedPromptId(null);
+  }
+
+  function savePrompt() {
+    const existing = linkedPrompts.find((prompt) => prompt.id === promptDraft.id);
+    const nextPrompt = promptFromDraft(promptDraft, brand, existing);
+    savePromptItem(nextPrompt);
+
+    const nextConcepts = contentConcepts.map((concept) => {
+      const linkedPromptIds = concept.linkedPromptIds ?? [];
+      const shouldLink = nextPrompt.linkedContentConceptIds?.includes(concept.id) ?? false;
+      return {
+        ...concept,
+        linkedPromptIds: shouldLink
+          ? Array.from(new Set([...linkedPromptIds, nextPrompt.id]))
+          : linkedPromptIds.filter((id) => id !== nextPrompt.id),
+      };
+    });
+    const nextPosts = publishingCalendar.map((post) => {
+      const linkedPromptIds = post.linkedPromptIds ?? [];
+      const shouldLink = nextPrompt.linkedScheduledPostIds?.includes(post.id) ?? false;
+      return {
+        ...post,
+        linkedPromptIds: shouldLink
+          ? Array.from(new Set([...linkedPromptIds, nextPrompt.id]))
+          : linkedPromptIds.filter((id) => id !== nextPrompt.id),
+      };
+    });
+    updateBrandSpace({ contentConcepts: nextConcepts, publishingCalendar: nextPosts });
+    setPromptDraft(toPromptDraft(nextPrompt));
+    setSelectedPromptId(nextPrompt.id);
+    setPromptModalMode("view");
+  }
+
+  function deletePrompt(promptId: string) {
+    if (!window.confirm("Delete this prompt?")) {
+      return;
+    }
+
+    deletePromptItem(promptId);
+    updateBrandSpace({
+      contentConcepts: contentConcepts.map((concept) => ({
+        ...concept,
+        linkedPromptIds: (concept.linkedPromptIds ?? []).filter((id) => id !== promptId),
+      })),
+      publishingCalendar: publishingCalendar.map((post) => ({
+        ...post,
+        linkedPromptIds: (post.linkedPromptIds ?? []).filter((id) => id !== promptId),
+      })),
+    });
+    closePromptModal();
+  }
+
+  function togglePromptBestVersion(prompt: PromptItem) {
+    savePromptItem({
+      ...prompt,
+      bestVersion: !prompt.bestVersion,
+      updatedAt: nowIso(),
+    });
+  }
+
+  function openNewAction() {
+    setActionDraft(createEmptyActionDraft(brand));
+    setActionModalMode("create");
+  }
+
+  function openAction(action: BrandAction) {
+    setActionDraft(toActionDraft(action));
+    setActionModalMode("edit");
+  }
+
+  function closeActionModal() {
+    setActionModalMode(null);
+  }
+
+  function saveAction() {
+    const existing = actions.find((action) => action.id === actionDraft.id);
+    const nextAction = actionFromDraft(actionDraft, brand, existing);
+    const nextActions = existing
+      ? actions.map((action) => (action.id === nextAction.id ? nextAction : action))
+      : [...actions, nextAction];
+
+    updateBrandSpace({ actions: nextActions });
+    closeActionModal();
+  }
+
+  function deleteAction(actionId: string) {
+    if (!window.confirm("Delete this action?")) {
+      return;
+    }
+
+    updateBrandSpace({
+      actions: actions.filter((action) => action.id !== actionId),
+      contentConcepts: contentConcepts.map((concept) => ({
+        ...concept,
+        linkedActionIds: (concept.linkedActionIds ?? []).filter((id) => id !== actionId),
+      })),
+      publishingCalendar: publishingCalendar.map((post) => ({
+        ...post,
+        linkedActionIds: (post.linkedActionIds ?? []).filter((id) => id !== actionId),
+      })),
+    });
+    closeActionModal();
+  }
+
+  function openNewThinking() {
+    setThinkingDraft(createEmptyThinkingDraft());
+    setSelectedThinkingId(null);
+    setThinkingModalMode("create");
+  }
+
+  function openThinking(item: BrandThinkingItem, mode: ThinkingModalMode = "view") {
+    setThinkingDraft(toThinkingDraft(item));
+    setSelectedThinkingId(item.id);
+    setThinkingModalMode(mode);
+  }
+
+  function closeThinkingModal() {
+    setThinkingModalMode(null);
+    setSelectedThinkingId(null);
+  }
+
+  function saveThinking() {
+    const existing = thinkingItems.find((item) => item.id === thinkingDraft.id);
+    const nextThinking = thinkingFromDraft(thinkingDraft, brand, existing);
+    const nextThinkingItems = existing
+      ? thinkingItems.map((item) => (item.id === nextThinking.id ? nextThinking : item))
+      : [...thinkingItems, nextThinking];
+
+    updateBrandSpace({ thinking: nextThinkingItems });
+    setThinkingDraft(toThinkingDraft(nextThinking));
+    setSelectedThinkingId(nextThinking.id);
+    setThinkingModalMode("view");
+  }
+
+  function deleteThinking(thinkingId: string) {
+    if (!window.confirm("Delete this thinking item?")) {
+      return;
+    }
+
+    updateBrandSpace({ thinking: thinkingItems.filter((item) => item.id !== thinkingId) });
+    closeThinkingModal();
   }
 
   return (
@@ -1994,90 +2566,163 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </Panel>
       </div>
 
-      <section className="space-y-5 xl:grid xl:grid-cols-2 xl:items-start xl:gap-5 xl:space-y-0">
-        <div className="space-y-5">
-          <div id={sectionIds.Projects} className="scroll-mt-24">
-            <Panel eyebrow="Workspace / Projects" title="Projects" accent="orange">
-              <div className="space-y-3">
-                {linkedProjects.length > 0 ? (
-                  linkedProjects.map((project) => (
-                    <Link
-                      key={project.id}
-                      href={`/projects/${project.id}`}
-                      className="block rounded-2xl border border-white/6 bg-black/10 p-4 transition hover:border-white/12"
-                    >
-                      <p className="text-sm font-medium text-ink">{project.title}</p>
-                      <p className="mt-2 text-sm leading-6 text-mute">{project.summary ?? project.goal}</p>
-                      <p className="mt-3 text-xs text-mute">{project.dueDate ? `Due ${project.dueDate}` : `Started ${project.startDate}`}</p>
-                    </Link>
-                  ))
-                ) : (
-                  <p className="text-sm leading-6 text-mute/75">No linked projects yet. Global project records tied to this workspace will appear here automatically.</p>
-                )}
+      <div id={sectionIds.Prompts} className="scroll-mt-24">
+        <Panel
+          eyebrow="Workspace / Prompts"
+          title="Prompts"
+          headerAction={<PrimaryActionButton onClick={openNewPrompt}>Add Prompt</PrimaryActionButton>}
+        >
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-3">
+              <SelectField label="Platform" value={promptPlatformFilter} onChange={setPromptPlatformFilter} options={promptPlatforms.map((platform) => ({ value: platform, label: platform }))} placeholder="All platforms" />
+              <SelectField label="Type" value={promptTypeFilter} onChange={setPromptTypeFilter} options={promptTypes.map((type) => ({ value: type, label: type }))} placeholder="All types" />
+              <SelectField label="Status" value={promptStatusFilter} onChange={setPromptStatusFilter} options={promptCreativeStatuses.map((status) => ({ value: status, label: status }))} placeholder="All statuses" />
+            </div>
+            {linkedPrompts.length === 0 ? (
+              <p className="rounded-2xl border border-white/6 bg-black/10 p-4 text-sm leading-6 text-mute/70">
+                No prompts yet. Add image, video, edit, caption, or strategy prompts for this brand.
+              </p>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {filteredPrompts.map((prompt) => (
+                  <article key={prompt.id} className="rounded-[18px] border border-white/10 bg-black/15 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <button type="button" onClick={() => openPrompt(prompt)} className="text-left text-base font-semibold text-ink hover:text-yellow">
+                        {prompt.title}
+                      </button>
+                      {prompt.bestVersion ? <span className="rounded-full border border-yellow/25 bg-yellow/10 px-2 py-1 text-[11px] text-yellow">Best</span> : null}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{prompt.platform ?? "Other"}</span>
+                      <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{prompt.type ?? "Other"}</span>
+                      <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{prompt.resultNotes ? (prompt.bestVersion ? "Final" : "Working") : prompt.status}</span>
+                    </div>
+                    <p className="mt-3 line-clamp-3 text-sm leading-6 text-mute">{prompt.resultNotes ?? prompt.summary}</p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <FieldRow label="Linked Concepts" chips={(prompt.linkedContentConceptIds ?? []).map((id) => contentConcepts.find((concept) => concept.id === id)?.title ?? id)} />
+                      <FieldRow label="Linked Posts" chips={(prompt.linkedScheduledPostIds ?? []).map((id) => publishingCalendar.find((post) => post.id === id)?.title ?? id)} />
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <EditButton onClick={() => openPrompt(prompt, "edit")} />
+                      <button type="button" onClick={() => togglePromptBestVersion(prompt)} className="rounded-full border border-white/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-mute">
+                        {prompt.bestVersion ? "Unset Best" : "Best Version"}
+                      </button>
+                      <DangerButton onClick={() => deletePrompt(prompt.id)}>Delete</DangerButton>
+                    </div>
+                  </article>
+                ))}
               </div>
-            </Panel>
+            )}
           </div>
+        </Panel>
+      </div>
 
-          <InlineSection
-            id={sectionIds.Notes}
-            eyebrow="Workspace / Notes"
-            title="Notes"
-            editing={editingSection === "notes"}
-            onEdit={() => startEditing("notes")}
-            onCancel={() => {
-              resetSection("notes");
-              setEditingSection(null);
-            }}
-            onSave={() => {
-              updateBrandSpace({ notes: fromMultiline(notesDraft) });
-              setEditingSection(null);
-            }}
-            editor={<TextAreaField label="Notes" value={notesDraft} onChange={setNotesDraft} rows={8} />}
+      <section className="space-y-5 xl:grid xl:grid-cols-2 xl:items-start xl:gap-5 xl:space-y-0">
+        <div id={sectionIds.Actions} className="scroll-mt-24">
+          <Panel
+            eyebrow="Workspace / Actions"
+            title="Actions"
+            accent="orange"
+            headerAction={<PrimaryActionButton onClick={openNewAction}>Add Action</PrimaryActionButton>}
           >
-            <SectionList items={brand.notes} />
-          </InlineSection>
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <SelectField label="Status" value={actionStatusFilter} onChange={setActionStatusFilter} options={actionStatuses.map((status) => ({ value: status, label: status }))} placeholder="All statuses" />
+                <SelectField label="Linked Type" value={actionTypeFilter} onChange={setActionTypeFilter} options={actionLinkedItemTypes.map((type) => ({ value: type, label: type }))} placeholder="All linked types" />
+              </div>
+              <div className="space-y-3">
+                {filteredActions.map((action) => (
+                  <div key={action.id} className="rounded-2xl border border-white/8 bg-black/10 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-ink">{action.title}</p>
+                        <p className="mt-2 text-sm text-mute">{action.nextMove || "No next move defined."}</p>
+                      </div>
+                      <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{action.status ?? "Next"}</span>
+                    </div>
+                    <p className="mt-3 text-xs text-mute">
+                      {action.linkedItemType ?? "Brand"} / {resolveLinkedItemLabel({ type: action.linkedItemType, id: action.linkedItemId, brand, projects: linkedProjects, concepts: contentConcepts, posts: publishingCalendar, prompts: linkedPrompts, thinking: thinkingItems })}
+                      {action.dueDate ? ` / Due ${action.dueDate}` : ""}
+                    </p>
+                    {!action.id.startsWith("legacy-action-") ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <EditButton onClick={() => openAction(action)} />
+                        <DangerButton onClick={() => deleteAction(action.id)}>Delete</DangerButton>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+                {filteredActions.length === 0 ? (
+                  <p className="rounded-2xl border border-white/6 bg-black/10 p-4 text-sm leading-6 text-mute/70">No actions yet.</p>
+                ) : null}
+              </div>
+            </div>
+          </Panel>
         </div>
 
-        <div className="space-y-5">
-          <div id={sectionIds.Prompts} className="scroll-mt-24">
-            <Panel eyebrow="Workspace / Prompts" title="Prompts">
-              <div className="space-y-3">
-                {linkedPrompts.length > 0 ? (
-                  linkedPrompts.map((prompt) => (
-                    <div key={prompt.id} className="rounded-2xl border border-white/6 bg-black/10 p-4">
-                      <p className="text-sm font-medium text-ink">{prompt.title}</p>
-                      <p className="mt-2 text-sm leading-6 text-mute">{prompt.summary}</p>
-                      <p className="mt-3 text-xs text-mute">Updated {prompt.updatedAt}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm leading-6 text-mute/75">No prompt records are connected to this workspace yet.</p>
-                )}
-              </div>
-            </Panel>
-          </div>
-
-          <InlineSection
-            id={sectionIds.Tasks}
-            eyebrow="Workspace / Tasks"
-            title="Tasks"
-            accent="orange"
-            editing={editingSection === "tasks"}
-            onEdit={() => startEditing("tasks")}
-            onCancel={() => {
-              resetSection("tasks");
-              setEditingSection(null);
-            }}
-            onSave={() => {
-              updateBrandSpace({ tasks: fromMultiline(tasksDraft) });
-              setEditingSection(null);
-            }}
-            editor={<TextAreaField label="Tasks" value={tasksDraft} onChange={setTasksDraft} rows={8} />}
+        <div id={sectionIds.Thinking} className="scroll-mt-24">
+          <Panel
+            eyebrow="Workspace / Thinking"
+            title="Thinking"
+            headerAction={<PrimaryActionButton onClick={openNewThinking}>Add Thinking</PrimaryActionButton>}
           >
-            <SectionList items={brand.tasks} />
-          </InlineSection>
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <SelectField label="Type" value={thinkingTypeFilter} onChange={setThinkingTypeFilter} options={thinkingTypes.map((type) => ({ value: type, label: type }))} placeholder="All types" />
+                <SelectField label="Status" value={thinkingStatusFilter} onChange={setThinkingStatusFilter} options={thinkingStatuses.map((status) => ({ value: status, label: status }))} placeholder="All statuses" />
+              </div>
+              {brand.notes.length > 0 ? (
+                <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
+                  <p className="ui-micro-label">Legacy Notes</p>
+                  <div className="mt-3">
+                    <SectionList items={brand.notes} />
+                  </div>
+                </div>
+              ) : null}
+              {thinkingItems.length === 0 ? (
+                <p className="rounded-2xl border border-white/6 bg-black/10 p-4 text-sm leading-6 text-mute/70">
+                  No thinking items yet. Add observations, references, caption ideas, or visual notes for this brand.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {filteredThinking.map((item) => (
+                    <button key={item.id} type="button" onClick={() => openThinking(item)} className="w-full rounded-2xl border border-white/8 bg-black/10 p-4 text-left">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <p className="text-sm font-semibold text-ink">{item.title}</p>
+                        <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{item.type ?? "Other"}</span>
+                      </div>
+                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-mute">{item.body}</p>
+                      <p className="mt-3 text-xs text-mute">{item.status ?? "Raw"}{item.possibleUse ? ` / ${item.possibleUse}` : ""}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Panel>
         </div>
       </section>
+
+      <div id={sectionIds.Projects} className="scroll-mt-24">
+        <Panel eyebrow="Workspace / Projects" title="Projects" accent="orange">
+          <div className="space-y-3">
+            {linkedProjects.length > 0 ? (
+              linkedProjects.map((project) => (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className="block rounded-2xl border border-white/6 bg-black/10 p-4 transition hover:border-white/12"
+                >
+                  <p className="text-sm font-medium text-ink">{project.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-mute">{project.summary ?? project.goal}</p>
+                  <p className="mt-3 text-xs text-mute">{project.dueDate ? `Due ${project.dueDate}` : `Started ${project.startDate}`}</p>
+                </Link>
+              ))
+            ) : (
+              <p className="text-sm leading-6 text-mute/75">No linked projects yet. Global project records tied to this workspace will appear here automatically.</p>
+            )}
+          </div>
+        </Panel>
+      </div>
 
       {conceptModalMode ? (
         <ModalShell
@@ -2115,8 +2760,8 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
               </div>
               <FieldRow label="Notes" value={activeConcept.notes} />
               <div className="grid gap-3 md:grid-cols-2">
-                <FieldRow label="Linked Prompts" chips={activeConcept.linkedPromptIds ?? []} />
-                <FieldRow label="Linked Actions" chips={activeConcept.linkedActionIds ?? []} />
+                <FieldRow label="Linked Prompts" chips={(activeConcept.linkedPromptIds ?? []).map((id) => linkedPrompts.find((prompt) => prompt.id === id)?.title ?? id)} />
+                <FieldRow label="Linked Actions" chips={(activeConcept.linkedActionIds ?? []).map((id) => actions.find((action) => action.id === id)?.title ?? id)} />
               </div>
               <div className="flex flex-wrap justify-end gap-2">
                 <EditButton onClick={() => setConceptModalMode("edit")} />
@@ -2186,8 +2831,8 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
                 rows={5}
               />
               <div className="grid gap-3 md:grid-cols-2">
-                <FieldRow label="Linked Prompts" chips={activePublishingItem.linkedPromptIds ?? []} />
-                <FieldRow label="Linked Actions" chips={activePublishingItem.linkedActionIds ?? []} />
+                <FieldRow label="Linked Prompts" chips={(activePublishingItem.linkedPromptIds ?? []).map((id) => linkedPrompts.find((prompt) => prompt.id === id)?.title ?? id)} />
+                <FieldRow label="Linked Actions" chips={(activePublishingItem.linkedActionIds ?? []).map((id) => actions.find((action) => action.id === id)?.title ?? id)} />
               </div>
               <div className="flex flex-wrap justify-end gap-2">
                 <button
@@ -2210,6 +2855,102 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
               onConceptChange={applyConceptPrefill}
               onSave={savePublishingItem}
               onCancel={closePublishingModal}
+            />
+          )}
+        </ModalShell>
+      ) : null}
+
+      {promptModalMode ? (
+        <ModalShell
+          eyebrow={promptModalMode === "create" ? "Prompt / New" : "Prompt / Detail"}
+          title={promptModalMode === "create" ? "Add Prompt" : activePrompt.title}
+          onClose={closePromptModal}
+          headerMeta={
+            <>
+              <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{promptDraft.platform || activePrompt.platform || "Other"}</span>
+              <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{promptDraft.type || activePrompt.type || "Other"}</span>
+              {promptDraft.bestVersion || activePrompt.bestVersion ? <span className="rounded-full border border-yellow/25 bg-yellow/10 px-2 py-1 text-[11px] text-yellow">Best Version</span> : null}
+            </>
+          }
+        >
+          {promptModalMode === "view" ? (
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <FieldRow label="Title" value={activePrompt.title} />
+                <FieldRow label="Platform" value={activePrompt.platform} />
+                <FieldRow label="Type" value={activePrompt.type} />
+                <FieldRow label="Status" value={activePrompt.resultNotes ? (activePrompt.bestVersion ? "Final" : "Working") : activePrompt.status} />
+              </div>
+              <FieldRow label="Prompt Body" value={activePrompt.promptBody ?? activePrompt.body} />
+              <FieldRow label="Result Notes" value={activePrompt.resultNotes ?? activePrompt.summary} />
+              <div className="grid gap-3 md:grid-cols-2">
+                <FieldRow label="Linked Concepts" chips={(activePrompt.linkedContentConceptIds ?? []).map((id) => contentConcepts.find((concept) => concept.id === id)?.title ?? id)} />
+                <FieldRow label="Linked Scheduled Posts" chips={(activePrompt.linkedScheduledPostIds ?? []).map((id) => publishingCalendar.find((post) => post.id === id)?.title ?? id)} />
+              </div>
+              <div className="flex flex-wrap justify-end gap-2">
+                <EditButton onClick={() => setPromptModalMode("edit")} />
+                <DangerButton onClick={() => deletePrompt(activePrompt.id)}>Delete</DangerButton>
+              </div>
+            </div>
+          ) : (
+            <PromptForm
+              draft={promptDraft}
+              setDraft={setPromptDraft}
+              conceptOptions={conceptOptions}
+              scheduledPostOptions={scheduledPostOptions}
+              onSave={savePrompt}
+              onCancel={closePromptModal}
+            />
+          )}
+        </ModalShell>
+      ) : null}
+
+      {actionModalMode ? (
+        <ModalShell
+          eyebrow={actionModalMode === "create" ? "Action / New" : "Action / Edit"}
+          title={actionModalMode === "create" ? "Add Action" : actionDraft.title || "Edit Action"}
+          onClose={closeActionModal}
+        >
+          <ActionForm
+            draft={actionDraft}
+            setDraft={setActionDraft}
+            linkedItemOptions={actionLinkedItemOptions}
+            onSave={saveAction}
+            onCancel={closeActionModal}
+          />
+        </ModalShell>
+      ) : null}
+
+      {thinkingModalMode ? (
+        <ModalShell
+          eyebrow={thinkingModalMode === "create" ? "Thinking / New" : "Thinking / Detail"}
+          title={thinkingModalMode === "create" ? "Add Thinking" : activeThinking.title}
+          onClose={closeThinkingModal}
+          headerMeta={
+            <>
+              <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{thinkingDraft.type || activeThinking.type || "Other"}</span>
+              <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{thinkingDraft.status || activeThinking.status || "Raw"}</span>
+            </>
+          }
+        >
+          {thinkingModalMode === "view" ? (
+            <div className="space-y-4">
+              <FieldRow label="Title" value={activeThinking.title} />
+              <FieldRow label="Type" value={activeThinking.type} />
+              <FieldRow label="Body" value={activeThinking.body} />
+              <FieldRow label="Possible Use" value={activeThinking.possibleUse} />
+              <FieldRow label="Status" value={activeThinking.status} />
+              <div className="flex flex-wrap justify-end gap-2">
+                <EditButton onClick={() => setThinkingModalMode("edit")} />
+                <DangerButton onClick={() => deleteThinking(activeThinking.id)}>Delete</DangerButton>
+              </div>
+            </div>
+          ) : (
+            <ThinkingForm
+              draft={thinkingDraft}
+              setDraft={setThinkingDraft}
+              onSave={saveThinking}
+              onCancel={closeThinkingModal}
             />
           )}
         </ModalShell>
