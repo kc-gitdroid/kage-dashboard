@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ReactNode } from "react";
 
@@ -69,6 +70,26 @@ function fromMultiline(value: string) {
     .split("\n")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function normalizeDateInput(value?: string) {
+  if (!value) {
+    return "";
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function TextAreaField({
@@ -160,7 +181,8 @@ function InlineSection({
 }
 
 export function ProjectDetailPage({ project }: { project: ProjectItem }) {
-  const { brandSpaces, brands, saveProject } = useDashboardData();
+  const router = useRouter();
+  const { brandSpaces, brands, tasks, contentItems, saveTask, saveContentItem, saveProject, deleteProject } = useDashboardData();
   const brand = brands.find((entry) => entry.id === project.brandId);
   const brandSpace = brandSpaces.find((entry) => entry.id === project.brandId);
 
@@ -170,13 +192,14 @@ export function ProjectDetailPage({ project }: { project: ProjectItem }) {
     summary: project.summary ?? "",
     goal: project.goal,
     status: project.status,
-    startDate: project.startDate,
-    dueDate: project.dueDate ?? "",
+    startDate: normalizeDateInput(project.startDate),
+    dueDate: normalizeDateInput(project.dueDate),
   });
   const [milestonesDraft, setMilestonesDraft] = useState(() => toMultiline(project.milestones));
   const [taskHooksDraft, setTaskHooksDraft] = useState(() => toMultiline(project.taskHooks));
   const [calendarAnchorsDraft, setCalendarAnchorsDraft] = useState(() => toMultiline(project.calendarAnchors));
   const [notesDraft, setNotesDraft] = useState(() => toMultiline(project.notes));
+  const [confirmProjectDelete, setConfirmProjectDelete] = useState(false);
 
   function resetSection(section: EditingSection) {
     if (section === "overview") {
@@ -185,8 +208,8 @@ export function ProjectDetailPage({ project }: { project: ProjectItem }) {
         summary: project.summary ?? "",
         goal: project.goal,
         status: project.status,
-        startDate: project.startDate,
-        dueDate: project.dueDate ?? "",
+        startDate: normalizeDateInput(project.startDate),
+        dueDate: normalizeDateInput(project.dueDate),
       });
     } else if (section === "milestones") {
       setMilestonesDraft(toMultiline(project.milestones));
@@ -201,6 +224,17 @@ export function ProjectDetailPage({ project }: { project: ProjectItem }) {
 
   function updateProject(patch: Partial<ProjectItem>) {
     saveProject({ ...project, ...patch });
+  }
+
+  function handleDeleteProject() {
+    tasks
+      .filter((task) => task.projectId === project.id)
+      .forEach((task) => saveTask({ ...task, projectId: undefined }));
+    contentItems
+      .filter((item) => item.linkedProjectId === project.id)
+      .forEach((item) => saveContentItem({ ...item, linkedProjectId: undefined }));
+    deleteProject(project.id);
+    router.push("/projects");
   }
 
   return (
@@ -232,8 +266,8 @@ export function ProjectDetailPage({ project }: { project: ProjectItem }) {
                           summary: overviewDraft.summary.trim() || undefined,
                           goal: overviewDraft.goal.trim(),
                           status: overviewDraft.status,
-                          startDate: overviewDraft.startDate,
-                          dueDate: overviewDraft.dueDate || undefined,
+                          startDate: normalizeDateInput(overviewDraft.startDate) || project.startDate,
+                          dueDate: normalizeDateInput(overviewDraft.dueDate) || undefined,
                         });
                         setEditingSection(null);
                       }}
@@ -253,6 +287,38 @@ export function ProjectDetailPage({ project }: { project: ProjectItem }) {
                 )}
               </div>
             </div>
+
+            {!confirmProjectDelete ? (
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setConfirmProjectDelete(true)}
+                  className="rounded-full border border-orange/28 bg-orange/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-orange"
+                >
+                  Delete Project
+                </button>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-orange/28 bg-orange/8 p-4">
+                <p className="text-sm leading-6 text-mute">Delete this project? This will remove the project and unlink its related project references. This cannot be undone.</p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={handleDeleteProject}
+                    className="flex-1 rounded-2xl border border-orange/35 bg-orange/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
+                  >
+                    Confirm Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmProjectDelete(false)}
+                    className="flex-1 rounded-2xl border border-white/8 px-4 py-3 text-sm text-mute"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {editingSection === "overview" ? (
               <div className="mt-4 space-y-4">

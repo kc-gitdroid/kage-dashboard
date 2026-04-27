@@ -105,6 +105,19 @@ type CalendarDraft = {
   notes: string;
 };
 
+type HomeThinkingRow = {
+  id: string;
+  title: string;
+  body: string;
+  brandId?: BrandId;
+  brand?: { id: BrandId; shortName: string; color: string };
+  type?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  href: string;
+};
+
 function startOfDay(value: Date) {
   return new Date(value.getFullYear(), value.getMonth(), value.getDate());
 }
@@ -148,6 +161,16 @@ function formatRelativeDay(value: string, today: Date) {
   return formatMonthDay(value);
 }
 
+function getThinkingTitle(item: { title?: string; body?: string }) {
+  const title = item.title?.trim();
+  if (title) {
+    return title;
+  }
+
+  const firstBodyLine = item.body?.split("\n").find((line) => line.trim())?.trim();
+  return firstBodyLine || "Untitled thinking";
+}
+
 const quickActions: {
   id: QuickActionId;
   label: string;
@@ -170,8 +193,8 @@ const quickActions: {
   },
   {
     id: "content",
-    label: "New Content Item",
-    hint: "Start a content item with format, pillar, and timing while the direction is still clear.",
+    label: "New Post",
+    hint: "Start a planned post with format, pillar, and timing while the direction is still clear.",
   },
 ];
 
@@ -406,7 +429,7 @@ export function HomePage() {
         id: item.id,
         title: item.title,
         brandId: item.brandId,
-        type: "overdue content",
+        type: "overdue post",
         targetType: "content" as const,
         timing: item.scheduleDate ? `Due ${formatMonthDay(item.scheduleDate)}` : "Needs attention",
         sortTime: item.scheduleDate ? new Date(item.scheduleDate).getTime() : todayStart.getTime() - 1,
@@ -426,7 +449,7 @@ export function HomePage() {
         id: item.id,
         title: item.title,
         brandId: item.brandId,
-        type: "scheduled content",
+        type: "scheduled post",
         targetType: "content" as const,
         timing: formatHourMinute(item.scheduleDate as string),
         sortTime: new Date(item.scheduleDate as string).getTime(),
@@ -450,7 +473,7 @@ export function HomePage() {
         id: item.id,
         title: item.title,
         brandId: item.brandId,
-        type: "active content",
+        type: "active post",
         targetType: "content" as const,
         timing: item.scheduleDate ? `Today / ${formatHourMinute(item.scheduleDate)}` : "Needs attention",
         sortTime: item.scheduleDate ? new Date(item.scheduleDate).getTime() : todayStart.getTime() + 12 * 60 * 60 * 1000,
@@ -497,7 +520,7 @@ export function HomePage() {
         id: item.id,
         title: item.title,
         brandId: item.brandId,
-        type: "scheduled content",
+        type: "scheduled post",
         targetType: "content" as const,
         timing: formatMonthDayTime(item.scheduleDate as string),
         sortTime: new Date(item.scheduleDate as string).getTime(),
@@ -561,10 +584,76 @@ export function HomePage() {
   const recentPromptRows = [...promptItems]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 5);
-  const recentThinkingRows = brandSpaces
-    .flatMap((brand) => (brand.thinking ?? []).map((item) => ({ ...item, brand })))
+  const recentThinkingRows: HomeThinkingRow[] = [
+    ...notes.map((item) => {
+      const brand = item.brandId ? brands.find((entry) => entry.id === item.brandId) : undefined;
+      return {
+        id: item.id,
+        title: getThinkingTitle(item),
+        body: item.body,
+        brandId: item.brandId,
+        brand,
+        type: item.type,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        href: `/notes?edit=${item.id}&origin=home`,
+      };
+    }),
+    ...brandSpaces.flatMap((brand) =>
+      (brand.thinking ?? []).map((item) => ({
+        id: item.id,
+        title: getThinkingTitle(item),
+        body: item.body,
+        brandId: brand.id,
+        brand,
+        type: item.type,
+        status: item.status,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        href: `/brands/${brand.id}#thinking`,
+      })),
+    ),
+  ]
     .sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() - new Date(a.updatedAt ?? a.createdAt ?? 0).getTime())
     .slice(0, 5);
+
+  const homeCalendarRows = [
+    ...calendarItems.map((item) => ({
+      key: `calendar-${item.id}`,
+      title: item.title,
+      brandId: item.brandId,
+      type: formatTokenLabel(item.type),
+      date: item.start,
+      timing: formatMonthDayTime(item.start),
+      targetType: "calendar" as const,
+      id: item.id,
+    })),
+    ...contentItems
+      .filter((item) => item.scheduleDate)
+      .map((item) => ({
+        key: `post-${item.id}`,
+        title: item.title,
+        brandId: item.brandId,
+        type: "Post",
+        date: item.scheduleDate as string,
+        timing: formatMonthDayTime(item.scheduleDate as string),
+        targetType: "content" as const,
+        id: item.id,
+      })),
+    ...tasks.map((task) => ({
+      key: `action-${task.id}`,
+      title: task.title,
+      brandId: task.brandId,
+      type: "Action",
+      date: task.dueDate,
+      timing: `Due ${formatMonthDay(task.dueDate)}`,
+      targetType: "task" as const,
+      id: task.id,
+    })),
+  ]
+    .filter((item) => new Date(item.date) >= todayStart)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 6);
 
   const brandSnapshots = [...brandSpaces]
     .sort((a, b) => brandWorkspaceOrder.indexOf(a.id) - brandWorkspaceOrder.indexOf(b.id))
@@ -581,9 +670,8 @@ export function HomePage() {
     const scheduledContentCount = upcomingScheduledPosts || contentItems.filter(
       (item) => item.brandId === brand.id && item.status === "scheduled" && item.scheduleDate,
     ).length;
-    const recentActivityCount =
-      promptItems.filter((prompt) => prompt.brandId === brand.id).length +
-      (brand.thinking ?? []).length;
+    const thinkingCount = notes.filter((note) => note.brandId === brand.id).length + (brand.thinking ?? []).length;
+    const promptCount = promptItems.filter((prompt) => prompt.brandId === brand.id).length;
 
     const nextCandidates: BrandSnapshotRow[] = [
       ...(brand.actions ?? [])
@@ -623,8 +711,16 @@ export function HomePage() {
         .map((item) => ({
           id: item.id,
           label: item.title,
-          timing: `Content / ${formatMonthDayTime(item.scheduleDate as string)}`,
+          timing: `Post / ${formatMonthDayTime(item.scheduleDate as string)}`,
           sortTime: new Date(item.scheduleDate as string).getTime(),
+        })),
+      ...projects
+        .filter((project) => project.brandId === brand.id && project.status !== "completed" && project.dueDate && new Date(project.dueDate) >= todayStart)
+        .map((project) => ({
+          id: project.id,
+          label: project.title,
+          timing: `Project / Due ${formatRelativeDay(project.dueDate as string, today)}`,
+          sortTime: new Date(project.dueDate as string).getTime(),
         })),
     ].sort((a, b) => a.sortTime - b.sortTime);
 
@@ -633,7 +729,8 @@ export function HomePage() {
         activeProjectCount,
         openTaskCount: activeActionCount,
         scheduledContentCount,
-        recentActivityCount,
+        thinkingCount,
+        promptCount,
         nextPriority: nextCandidates[0],
       };
     });
@@ -888,13 +985,14 @@ export function HomePage() {
 
   return (
     <div className="w-full min-w-0 max-w-full space-y-5 overflow-x-hidden md:space-y-6">
-      <section className="space-y-5 xl:grid xl:grid-cols-[1.04fr_0.96fr] xl:items-start xl:gap-5 xl:space-y-0">
-        <div className="space-y-5">
+      <section className="flex flex-col gap-5 xl:grid xl:grid-cols-[1.04fr_0.96fr] xl:items-start xl:gap-5">
+        <div className="contents xl:block xl:space-y-5">
           <Panel
             eyebrow="Home / Today"
             title="Today"
             subtitle="What needs attention now: overdue work, today’s commitments, and scheduled outputs in one focused list."
             accent="blue"
+            className="order-1"
           >
           <div
             className={
@@ -947,6 +1045,7 @@ export function HomePage() {
             title="Today’s Actions"
             subtitle="Next moves from brand workspaces, including legacy action lines when structured actions are not available yet."
             accent="yellow"
+            className="order-6"
           >
             <div className="space-y-3">
               {todaysActions.map((item) => (
@@ -979,6 +1078,7 @@ export function HomePage() {
             title="Brand Snapshot"
             subtitle="What matters across AAI, Masteryatelier, Massiveoutfit / MO Studio, Personal, and biro at a glance."
             accent="lime"
+            className="order-10"
           >
             <div className="grid gap-3 md:grid-cols-2">
               {brandSnapshots.map((brand) => (
@@ -986,36 +1086,32 @@ export function HomePage() {
                   key={brand.id}
                   type="button"
                   onClick={() => router.push(`/brands/${brand.id}`)}
-                  className="rounded-2xl border border-white/6 bg-white/[0.02] p-4"
+                  className="min-w-0 rounded-2xl border border-white/6 bg-white/[0.02] p-[clamp(1.25rem,3vw,2rem)] text-left"
                   style={{ boxShadow: `inset 0 1px 0 0 ${brand.color}20` }}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: brand.color }} />
-                        <h3 className="text-base font-semibold text-ink">{brand.shortName}</h3>
-                      </div>
-                      <p className="mt-1 text-sm text-mute">{brand.description}</p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2.5">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: brand.color }} />
+                      <h3 className="min-w-0 text-base font-semibold leading-none text-ink">{brand.shortName}</h3>
                     </div>
+                    <p className="mt-3 text-left text-sm leading-6 text-mute">{brand.description}</p>
                   </div>
 
-                  <div className="mt-4 grid grid-cols-3 gap-2">
-                    <div className="rounded-xl border border-white/6 bg-black/10 px-3 py-3 text-right">
-                      <p className="ui-micro-label min-h-[1.8rem] leading-tight">Projects</p>
-                      <p className="mt-2 text-lg font-medium leading-none text-ink">{brand.activeProjectCount}</p>
+                  <div className="mt-4 grid min-w-0 grid-cols-3 gap-2 md:gap-3">
+                    <div className="box-border min-w-0 rounded-xl border border-white/6 bg-black/10 px-2 py-3 text-center">
+                      <p className="truncate font-display text-[clamp(9px,1vw,12px)] uppercase tracking-[0.16em] text-mute">Projects</p>
+                      <p className="mt-2 text-[clamp(22px,3vw,34px)] font-medium leading-none text-ink">{brand.activeProjectCount}</p>
                     </div>
-                    <div className="rounded-xl border border-white/6 bg-black/10 px-3 py-3 text-right">
-                      <p className="ui-micro-label min-h-[1.8rem] leading-tight">Actions</p>
-                      <p className="mt-2 text-lg font-medium leading-none text-ink">{brand.openTaskCount}</p>
+                    <div className="box-border min-w-0 rounded-xl border border-white/6 bg-black/10 px-2 py-3 text-center">
+                      <p className="truncate font-display text-[clamp(9px,1vw,12px)] uppercase tracking-[0.16em] text-mute">Actions</p>
+                      <p className="mt-2 text-[clamp(22px,3vw,34px)] font-medium leading-none text-ink">{brand.openTaskCount}</p>
                     </div>
-                    <div className="rounded-xl border border-white/6 bg-black/10 px-3 py-3 text-right">
-                      <p className="ui-micro-label min-h-[1.8rem] leading-tight">Posts</p>
-                      <p className="mt-2 text-lg font-medium leading-none text-ink">{brand.scheduledContentCount}</p>
+                    <div className="box-border min-w-0 rounded-xl border border-white/6 bg-black/10 px-2 py-3 text-center">
+                      <p className="truncate font-display text-[clamp(9px,1vw,12px)] uppercase tracking-[0.16em] text-mute">Posts</p>
+                      <p className="mt-2 text-[clamp(22px,3vw,34px)] font-medium leading-none text-ink">{brand.scheduledContentCount}</p>
                     </div>
                   </div>
-                  {brand.recentActivityCount > 0 ? (
-                    <p className="mt-3 text-right text-xs text-mute">{brand.recentActivityCount} prompt/thinking records</p>
-                  ) : null}
+                  <p className="mt-3 text-left text-xs text-mute">Thinking: {brand.thinkingCount} · Prompts: {brand.promptCount}</p>
 
                   <div className="mt-4 rounded-xl border border-white/6 bg-black/10 px-3 py-3">
                     <p className="ui-micro-label">Next Priority</p>
@@ -1034,11 +1130,12 @@ export function HomePage() {
           </Panel>
         </div>
 
-        <div className="space-y-5">
+        <div className="contents xl:block xl:space-y-5">
           <Panel
             eyebrow="Home / Upcoming"
             title="Upcoming"
             subtitle="What is coming next across the next 7 days, with the most important items surfaced first."
+            className="order-2"
           >
           <div className={upcomingRows.length > 6 ? "space-y-3 max-h-[32rem] overflow-y-auto pr-1" : "space-y-3"}>
             {upcomingRows.map((item) => {
@@ -1076,6 +1173,7 @@ export function HomePage() {
             title="Publishing This Week"
             subtitle="Scheduled brand posts from the publishing calendars across all workspaces."
             accent="lime"
+            className="order-7"
           >
             <div className="space-y-3">
               {publishingThisWeek.map((post) => (
@@ -1114,6 +1212,7 @@ export function HomePage() {
             title="Quick Add"
             subtitle="Fast entry actions for the items that most often need to be captured in motion."
             accent="yellow"
+            className="order-8"
           >
           <div className={quickActions.length > 2 ? "space-y-3 max-h-[32rem] overflow-y-auto pr-1" : "space-y-3"}>
             {quickActions.map((item, index) => (
@@ -1142,6 +1241,7 @@ export function HomePage() {
             title="Active Projects"
             subtitle="Active delivery streams only, ordered by nearest due date so pressure points surface quickly."
             accent="orange"
+            className="order-9"
           >
           <div className="space-y-3">
             {activeProjectRows.map((project) => {
@@ -1177,7 +1277,7 @@ export function HomePage() {
           </div>
           </Panel>
 
-          <Panel eyebrow="Home / Prompts" title="Recent Prompts" subtitle="Recently updated prompt records across brands.">
+          <Panel eyebrow="Home / Prompts" title="Recent Prompts" subtitle="Recently updated prompt records across brands." className="order-3">
             <div className="space-y-3">
               {recentPromptRows.map((prompt) => {
                 const brand = prompt.brandId ? brands.find((entry) => entry.id === prompt.brandId) : undefined;
@@ -1204,26 +1304,62 @@ export function HomePage() {
             </div>
           </Panel>
 
-          <Panel eyebrow="Home / Thinking" title="Recent Thinking" subtitle="Recent observations, references, and creative direction from brand workspaces.">
+          <Panel eyebrow="Home / Thinking" title="Recent Thinking" subtitle="Recent observations, references, and creative direction from brand workspaces." className="order-4">
             <div className="space-y-3">
-              {recentThinkingRows.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => router.push(`/brands/${item.brand.id}#thinking`)}
-                  className="w-full rounded-2xl border border-white/6 bg-black/10 p-4 text-left transition hover:border-white/12"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <p className="text-sm font-medium text-ink">{item.title}</p>
-                    <BrandPill color={item.brand.color}>{item.brand.shortName}</BrandPill>
-                  </div>
-                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-mute">{item.body}</p>
-                  <p className="mt-2 text-xs text-mute">{item.type ?? "Other"} / {item.status ?? "Raw"}</p>
-                </button>
-              ))}
+              {recentThinkingRows.map((item) => {
+                const updatedLabel = item.updatedAt ?? item.createdAt;
+                return (
+                  <button
+                    key={`${item.href}-${item.id}`}
+                    type="button"
+                    onClick={() => router.push(item.href)}
+                    className="w-full rounded-2xl border border-white/6 bg-black/10 p-4 text-left transition hover:border-white/12"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <p className="text-sm font-medium text-ink">{item.title}</p>
+                      {item.brand ? <BrandPill color={item.brand.color}>{item.brand.shortName}</BrandPill> : null}
+                    </div>
+                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-mute">{item.body || "No body added yet."}</p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-mute">
+                      <span>{item.type ?? "Other"}</span>
+                      {updatedLabel ? <span>{formatMonthDay(updatedLabel)}</span> : null}
+                    </div>
+                  </button>
+                );
+              })}
               {recentThinkingRows.length === 0 ? (
                 <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
-                  No structured thinking items yet. Legacy Notes still live inside each workspace.
+                  No thinking records yet. Capture observations, references, and creative direction from each brand workspace.
+                </div>
+              ) : null}
+            </div>
+          </Panel>
+
+          <Panel eyebrow="Month View / Calendar" title="Calendar" subtitle="Near-term scheduled posts, actions, and calendar items across all brands." className="order-5" accent="blue">
+            <div className="space-y-3">
+              {homeCalendarRows.map((item) => {
+                const brand = brands.find((entry) => entry.id === item.brandId);
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => openHomeItem(item)}
+                    className="w-full rounded-2xl border border-white/6 bg-black/10 p-4 text-left transition hover:border-white/12"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <p className="text-sm font-medium text-ink">{item.title}</p>
+                      {brand ? <BrandPill color={brand.color}>{brand.shortName}</BrandPill> : null}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-mute">
+                      <span>{item.type}</span>
+                      <span>{item.timing}</span>
+                    </div>
+                  </button>
+                );
+              })}
+              {homeCalendarRows.length === 0 ? (
+                <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
+                  No upcoming calendar items are scheduled yet.
                 </div>
               ) : null}
             </div>
@@ -1443,9 +1579,9 @@ export function HomePage() {
       <PreviewDrawer
         open={Boolean(contentDrawerMode)}
         onClose={closeContentDrawer}
-        eyebrow={`Home / Content / ${contentDrawerMode === "edit" ? "Edit" : "Create"}`}
-        title={contentDrawerMode === "edit" ? "Edit content item" : "New content item"}
-        subtitle="Content changes save locally and keep you in the Home workflow."
+        eyebrow={`Home / Posts / ${contentDrawerMode === "edit" ? "Edit" : "Create"}`}
+        title={contentDrawerMode === "edit" ? "Edit post" : "New post"}
+        subtitle="Post changes save locally and keep you in the Home workflow."
       >
         <div className="space-y-4">
           <div>
@@ -1453,7 +1589,7 @@ export function HomePage() {
             <input
               value={contentDraft.title}
               onChange={(event) => setContentDraft((current) => ({ ...current, title: event.target.value }))}
-              placeholder="Enter content title"
+              placeholder="Enter post title"
               className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none placeholder:text-mute"
             />
           </div>
@@ -1497,7 +1633,7 @@ export function HomePage() {
               <input
                 value={contentDraft.pillar}
                 onChange={(event) => setContentDraft((current) => ({ ...current, pillar: event.target.value }))}
-                placeholder="Enter content pillar"
+                placeholder="Enter post pillar"
                 className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none placeholder:text-mute"
               />
             </div>
@@ -1527,7 +1663,7 @@ export function HomePage() {
             onClick={handleContentSave}
             className="w-full rounded-2xl border border-blue/40 bg-blue/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-ink"
           >
-            {contentDrawerMode === "edit" ? "Save Content Item" : "Add Content Item"}
+            {contentDrawerMode === "edit" ? "Save Post" : "Add Post"}
           </button>
 
           {contentDrawerMode === "edit" && contentDraft.id && (
@@ -1538,11 +1674,11 @@ export function HomePage() {
                   onClick={() => setContentConfirmDelete(true)}
                   className="w-full rounded-2xl border border-orange/28 bg-orange/8 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
                 >
-                  Delete Content Item
+                  Delete Post
                 </button>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm text-mute">Delete this content item from the local dashboard? Content views will update immediately.</p>
+                  <p className="text-sm text-mute">Delete this post from the dashboard? Post views will update immediately.</p>
                   <div className="flex gap-3">
                     <button
                       type="button"

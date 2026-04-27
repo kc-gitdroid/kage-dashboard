@@ -204,9 +204,9 @@ export function ContentPage() {
   return (
     <div className="space-y-5 md:space-y-6">
       <Panel
-        eyebrow="Content / Planner"
-        title="Content Planner"
-        subtitle="A calm planning layer for brand-led content. Formats, pillars, captions, and assets stay visible together so scheduling reflects each brand world rather than a generic posting queue."
+        eyebrow="Posts / Planner"
+        title="Post Planner"
+        subtitle="A calm planning layer for brand-led posts. Formats, pillars, captions, and assets stay visible together so scheduling reflects each brand world rather than a generic posting queue."
       >
         <div className="grid gap-3 xl:grid-cols-[1fr_1fr_auto]">
           <div className="rounded-2xl border border-white/6 bg-black/10 p-4">
@@ -250,14 +250,14 @@ export function ContentPage() {
               onClick={openCreate}
               className="col-span-2 rounded-2xl border border-blue/30 bg-blue/8 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-ink transition hover:border-blue/40"
             >
-              New Content Item
+              New Post
             </button>
           </div>
         </div>
       </Panel>
 
       <section className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
-        <Panel eyebrow="Content / List" title="List View" subtitle="Detailed planning rows for title, format, pillar, caption, assets, schedule, and overall status." accent="blue">
+        <Panel eyebrow="Posts / List" title="List View" subtitle="Detailed planning rows for title, format, pillar, caption, assets, schedule, and overall status." accent="blue">
           <div className="space-y-3">
             <div className="hidden rounded-2xl border border-white/6 bg-white/[0.02] px-4 py-3 text-xs uppercase tracking-[0.18em] text-mute md:grid md:grid-cols-[1.7fr_0.75fr_0.8fr_1fr_0.9fr_0.9fr_0.8fr_0.8fr] md:gap-3">
               <span>Title</span>
@@ -313,7 +313,7 @@ export function ContentPage() {
           </div>
         </Panel>
 
-        <Panel eyebrow="Content / Board" title="Board View" subtitle="A lighter board for quick planning states without turning the page into a heavy production tool." accent="orange">
+        <Panel eyebrow="Posts / Board" title="Board View" subtitle="A lighter board for quick planning states without turning the page into a heavy production tool." accent="orange">
           <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-1">
             {Object.entries(boardColumns).map(([column, items]) => (
               <div key={column} className="rounded-2xl border border-white/6 bg-black/10 p-4">
@@ -353,8 +353,8 @@ export function ContentPage() {
       <PreviewDrawer
         open={Boolean(drawerMode)}
         onClose={closeDrawer}
-        eyebrow={`Content / ${drawerMode === "edit" ? "Edit" : "Create"}`}
-        title={drawerMode === "edit" ? "Edit content item" : "New content item"}
+        eyebrow={`Posts / ${drawerMode === "edit" ? "Edit" : "Create"}`}
+        title={drawerMode === "edit" ? "Edit post" : "New post"}
         subtitle="Changes are saved locally and update both the list and board immediately."
       >
         <div className="space-y-4">
@@ -363,7 +363,7 @@ export function ContentPage() {
             <input
               value={draft.title}
               onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
-              placeholder="Enter content title"
+              placeholder="Enter post title"
               className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none placeholder:text-mute"
             />
           </div>
@@ -407,7 +407,7 @@ export function ContentPage() {
               <input
                 value={draft.pillar}
                 onChange={(event) => setDraft((current) => ({ ...current, pillar: event.target.value }))}
-                placeholder="Enter content pillar"
+                placeholder="Enter post pillar"
                 className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none placeholder:text-mute"
               />
             </div>
@@ -437,7 +437,7 @@ export function ContentPage() {
             onClick={handleSave}
             className="w-full rounded-2xl border border-blue/40 bg-blue/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-ink"
           >
-            {drawerMode === "edit" ? "Save Changes" : "Save Content Item"}
+            {drawerMode === "edit" ? "Save Changes" : "Save Post"}
           </button>
 
           {drawerMode === "edit" && draft.id && (
@@ -448,11 +448,11 @@ export function ContentPage() {
                   onClick={() => setConfirmDelete(true)}
                   className="w-full rounded-2xl border border-orange/28 bg-orange/8 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
                 >
-                  Delete Content Item
+                  Delete Post
                 </button>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm text-mute">Delete this content item from the local planner? The list and board will update immediately.</p>
+                  <p className="text-sm text-mute">Delete this post from the planner? The list and board will update immediately.</p>
                   <div className="flex gap-3">
                     <button
                       type="button"

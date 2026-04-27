@@ -2673,7 +2673,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
               </div>
               {brand.notes.length > 0 ? (
                 <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
-                  <p className="ui-micro-label">Legacy Notes</p>
+                  <p className="ui-micro-label">Workspace Thinking</p>
                   <div className="mt-3">
                     <SectionList items={brand.notes} />
                   </div>

@@ -48,6 +48,7 @@ export function NotesPage() {
   const [typeFilter, setTypeFilter] = useState<string>("All");
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [previewEditing, setPreviewEditing] = useState(false);
 
   const filteredNotes = useMemo(() => {
     return notes.filter((note) => {
@@ -83,6 +84,16 @@ export function NotesPage() {
     router.replace(returnPath);
   }
 
+  function getThinkingTitle(note: NoteItem) {
+    const title = note.title.trim();
+    if (title) {
+      return title;
+    }
+
+    const firstBodyLine = note.body.split("\n").find((line) => line.trim())?.trim();
+    return firstBodyLine || "Untitled thinking";
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -92,11 +103,12 @@ export function NotesPage() {
 
     saveNote({
       id: draft.id ?? createLocalRecordId("note"),
-      title: draft.title.trim(),
+      title: draft.title.trim() || getThinkingTitle({ ...draft, id: draft.id ?? "draft", body: draft.body, createdAt: new Date().toISOString() } as NoteItem),
       brandId: draft.brandId,
       type: draft.type,
       body: draft.body.trim(),
       createdAt: draft.id && selectedNote ? selectedNote.createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
 
     resetDraft();
@@ -109,12 +121,43 @@ export function NotesPage() {
     setConfirmDelete(false);
   }
 
+  function openPreview(note: NoteItem) {
+    setSelectedNoteId(note.id);
+    setDraft(toDraft(note));
+    setPreviewEditing(false);
+    setConfirmDelete(false);
+  }
+
+  function closePreview() {
+    setSelectedNoteId(null);
+    setPreviewEditing(false);
+    setConfirmDelete(false);
+  }
+
+  function handlePreviewSave() {
+    if (!selectedNote || !draft.body.trim()) {
+      return;
+    }
+
+    saveNote({
+      id: selectedNote.id,
+      title: draft.title.trim() || getThinkingTitle({ ...selectedNote, body: draft.body }),
+      brandId: draft.brandId,
+      type: draft.type,
+      body: draft.body.trim(),
+      createdAt: selectedNote.createdAt,
+      updatedAt: new Date().toISOString(),
+    });
+    setPreviewEditing(false);
+  }
+
   function handleDelete() {
     if (!draft.id) {
       return;
     }
     deleteNote(draft.id);
     setSelectedNoteId(null);
+    setPreviewEditing(false);
     resetDraft();
   }
 
@@ -300,12 +343,12 @@ export function NotesPage() {
                 <button
                   key={note.id}
                   type="button"
-                  onClick={() => startEdit(note)}
+                  onClick={() => openPreview(note)}
                   className="block w-full rounded-2xl border border-white/6 bg-white/[0.02] p-4 text-left transition hover:border-white/12 md:p-5"
                 >
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
-                      <p className="text-base font-medium text-ink">{note.title}</p>
+                      <p className="text-base font-medium text-ink">{getThinkingTitle(note)}</p>
                       <p className="mt-2 text-sm leading-6 text-mute">{note.body}</p>
                     </div>
                     {brand && <BrandPill color={brand.color}>{brand.shortName}</BrandPill>}
@@ -313,7 +356,7 @@ export function NotesPage() {
 
                   <div className="mt-4 flex flex-wrap gap-2 text-sm text-mute">
                     <span className="rounded-full border border-white/8 px-2.5 py-1 text-[11px]">{formatTokenLabel(note.type)}</span>
-                    <span className="rounded-full border border-white/8 px-2.5 py-1 text-[11px]">{createdAtLabel}</span>
+                  <span className="rounded-full border border-white/8 px-2.5 py-1 text-[11px]">{createdAtLabel}</span>
                   </div>
                 </button>
               );
@@ -330,9 +373,9 @@ export function NotesPage() {
 
       <PreviewDrawer
         open={Boolean(selectedNote)}
-        onClose={() => setSelectedNoteId(null)}
+        onClose={closePreview}
         eyebrow="Thinking / Preview"
-        title={selectedNote?.title ?? ""}
+        title={selectedNote ? getThinkingTitle(selectedNote) : ""}
         subtitle={
           selectedNote
             ? new Date(selectedNote.createdAt).toLocaleString("en-US", {
@@ -346,30 +389,166 @@ export function NotesPage() {
         }
       >
         {selectedNote && (
-          <>
+          <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-white/6 bg-white/[0.02] p-4">
                 <p className="font-display text-[10px] uppercase tracking-[0.22em] text-mute">Type</p>
-                <p className="mt-3 text-sm text-mute">{formatTokenLabel(selectedNote.type)}</p>
+                {previewEditing ? (
+                  <select
+                    value={draft.type}
+                    onChange={(event) => setDraft((current) => ({ ...current, type: event.target.value as NoteType }))}
+                    className="mt-3 w-full rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2 text-sm text-ink outline-none"
+                  >
+                    {noteTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {formatTokenLabel(type)}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="mt-3 text-sm text-mute">{formatTokenLabel(selectedNote.type)}</p>
+                )}
               </div>
               <div className="rounded-2xl border border-white/6 bg-white/[0.02] p-4">
                 <p className="font-display text-[10px] uppercase tracking-[0.22em] text-mute">Brand</p>
                 <div className="mt-3">
-                  {(() => {
-                    const brand = brands.find((entry) => entry.id === selectedNote.brandId);
-                    return brand ? <BrandPill color={brand.color}>{brand.shortName}</BrandPill> : <p className="text-sm text-mute">No brand</p>;
-                  })()}
+                  {previewEditing ? (
+                    <select
+                      value={draft.brandId ?? ""}
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          brandId: event.target.value ? (event.target.value as BrandId) : undefined,
+                        }))
+                      }
+                      className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2 text-sm text-ink outline-none"
+                    >
+                      <option value="">No brand</option>
+                      {brands.map((brand) => (
+                        <option key={brand.id} value={brand.id}>
+                          {brand.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    (() => {
+                      const brand = brands.find((entry) => entry.id === selectedNote.brandId);
+                      return brand ? <BrandPill color={brand.color}>{brand.shortName}</BrandPill> : <p className="text-sm text-mute">No brand</p>;
+                    })()
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/6 bg-black/10 p-4">
-              <p className="font-display text-[10px] uppercase tracking-[0.22em] text-mute">Edit State</p>
-              <p className="mt-3 text-sm leading-6 text-mute">
-                This thinking item is loaded into the main capture form above. Update the fields there and press save to keep the editing flow simple on mobile.
-              </p>
+            {previewEditing ? (
+              <>
+                <div>
+                  <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Title</label>
+                  <input
+                    value={draft.title}
+                    onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
+                    placeholder="Capture the thinking title"
+                    className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none placeholder:text-mute"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Thinking Body</label>
+                  <textarea
+                    value={draft.body}
+                    onChange={(event) => setDraft((current) => ({ ...current, body: event.target.value }))}
+                    rows={8}
+                    className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-ink outline-none"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="rounded-2xl border border-white/6 bg-black/10 p-4">
+                <p className="font-display text-[10px] uppercase tracking-[0.22em] text-mute">Thinking Body</p>
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-mute">{selectedNote.body || "No body added yet."}</p>
+              </div>
+            )}
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-white/6 bg-white/[0.02] p-4">
+                <p className="font-display text-[10px] uppercase tracking-[0.22em] text-mute">Created</p>
+                <p className="mt-3 text-sm text-mute">{new Date(selectedNote.createdAt).toLocaleString("en-US")}</p>
+              </div>
+              <div className="rounded-2xl border border-white/6 bg-white/[0.02] p-4">
+                <p className="font-display text-[10px] uppercase tracking-[0.22em] text-mute">Updated</p>
+                <p className="mt-3 text-sm text-mute">{selectedNote.updatedAt ? new Date(selectedNote.updatedAt).toLocaleString("en-US") : "Not updated yet"}</p>
+              </div>
             </div>
-          </>
+
+            {confirmDelete ? (
+              <div className="rounded-2xl border border-orange/28 bg-orange/8 p-4">
+                <p className="text-sm text-mute">Delete this thinking record? This cannot be undone.</p>
+                <div className="mt-3 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="flex-1 rounded-2xl border border-orange/35 bg-orange/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
+                  >
+                    Confirm Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(false)}
+                    className="flex-1 rounded-2xl border border-white/8 px-4 py-3 text-sm text-mute"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                {previewEditing ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraft(toDraft(selectedNote));
+                        setPreviewEditing(false);
+                      }}
+                      className="flex-1 rounded-2xl border border-white/8 px-4 py-3 text-sm text-mute transition hover:border-white/14 hover:text-ink"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePreviewSave}
+                      className="flex-1 rounded-2xl border border-blue/40 bg-blue/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-ink"
+                    >
+                      Save Changes
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewEditing(true)}
+                      className="flex-1 rounded-2xl border border-blue/40 bg-blue/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-ink"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(true)}
+                      className="flex-1 rounded-2xl border border-orange/28 bg-orange/8 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={closePreview}
+                      className="flex-1 rounded-2xl border border-white/8 px-4 py-3 text-sm text-mute transition hover:border-white/14 hover:text-ink"
+                    >
+                      Close
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </PreviewDrawer>
     </div>
