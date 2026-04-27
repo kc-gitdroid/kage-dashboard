@@ -1029,6 +1029,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const [publishingModalMode, setPublishingModalMode] = useState<PublishingModalMode | null>(null);
   const [publishingDraft, setPublishingDraft] = useState<PublishingDraft>(() => createEmptyPublishingDraft(brand, contentPillars));
   const [selectedPublishingId, setSelectedPublishingId] = useState<string | null>(null);
+  const [publishingNotesSaved, setPublishingNotesSaved] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1248,6 +1249,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   function closePublishingModal() {
     setPublishingModalMode(null);
     setSelectedPublishingId(null);
+    setPublishingNotesSaved(false);
   }
 
   function applyConceptPrefill(conceptId: string) {
@@ -1280,8 +1282,10 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
       : [...publishingCalendar, nextPost];
 
     updateBrandSpace({ publishingCalendar: nextPosts });
+    setPublishingDraft(toPublishingDraft(nextPost));
     setSelectedPublishingId(nextPost.id);
     setPublishingModalMode("view");
+    setPublishingNotesSaved(false);
   }
 
   function deletePublishingItem(postId: string) {
@@ -1294,11 +1298,14 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   }
 
   function savePublishingWorkingNotes(post: PublishingCalendarItem, workingNotes: string) {
-    updateBrandSpace({
-      publishingCalendar: publishingCalendar.map((item) =>
-        item.id === post.id ? { ...item, workingNotes, updatedAt: nowIso() } : item,
-      ),
-    });
+    const nextPost: PublishingCalendarItem = { ...post, workingNotes, updatedAt: nowIso() };
+    const nextPosts = publishingCalendar.map((item) => (item.id === nextPost.id ? nextPost : item));
+
+    updateBrandSpace({ publishingCalendar: nextPosts });
+    setPublishingDraft(toPublishingDraft(nextPost));
+    setSelectedPublishingId(nextPost.id);
+    setPublishingNotesSaved(true);
+    window.setTimeout(() => setPublishingNotesSaved(false), 1800);
   }
 
   return (
@@ -2172,7 +2179,10 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
               <TextAreaField
                 label="Working Notes"
                 value={publishingDraft.workingNotes}
-                onChange={(value) => setPublishingDraft((current) => ({ ...current, workingNotes: value }))}
+                onChange={(value) => {
+                  setPublishingNotesSaved(false);
+                  setPublishingDraft((current) => ({ ...current, workingNotes: value }));
+                }}
                 rows={5}
               />
               <div className="grid gap-3 md:grid-cols-2">
@@ -2185,7 +2195,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
                   onClick={() => savePublishingWorkingNotes(activePublishingItem, publishingDraft.workingNotes)}
                   className="rounded-full border border-blue/30 bg-blue/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-ink"
                 >
-                  Save Notes
+                  {publishingNotesSaved ? "Saved" : "Save Notes"}
                 </button>
                 <EditButton onClick={() => setPublishingModalMode("edit")} />
                 <DangerButton onClick={() => deletePublishingItem(activePublishingItem.id)}>Delete</DangerButton>
