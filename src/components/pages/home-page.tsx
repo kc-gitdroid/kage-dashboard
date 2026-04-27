@@ -1087,10 +1087,10 @@ export function HomePage() {
                   key={brand.id}
                   type="button"
                   onClick={() => router.push(`/brands/${brand.id}`)}
-                  className="min-w-0 rounded-2xl border border-white/6 bg-white/[0.02] p-[clamp(1.25rem,3vw,2rem)] text-left"
+                  className="box-border max-w-full overflow-hidden rounded-2xl border border-white/6 bg-white/[0.02] p-[clamp(1.25rem,3vw,2rem)] text-left"
                   style={{ boxShadow: `inset 0 1px 0 0 ${brand.color}20` }}
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 max-w-full">
                     <div className="flex items-center gap-2.5">
                       <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: brand.color }} />
                       <h3 className="min-w-0 text-base font-semibold leading-none text-ink">{brand.shortName}</h3>
@@ -1098,18 +1098,20 @@ export function HomePage() {
                     <p className="mt-3 text-left text-sm leading-6 text-mute">{brand.description}</p>
                   </div>
 
-                  <div className="mt-3 grid min-w-0 grid-cols-[repeat(3,minmax(84px,1fr))] gap-2 md:gap-3">
-                    <div className="box-border flex min-w-0 flex-col items-center justify-center gap-2 rounded-xl border border-white/6 bg-black/10 px-2.5 py-4 text-center">
-                      <p className="font-display text-[clamp(10px,1vw,12px)] uppercase tracking-[0.08em] text-mute">Projects</p>
-                      <p className="text-[clamp(24px,3vw,34px)] font-medium leading-none text-ink">{brand.activeProjectCount}</p>
-                    </div>
-                    <div className="box-border flex min-w-0 flex-col items-center justify-center gap-2 rounded-xl border border-white/6 bg-black/10 px-2.5 py-4 text-center">
-                      <p className="font-display text-[clamp(10px,1vw,12px)] uppercase tracking-[0.08em] text-mute">Actions</p>
-                      <p className="text-[clamp(24px,3vw,34px)] font-medium leading-none text-ink">{brand.openTaskCount}</p>
-                    </div>
-                    <div className="box-border flex min-w-0 flex-col items-center justify-center gap-2 rounded-xl border border-white/6 bg-black/10 px-2.5 py-4 text-center">
-                      <p className="font-display text-[clamp(10px,1vw,12px)] uppercase tracking-[0.08em] text-mute">Posts</p>
-                      <p className="text-[clamp(24px,3vw,34px)] font-medium leading-none text-ink">{brand.scheduledContentCount}</p>
+                  <div className="mt-3 box-border w-full max-w-full overflow-hidden rounded-[18px] border border-white/6 bg-black/10 px-2.5 py-3.5 min-[520px]:px-3.5 min-[520px]:py-4">
+                    <div className="grid w-full min-w-0 grid-cols-3 gap-1 min-[520px]:gap-2">
+                      <div className="min-w-0 text-center">
+                        <span className="block whitespace-nowrap font-display text-[10px] uppercase tracking-[0.04em] text-mute min-[520px]:text-[clamp(10px,1vw,12px)] min-[520px]:tracking-[0.08em]">Projects</span>
+                        <span className="mt-2 block text-[26px] font-semibold leading-none text-ink min-[520px]:text-[clamp(24px,3vw,36px)]">{brand.activeProjectCount}</span>
+                      </div>
+                      <div className="min-w-0 text-center">
+                        <span className="block whitespace-nowrap font-display text-[10px] uppercase tracking-[0.04em] text-mute min-[520px]:text-[clamp(10px,1vw,12px)] min-[520px]:tracking-[0.08em]">Actions</span>
+                        <span className="mt-2 block text-[26px] font-semibold leading-none text-ink min-[520px]:text-[clamp(24px,3vw,36px)]">{brand.openTaskCount}</span>
+                      </div>
+                      <div className="min-w-0 text-center">
+                        <span className="block whitespace-nowrap font-display text-[10px] uppercase tracking-[0.04em] text-mute min-[520px]:text-[clamp(10px,1vw,12px)] min-[520px]:tracking-[0.08em]">Posts</span>
+                        <span className="mt-2 block text-[26px] font-semibold leading-none text-ink min-[520px]:text-[clamp(24px,3vw,36px)]">{brand.scheduledContentCount}</span>
+                      </div>
                     </div>
                   </div>
                   <p className="mt-3 text-left text-xs text-mute">Thinking: {brand.thinkingCount} · Prompts: {brand.promptCount}</p>
