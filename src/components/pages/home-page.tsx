@@ -1043,7 +1043,7 @@ export function HomePage() {
           <Panel
             eyebrow="Home / Actions"
             title="Today’s Actions"
-            subtitle="Next moves from brand workspaces, including legacy action lines when structured actions are not available yet."
+            subtitle="Next moves from brand workspaces, ordered by priority and timing."
             accent="yellow"
             className="order-6"
           >
@@ -1055,14 +1055,15 @@ export function HomePage() {
                   onClick={() => router.push(`/brands/${item.brand.id}`)}
                   className="w-full rounded-2xl border border-white/6 bg-black/10 p-4 text-left transition hover:border-white/12"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <p className="text-sm font-medium text-ink">{item.title}</p>
+                  <p className="text-sm font-medium leading-6 text-ink">{item.title}</p>
+                  {item.nextMove ? <p className="mt-2 text-sm leading-6 text-mute">{item.nextMove}</p> : null}
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <BrandPill color={item.brand.color}>{item.brand.shortName}</BrandPill>
+                    <span className="whitespace-nowrap text-xs leading-tight text-mute md:text-[13px]">
+                      {item.linkedItemType ?? "Brand"} · {item.status ?? "Next"}
+                    </span>
+                    {item.dueDate ? <span className="whitespace-nowrap text-xs leading-tight text-mute md:text-[13px]">Due {formatMonthDay(item.dueDate)}</span> : null}
                   </div>
-                  <p className="mt-2 text-sm text-mute">{item.nextMove || item.linkedItemType || "Brand action"}</p>
-                  <p className="mt-2 font-display text-[10px] uppercase tracking-[0.18em] text-mute">
-                    {item.status ?? "Next"}{item.dueDate ? ` / Due ${formatMonthDay(item.dueDate)}` : ""}
-                  </p>
                 </button>
               ))}
               {todaysActions.length === 0 ? (
@@ -1097,18 +1098,18 @@ export function HomePage() {
                     <p className="mt-3 text-left text-sm leading-6 text-mute">{brand.description}</p>
                   </div>
 
-                  <div className="mt-4 grid min-w-0 grid-cols-3 gap-2 md:gap-3">
-                    <div className="box-border min-w-0 rounded-xl border border-white/6 bg-black/10 px-2 py-3 text-center">
-                      <p className="truncate font-display text-[clamp(9px,1vw,12px)] uppercase tracking-[0.16em] text-mute">Projects</p>
-                      <p className="mt-2 text-[clamp(22px,3vw,34px)] font-medium leading-none text-ink">{brand.activeProjectCount}</p>
+                  <div className="mt-3 grid min-w-0 grid-cols-[repeat(3,minmax(84px,1fr))] gap-2 md:gap-3">
+                    <div className="box-border flex min-w-0 flex-col items-center justify-center gap-2 rounded-xl border border-white/6 bg-black/10 px-2.5 py-4 text-center">
+                      <p className="font-display text-[clamp(10px,1vw,12px)] uppercase tracking-[0.08em] text-mute">Projects</p>
+                      <p className="text-[clamp(24px,3vw,34px)] font-medium leading-none text-ink">{brand.activeProjectCount}</p>
                     </div>
-                    <div className="box-border min-w-0 rounded-xl border border-white/6 bg-black/10 px-2 py-3 text-center">
-                      <p className="truncate font-display text-[clamp(9px,1vw,12px)] uppercase tracking-[0.16em] text-mute">Actions</p>
-                      <p className="mt-2 text-[clamp(22px,3vw,34px)] font-medium leading-none text-ink">{brand.openTaskCount}</p>
+                    <div className="box-border flex min-w-0 flex-col items-center justify-center gap-2 rounded-xl border border-white/6 bg-black/10 px-2.5 py-4 text-center">
+                      <p className="font-display text-[clamp(10px,1vw,12px)] uppercase tracking-[0.08em] text-mute">Actions</p>
+                      <p className="text-[clamp(24px,3vw,34px)] font-medium leading-none text-ink">{brand.openTaskCount}</p>
                     </div>
-                    <div className="box-border min-w-0 rounded-xl border border-white/6 bg-black/10 px-2 py-3 text-center">
-                      <p className="truncate font-display text-[clamp(9px,1vw,12px)] uppercase tracking-[0.16em] text-mute">Posts</p>
-                      <p className="mt-2 text-[clamp(22px,3vw,34px)] font-medium leading-none text-ink">{brand.scheduledContentCount}</p>
+                    <div className="box-border flex min-w-0 flex-col items-center justify-center gap-2 rounded-xl border border-white/6 bg-black/10 px-2.5 py-4 text-center">
+                      <p className="font-display text-[clamp(10px,1vw,12px)] uppercase tracking-[0.08em] text-mute">Posts</p>
+                      <p className="text-[clamp(24px,3vw,34px)] font-medium leading-none text-ink">{brand.scheduledContentCount}</p>
                     </div>
                   </div>
                   <p className="mt-3 text-left text-xs text-mute">Thinking: {brand.thinkingCount} · Prompts: {brand.promptCount}</p>

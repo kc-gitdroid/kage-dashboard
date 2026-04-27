@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { BrandPill } from "@/components/brand-pill";
 import { Panel } from "@/components/panel";
@@ -49,6 +49,7 @@ export function NotesPage() {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [previewEditing, setPreviewEditing] = useState(false);
+  const consumedPreviewIdRef = useRef<string | null>(null);
 
   const filteredNotes = useMemo(() => {
     return notes.filter((note) => {
@@ -65,9 +66,13 @@ export function NotesPage() {
     const wantsNew = searchParams.get("new");
 
     if (editId) {
+      if (consumedPreviewIdRef.current === editId) {
+        return;
+      }
       const match = notes.find((note) => note.id === editId);
       if (match) {
-        startEdit(match);
+        consumedPreviewIdRef.current = editId;
+        openPreview(match);
       }
       return;
     }
@@ -132,6 +137,9 @@ export function NotesPage() {
     setSelectedNoteId(null);
     setPreviewEditing(false);
     setConfirmDelete(false);
+    if (searchParams.get("edit") || searchParams.get("preview") || searchParams.get("thinkingId") || searchParams.get("item")) {
+      router.replace("/notes");
+    }
   }
 
   function handlePreviewSave() {

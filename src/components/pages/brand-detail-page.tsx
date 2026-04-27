@@ -1412,6 +1412,8 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const [selectedThinkingId, setSelectedThinkingId] = useState<string | null>(null);
   const [thinkingTypeFilter, setThinkingTypeFilter] = useState("");
   const [thinkingStatusFilter, setThinkingStatusFilter] = useState("");
+  const [legacyContentExpanded, setLegacyContentExpanded] = useState(false);
+  const [workspaceThinkingExpanded, setWorkspaceThinkingExpanded] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -2326,20 +2328,45 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
             >
               {hasStructuredContentSystem ? (
                 <div className="rounded-2xl border border-white/6 bg-black/10 p-4">
-                  <p className="ui-micro-label">Old Content Data</p>
-                  <div className="mt-3">
-                    <SectionList items={brand.contentPlan} empty="No legacy content notes saved." />
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="ui-micro-label">Old Content Data</p>
+                      <p className="mt-2 text-sm leading-6 text-mute/75">Imported older workspace information. Expand when needed.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setLegacyContentExpanded((current) => !current)}
+                      className="rounded-full border border-white/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-mute transition hover:border-white/14 hover:text-ink"
+                    >
+                      {legacyContentExpanded ? "Collapse" : "Expand"}
+                    </button>
                   </div>
+                  {legacyContentExpanded ? (
+                    <div className="mt-4">
+                      <SectionList items={brand.contentPlan} empty="No legacy content notes saved." />
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div className="rounded-2xl border border-white/6 bg-black/10 p-4">
-                  <p className="ui-micro-label">Fallback Source</p>
-                  <p className="mt-2 text-sm leading-6 text-mute/75">
-                    Structured content system data is not defined yet, so the existing content plan remains visible here.
-                  </p>
-                  <div className="mt-4">
-                    <SectionList items={brand.contentPlan} empty="No legacy content notes saved." />
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="ui-micro-label">Old Content Data</p>
+                      <p className="mt-2 text-sm leading-6 text-mute/75">Imported older workspace information. Expand when needed.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setLegacyContentExpanded((current) => !current)}
+                      className="rounded-full border border-white/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-mute transition hover:border-white/14 hover:text-ink"
+                    >
+                      {legacyContentExpanded ? "Collapse" : "Expand"}
+                    </button>
                   </div>
+                  {legacyContentExpanded ? (
+                    <div className="mt-4">
+                      <SectionList items={brand.contentPlan} empty="No legacy content notes saved." />
+                    </div>
+                  ) : null}
                 </div>
               )}
             </InlineSection>
@@ -2673,10 +2700,24 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
               </div>
               {brand.notes.length > 0 ? (
                 <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
-                  <p className="ui-micro-label">Workspace Thinking</p>
-                  <div className="mt-3">
-                    <SectionList items={brand.notes} />
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="ui-micro-label">Workspace Thinking</p>
+                      <p className="mt-2 text-sm leading-6 text-mute/75">Imported older workspace thinking. Expand when needed.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setWorkspaceThinkingExpanded((current) => !current)}
+                      className="rounded-full border border-white/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-mute transition hover:border-white/14 hover:text-ink"
+                    >
+                      {workspaceThinkingExpanded ? "Collapse" : "Expand"}
+                    </button>
                   </div>
+                  {workspaceThinkingExpanded ? (
+                    <div className="mt-4">
+                      <SectionList items={brand.notes} />
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
               {thinkingItems.length === 0 ? (
