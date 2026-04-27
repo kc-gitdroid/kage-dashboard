@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { ReactNode } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
 
 import { BrandPill } from "@/components/brand-pill";
 import { Panel } from "@/components/panel";
@@ -14,10 +14,12 @@ import type {
   BrandCompassWorld,
   BrandContentSystem,
   BrandSpace,
+  ContentConcept,
   ContentPillar,
   ContentPillarRotationItem,
   ContentRules,
   ContentSeries,
+  PublishingCalendarItem,
 } from "@/types";
 
 type BrandDetailPageProps = {
@@ -66,15 +68,60 @@ const sectionIds = {
   Overview: "overview",
   Compass: "compass",
   "Content System": "content-system",
+  Concepts: "concepts",
+  "Publishing Calendar": "publishing-calendar",
   Projects: "projects",
   Prompts: "prompts",
   Notes: "notes",
   Tasks: "tasks",
 } as const;
 
-const brandPageSections = ["Compass", "Content System", "Projects", "Prompts", "Notes", "Tasks"] as const;
+const brandPageSections = ["Compass", "Content System", "Concepts", "Publishing Calendar", "Projects", "Prompts", "Notes", "Tasks"] as const;
 
 const emptyText = "Not defined yet";
+
+const conceptStatuses = ["Idea", "Draft", "Ready", "Scheduled", "Published", "Archived"] as const;
+const publishingStatuses = ["Idea", "Draft", "Ready", "Scheduled", "Published"] as const;
+const publishingFormats = ["Single", "Carousel", "Reel", "Story", "Other"] as const;
+
+type ConceptModalMode = "create" | "edit" | "view";
+type PublishingModalMode = "create" | "edit" | "view";
+
+type ConceptDraft = {
+  id: string;
+  title: string;
+  seriesId: string;
+  episodeNumber: string;
+  pillarId: string;
+  format: string;
+  scene: string;
+  visualDirection: string;
+  productPlacement: string;
+  englishCaptionDraft: string;
+  japaneseCaptionDraft: string;
+  notes: string;
+  status: string;
+  linkedPromptIds: string;
+  linkedActionIds: string;
+};
+
+type PublishingDraft = {
+  id: string;
+  date: string;
+  title: string;
+  pillarId: string;
+  format: string;
+  status: string;
+  contentConceptId: string;
+  sceneBrief: string;
+  visualDirection: string;
+  productPlacement: string;
+  englishCaption: string;
+  japaneseCaption: string;
+  workingNotes: string;
+  linkedPromptIds: string;
+  linkedActionIds: string;
+};
 
 function SectionList({ items, empty = emptyText }: { items: string[]; empty?: string }) {
   if (items.length === 0) {
@@ -207,19 +254,54 @@ function TextInputField({
   label,
   value,
   onChange,
+  type = "text",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  type?: string;
 }) {
   return (
     <div>
       <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">{label}</label>
       <input
+        type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none"
       />
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = "None",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">{label}</label>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full rounded-2xl border border-white/8 bg-black px-4 py-3 text-sm text-ink outline-none"
+      >
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -306,6 +388,158 @@ function SaveCancel({
       >
         Save
       </button>
+    </div>
+  );
+}
+
+function PrimaryActionButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-full border border-yellow/30 bg-yellow/10 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-ink"
+    >
+      {children}
+    </button>
+  );
+}
+
+function DangerButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-full border border-red-400/25 bg-red-400/10 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-red-100"
+    >
+      {children}
+    </button>
+  );
+}
+
+function ModalShell({
+  title,
+  eyebrow,
+  onClose,
+  headerMeta,
+  children,
+}: {
+  title: string;
+  eyebrow: string;
+  onClose: () => void;
+  headerMeta?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 p-3 backdrop-blur-sm sm:items-center sm:p-6">
+      <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[22px] border border-white/12 bg-panel p-4 shadow-panel sm:p-5">
+        <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 border-b border-white/8 bg-panel/95 px-4 py-4 backdrop-blur sm:-mx-5 sm:-mt-5 sm:px-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="ui-micro-label">{eyebrow}</p>
+              <h3 className="mt-1 break-words text-lg font-semibold text-ink">{title}</h3>
+              {headerMeta ? <div className="mt-3 flex flex-wrap gap-2">{headerMeta}</div> : null}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full border border-white/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-mute"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ConceptForm({
+  draft,
+  setDraft,
+  pillarOptions,
+  seriesOptions,
+  onSave,
+  onCancel,
+}: {
+  draft: ConceptDraft;
+  setDraft: Dispatch<SetStateAction<ConceptDraft>>;
+  pillarOptions: Array<{ value: string; label: string }>;
+  seriesOptions: Array<{ value: string; label: string }>;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <TextInputField label="Title" value={draft.title} onChange={(value) => setDraft((current) => ({ ...current, title: value }))} />
+        <SelectField label="Status" value={draft.status} onChange={(value) => setDraft((current) => ({ ...current, status: value }))} options={conceptStatuses.map((status) => ({ value: status, label: status }))} placeholder="Select status" />
+        <SelectField label="Pillar" value={draft.pillarId} onChange={(value) => setDraft((current) => ({ ...current, pillarId: value }))} options={pillarOptions} placeholder="Select pillar" />
+        <SelectField label="Series" value={draft.seriesId} onChange={(value) => setDraft((current) => ({ ...current, seriesId: value }))} options={seriesOptions} placeholder="No series" />
+        <TextInputField label="Episode Number" value={draft.episodeNumber} onChange={(value) => setDraft((current) => ({ ...current, episodeNumber: value }))} />
+        <TextInputField label="Format" value={draft.format} onChange={(value) => setDraft((current) => ({ ...current, format: value }))} />
+      </div>
+      <TextAreaField label="Scene" value={draft.scene} onChange={(value) => setDraft((current) => ({ ...current, scene: value }))} rows={4} />
+      <TextAreaField label="Visual Direction" value={draft.visualDirection} onChange={(value) => setDraft((current) => ({ ...current, visualDirection: value }))} rows={4} />
+      <TextAreaField label="Product Placement" value={draft.productPlacement} onChange={(value) => setDraft((current) => ({ ...current, productPlacement: value }))} rows={3} />
+      <div className="grid gap-4 md:grid-cols-2">
+        <TextAreaField label="English Caption Draft" value={draft.englishCaptionDraft} onChange={(value) => setDraft((current) => ({ ...current, englishCaptionDraft: value }))} rows={5} />
+        <TextAreaField label="Japanese Caption Draft" value={draft.japaneseCaptionDraft} onChange={(value) => setDraft((current) => ({ ...current, japaneseCaptionDraft: value }))} rows={5} />
+      </div>
+      <TextAreaField label="Notes" value={draft.notes} onChange={(value) => setDraft((current) => ({ ...current, notes: value }))} rows={4} />
+      <div className="grid gap-4 md:grid-cols-2">
+        <TextAreaField label="Linked Prompt IDs" value={draft.linkedPromptIds} onChange={(value) => setDraft((current) => ({ ...current, linkedPromptIds: value }))} rows={3} />
+        <TextAreaField label="Linked Action IDs" value={draft.linkedActionIds} onChange={(value) => setDraft((current) => ({ ...current, linkedActionIds: value }))} rows={3} />
+      </div>
+      <div className="flex flex-wrap justify-end gap-2">
+        <SaveCancel onCancel={onCancel} onSave={onSave} />
+      </div>
+    </div>
+  );
+}
+
+function PublishingForm({
+  draft,
+  setDraft,
+  pillarOptions,
+  conceptOptions,
+  onConceptChange,
+  onSave,
+  onCancel,
+}: {
+  draft: PublishingDraft;
+  setDraft: Dispatch<SetStateAction<PublishingDraft>>;
+  pillarOptions: Array<{ value: string; label: string }>;
+  conceptOptions: Array<{ value: string; label: string }>;
+  onConceptChange: (conceptId: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <TextInputField label="Date" type="date" value={draft.date} onChange={(value) => setDraft((current) => ({ ...current, date: value }))} />
+        <TextInputField label="Title" value={draft.title} onChange={(value) => setDraft((current) => ({ ...current, title: value }))} />
+        <SelectField label="Pillar" value={draft.pillarId} onChange={(value) => setDraft((current) => ({ ...current, pillarId: value }))} options={pillarOptions} placeholder="Select pillar" />
+        <SelectField label="Format" value={draft.format} onChange={(value) => setDraft((current) => ({ ...current, format: value }))} options={publishingFormats.map((format) => ({ value: format, label: format }))} placeholder="Select format" />
+        <SelectField label="Status" value={draft.status} onChange={(value) => setDraft((current) => ({ ...current, status: value }))} options={publishingStatuses.map((status) => ({ value: status, label: status }))} placeholder="Select status" />
+        <SelectField label="Content Concept" value={draft.contentConceptId} onChange={onConceptChange} options={conceptOptions} placeholder="No linked concept" />
+      </div>
+      <TextAreaField label="Scene Brief" value={draft.sceneBrief} onChange={(value) => setDraft((current) => ({ ...current, sceneBrief: value }))} rows={4} />
+      <TextAreaField label="Visual Direction" value={draft.visualDirection} onChange={(value) => setDraft((current) => ({ ...current, visualDirection: value }))} rows={4} />
+      <TextAreaField label="Product Placement" value={draft.productPlacement} onChange={(value) => setDraft((current) => ({ ...current, productPlacement: value }))} rows={3} />
+      <div className="grid gap-4 md:grid-cols-2">
+        <TextAreaField label="English Caption" value={draft.englishCaption} onChange={(value) => setDraft((current) => ({ ...current, englishCaption: value }))} rows={5} />
+        <TextAreaField label="Japanese Caption" value={draft.japaneseCaption} onChange={(value) => setDraft((current) => ({ ...current, japaneseCaption: value }))} rows={5} />
+      </div>
+      <TextAreaField label="Working Notes" value={draft.workingNotes} onChange={(value) => setDraft((current) => ({ ...current, workingNotes: value }))} rows={4} />
+      <div className="grid gap-4 md:grid-cols-2">
+        <TextAreaField label="Linked Prompt IDs" value={draft.linkedPromptIds} onChange={(value) => setDraft((current) => ({ ...current, linkedPromptIds: value }))} rows={3} />
+        <TextAreaField label="Linked Action IDs" value={draft.linkedActionIds} onChange={(value) => setDraft((current) => ({ ...current, linkedActionIds: value }))} rows={3} />
+      </div>
+      <div className="flex flex-wrap justify-end gap-2">
+        <SaveCancel onCancel={onCancel} onSave={onSave} />
+      </div>
     </div>
   );
 }
@@ -539,6 +773,221 @@ function getSeriesPillarIds(series: ContentSeries) {
   return series.relatedPillarIds ?? (series.pillarId ? [series.pillarId] : []);
 }
 
+function getSeriesTitle(series: ContentSeries) {
+  return series.title ?? series.name;
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function createLocalId(prefix: string) {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateInput(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, (month || 1) - 1, day || 1);
+}
+
+function formatMonthTitle(date: Date) {
+  return new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(date);
+}
+
+function formatReadableDate(value?: string) {
+  if (!value) {
+    return emptyText;
+  }
+
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(parseDateInput(value));
+}
+
+function getMonthDays(monthDate: Date) {
+  const firstDay = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+  const lastDay = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+  const start = new Date(firstDay);
+  const firstDayOffset = (firstDay.getDay() + 6) % 7;
+  start.setDate(firstDay.getDate() - firstDayOffset);
+
+  const end = new Date(lastDay);
+  const lastDayOffset = (lastDay.getDay() + 6) % 7;
+  end.setDate(lastDay.getDate() + (6 - lastDayOffset));
+
+  const days: Date[] = [];
+  const current = new Date(start);
+  while (current <= end) {
+    days.push(new Date(current));
+    current.setDate(current.getDate() + 1);
+  }
+
+  return days;
+}
+
+function getPillar(pillars: ContentPillar[], pillarId?: string) {
+  return pillars.find((pillar) => pillar.id === pillarId);
+}
+
+function PillarPill({ pillar }: { pillar?: ContentPillar }) {
+  if (!pillar) {
+    return (
+      <span className="rounded-full border border-white/8 bg-white/[0.03] px-2 py-1 text-[11px] text-mute">
+        No pillar
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.03] px-2 py-1 text-[11px] text-ink"
+      title={pillar.name}
+    >
+      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: pillar.color }} />
+      {pillar.name}
+    </span>
+  );
+}
+
+function createEmptyConceptDraft(brand: BrandSpace, pillars: ContentPillar[]): ConceptDraft {
+  return {
+    id: createLocalId("concept"),
+    title: "",
+    seriesId: "",
+    episodeNumber: "",
+    pillarId: pillars[0]?.id ?? "",
+    format: "",
+    scene: "",
+    visualDirection: "",
+    productPlacement: "",
+    englishCaptionDraft: "",
+    japaneseCaptionDraft: "",
+    notes: "",
+    status: conceptStatuses[0],
+    linkedPromptIds: "",
+    linkedActionIds: "",
+  };
+}
+
+function toConceptDraft(concept: ContentConcept): ConceptDraft {
+  return {
+    id: concept.id,
+    title: concept.title,
+    seriesId: concept.seriesId ?? "",
+    episodeNumber: concept.episodeNumber ? String(concept.episodeNumber) : "",
+    pillarId: concept.pillarId ?? "",
+    format: concept.format ?? "",
+    scene: concept.scene ?? "",
+    visualDirection: concept.visualDirection ?? "",
+    productPlacement: concept.productPlacement ?? "",
+    englishCaptionDraft: concept.englishCaptionDraft ?? "",
+    japaneseCaptionDraft: concept.japaneseCaptionDraft ?? "",
+    notes: concept.notes ?? "",
+    status: concept.status ?? conceptStatuses[0],
+    linkedPromptIds: toMultiline(concept.linkedPromptIds),
+    linkedActionIds: toMultiline(concept.linkedActionIds),
+  };
+}
+
+function conceptFromDraft(draft: ConceptDraft, brand: BrandSpace, existing?: ContentConcept): ContentConcept {
+  const timestamp = nowIso();
+
+  return {
+    id: draft.id || existing?.id || createLocalId("concept"),
+    brandId: brand.id,
+    title: draft.title.trim() || "Untitled concept",
+    seriesId: draft.seriesId || undefined,
+    episodeNumber: draft.episodeNumber ? Number.parseInt(draft.episodeNumber, 10) : undefined,
+    pillarId: draft.pillarId,
+    format: draft.format.trim(),
+    scene: draft.scene.trim(),
+    visualDirection: draft.visualDirection.trim(),
+    productPlacement: draft.productPlacement.trim(),
+    englishCaptionDraft: draft.englishCaptionDraft.trim(),
+    japaneseCaptionDraft: draft.japaneseCaptionDraft.trim(),
+    notes: draft.notes.trim(),
+    status: draft.status || conceptStatuses[0],
+    linkedPromptIds: fromMultiline(draft.linkedPromptIds),
+    linkedActionIds: fromMultiline(draft.linkedActionIds),
+    createdAt: existing?.createdAt ?? timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+function createEmptyPublishingDraft(brand: BrandSpace, pillars: ContentPillar[]): PublishingDraft {
+  return {
+    id: createLocalId("post"),
+    date: toDateInputValue(new Date()),
+    title: "",
+    pillarId: pillars[0]?.id ?? "",
+    format: publishingFormats[0],
+    status: "Scheduled",
+    contentConceptId: "",
+    sceneBrief: "",
+    visualDirection: "",
+    productPlacement: "",
+    englishCaption: "",
+    japaneseCaption: "",
+    workingNotes: "",
+    linkedPromptIds: "",
+    linkedActionIds: "",
+  };
+}
+
+function toPublishingDraft(post: PublishingCalendarItem): PublishingDraft {
+  return {
+    id: post.id,
+    date: post.date,
+    title: post.title,
+    pillarId: post.pillarId ?? "",
+    format: post.format ?? publishingFormats[0],
+    status: post.status ?? "Scheduled",
+    contentConceptId: post.contentConceptId ?? "",
+    sceneBrief: post.sceneBrief ?? "",
+    visualDirection: post.visualDirection ?? "",
+    productPlacement: post.productPlacement ?? "",
+    englishCaption: post.englishCaption ?? "",
+    japaneseCaption: post.japaneseCaption ?? "",
+    workingNotes: post.workingNotes ?? "",
+    linkedPromptIds: toMultiline(post.linkedPromptIds),
+    linkedActionIds: toMultiline(post.linkedActionIds),
+  };
+}
+
+function publishingFromDraft(draft: PublishingDraft, brand: BrandSpace, existing?: PublishingCalendarItem): PublishingCalendarItem {
+  const timestamp = nowIso();
+
+  return {
+    id: draft.id || existing?.id || createLocalId("post"),
+    brandId: brand.id,
+    date: draft.date || toDateInputValue(new Date()),
+    title: draft.title.trim() || "Untitled post",
+    pillarId: draft.pillarId,
+    format: draft.format,
+    status: draft.status || "Scheduled",
+    contentConceptId: draft.contentConceptId || undefined,
+    sceneBrief: draft.sceneBrief.trim(),
+    visualDirection: draft.visualDirection.trim(),
+    productPlacement: draft.productPlacement.trim(),
+    englishCaption: draft.englishCaption.trim(),
+    japaneseCaption: draft.japaneseCaption.trim(),
+    workingNotes: draft.workingNotes.trim(),
+    linkedPromptIds: fromMultiline(draft.linkedPromptIds),
+    linkedActionIds: fromMultiline(draft.linkedActionIds),
+    createdAt: existing?.createdAt ?? timestamp,
+    updatedAt: timestamp,
+  };
+}
+
 export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const { brands, projects, promptItems, saveBrand, saveBrandSpace } = useDashboardData();
   const linkedProjects = projects.filter((project) => project.brandId === brand.id);
@@ -548,6 +997,11 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const contentSeries = contentSystem.contentSeries ?? [];
   const pillarRotation = contentSystem.pillarRotation ?? [];
   const contentRules = contentSystem.contentRules;
+  const contentConcepts = brand.contentConcepts ?? [];
+  const publishingCalendar = brand.publishingCalendar ?? [];
+  const seriesOptions = contentSeries.map((series) => ({ value: series.id, label: getSeriesTitle(series) }));
+  const pillarOptions = contentPillars.map((pillar) => ({ value: pillar.id, label: pillar.name }));
+  const conceptOptions = contentConcepts.map((concept) => ({ value: concept.id, label: concept.title }));
   const hasStructuredContentSystem =
     contentPillars.length > 0 ||
     contentSeries.length > 0 ||
@@ -567,10 +1021,39 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const [contentPlanDraft, setContentPlanDraft] = useState(() => toMultiline(brand.contentPlan));
   const [notesDraft, setNotesDraft] = useState(() => toMultiline(brand.notes));
   const [tasksDraft, setTasksDraft] = useState(() => toMultiline(brand.tasks));
+  const [conceptModalMode, setConceptModalMode] = useState<ConceptModalMode | null>(null);
+  const [conceptDraft, setConceptDraft] = useState<ConceptDraft>(() => createEmptyConceptDraft(brand, contentPillars));
+  const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null);
+  const [conceptPillarFilter, setConceptPillarFilter] = useState("");
+  const [conceptStatusFilter, setConceptStatusFilter] = useState("");
+  const [publishingModalMode, setPublishingModalMode] = useState<PublishingModalMode | null>(null);
+  const [publishingDraft, setPublishingDraft] = useState<PublishingDraft>(() => createEmptyPublishingDraft(brand, contentPillars));
+  const [selectedPublishingId, setSelectedPublishingId] = useState<string | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
   const strategyView = toStrategyDraft(brand);
   const visualLanguageView = toVisualLanguageDraft(brand);
   const voiceView = toVoiceDraft(brand);
   const worldView = toWorldDraft(brand);
+  const selectedConcept = selectedConceptId ? contentConcepts.find((concept) => concept.id === selectedConceptId) : undefined;
+  const selectedPublishingItem = selectedPublishingId
+    ? publishingCalendar.find((post) => post.id === selectedPublishingId)
+    : undefined;
+  const filteredConcepts = contentConcepts.filter((concept) => {
+    const pillarMatches = conceptPillarFilter ? concept.pillarId === conceptPillarFilter : true;
+    const statusMatches = conceptStatusFilter ? concept.status === conceptStatusFilter : true;
+    return pillarMatches && statusMatches;
+  });
+  const monthDays = getMonthDays(calendarMonth);
+  const scheduledByDate = new Map<string, PublishingCalendarItem[]>();
+  publishingCalendar.forEach((item) => {
+    const existing = scheduledByDate.get(item.date) ?? [];
+    scheduledByDate.set(item.date, [...existing, item]);
+  });
+  const activeConcept = selectedConcept ?? conceptFromDraft(conceptDraft, brand);
+  const activePublishingItem = selectedPublishingItem ?? publishingFromDraft(publishingDraft, brand);
 
   function resetSection(section: EditingSection) {
     if (section === "overview") {
@@ -705,6 +1188,117 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
       },
     });
     setEditingSection(null);
+  }
+
+  function openNewConcept() {
+    setConceptDraft(createEmptyConceptDraft(brand, contentPillars));
+    setSelectedConceptId(null);
+    setConceptModalMode("create");
+  }
+
+  function openConcept(concept: ContentConcept, mode: ConceptModalMode = "view") {
+    setConceptDraft(toConceptDraft(concept));
+    setSelectedConceptId(concept.id);
+    setConceptModalMode(mode);
+  }
+
+  function closeConceptModal() {
+    setConceptModalMode(null);
+    setSelectedConceptId(null);
+  }
+
+  function saveConcept() {
+    const existing = contentConcepts.find((concept) => concept.id === conceptDraft.id);
+    const nextConcept = conceptFromDraft(conceptDraft, brand, existing);
+    const nextConcepts = existing
+      ? contentConcepts.map((concept) => (concept.id === nextConcept.id ? nextConcept : concept))
+      : [...contentConcepts, nextConcept];
+
+    updateBrandSpace({ contentConcepts: nextConcepts });
+    setSelectedConceptId(nextConcept.id);
+    setConceptModalMode("view");
+  }
+
+  function deleteConcept(conceptId: string) {
+    if (!window.confirm("Delete this content concept?")) {
+      return;
+    }
+
+    updateBrandSpace({
+      contentConcepts: contentConcepts.filter((concept) => concept.id !== conceptId),
+      publishingCalendar: publishingCalendar.map((post) =>
+        post.contentConceptId === conceptId ? { ...post, contentConceptId: undefined, updatedAt: nowIso() } : post,
+      ),
+    });
+    closeConceptModal();
+  }
+
+  function openNewPublishingItem() {
+    setPublishingDraft(createEmptyPublishingDraft(brand, contentPillars));
+    setSelectedPublishingId(null);
+    setPublishingModalMode("create");
+  }
+
+  function openPublishingItem(item: PublishingCalendarItem, mode: PublishingModalMode = "view") {
+    setPublishingDraft(toPublishingDraft(item));
+    setSelectedPublishingId(item.id);
+    setPublishingModalMode(mode);
+  }
+
+  function closePublishingModal() {
+    setPublishingModalMode(null);
+    setSelectedPublishingId(null);
+  }
+
+  function applyConceptPrefill(conceptId: string) {
+    const concept = contentConcepts.find((entry) => entry.id === conceptId);
+    if (!concept) {
+      setPublishingDraft((current) => ({ ...current, contentConceptId: conceptId }));
+      return;
+    }
+
+    setPublishingDraft((current) => ({
+      ...current,
+      contentConceptId: concept.id,
+      title: current.title || concept.title,
+      pillarId: current.pillarId || concept.pillarId || "",
+      format: current.format || concept.format || publishingFormats[0],
+      sceneBrief: current.sceneBrief || concept.scene || "",
+      visualDirection: current.visualDirection || concept.visualDirection || "",
+      productPlacement: current.productPlacement || concept.productPlacement || "",
+      englishCaption: current.englishCaption || concept.englishCaptionDraft || "",
+      japaneseCaption: current.japaneseCaption || concept.japaneseCaptionDraft || "",
+      workingNotes: current.workingNotes || concept.notes || "",
+    }));
+  }
+
+  function savePublishingItem() {
+    const existing = publishingCalendar.find((post) => post.id === publishingDraft.id);
+    const nextPost = publishingFromDraft(publishingDraft, brand, existing);
+    const nextPosts = existing
+      ? publishingCalendar.map((post) => (post.id === nextPost.id ? nextPost : post))
+      : [...publishingCalendar, nextPost];
+
+    updateBrandSpace({ publishingCalendar: nextPosts });
+    setSelectedPublishingId(nextPost.id);
+    setPublishingModalMode("view");
+  }
+
+  function deletePublishingItem(postId: string) {
+    if (!window.confirm("Delete this scheduled post?")) {
+      return;
+    }
+
+    updateBrandSpace({ publishingCalendar: publishingCalendar.filter((post) => post.id !== postId) });
+    closePublishingModal();
+  }
+
+  function savePublishingWorkingNotes(post: PublishingCalendarItem, workingNotes: string) {
+    updateBrandSpace({
+      publishingCalendar: publishingCalendar.map((item) =>
+        item.id === post.id ? { ...item, workingNotes, updatedAt: nowIso() } : item,
+      ),
+    });
   }
 
   return (
@@ -1175,6 +1769,224 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </Panel>
       </div>
 
+      <div id={sectionIds.Concepts} className="scroll-mt-24">
+        <Panel
+          eyebrow="Workspace / Concepts"
+          title="Content Concepts"
+          accent={brand.tone}
+          headerAction={<PrimaryActionButton onClick={openNewConcept}>Add Content Concept</PrimaryActionButton>}
+        >
+          <div className="space-y-4">
+            {contentPillars.length === 0 ? (
+              <p className="rounded-2xl border border-white/6 bg-black/10 p-4 text-sm leading-6 text-mute/70">
+                No content pillars defined yet. Add pillars in Content System first.
+              </p>
+            ) : null}
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <SelectField
+                label="Filter by pillar"
+                value={conceptPillarFilter}
+                onChange={setConceptPillarFilter}
+                options={pillarOptions}
+                placeholder="All pillars"
+              />
+              <SelectField
+                label="Filter by status"
+                value={conceptStatusFilter}
+                onChange={setConceptStatusFilter}
+                options={conceptStatuses.map((status) => ({ value: status, label: status }))}
+                placeholder="All statuses"
+              />
+            </div>
+
+            {contentConcepts.length === 0 ? (
+              <p className="rounded-2xl border border-white/6 bg-black/10 p-4 text-sm leading-6 text-mute/70">
+                No content concepts yet. Add reusable ideas, episodes, or post directions for this brand.
+              </p>
+            ) : filteredConcepts.length === 0 ? (
+              <p className="rounded-2xl border border-white/6 bg-black/10 p-4 text-sm leading-6 text-mute/70">
+                No content concepts match this filter.
+              </p>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {filteredConcepts.map((concept) => {
+                  const pillar = getPillar(contentPillars, concept.pillarId);
+                  const series = contentSeries.find((entry) => entry.id === concept.seriesId);
+
+                  return (
+                    <article key={concept.id} className="min-w-0 rounded-[18px] border border-white/10 bg-black/15 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="ui-micro-label">
+                            {concept.episodeNumber ? `Episode ${concept.episodeNumber}` : "Concept"}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => openConcept(concept)}
+                            className="mt-1 text-left text-base font-semibold text-ink hover:text-yellow"
+                          >
+                            {concept.title}
+                          </button>
+                        </div>
+                        <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">
+                          {concept.status ?? "Idea"}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <PillarPill pillar={pillar} />
+                        {series ? (
+                          <span className="rounded-full border border-white/8 bg-white/[0.03] px-2 py-1 text-[11px] text-mute">
+                            {getSeriesTitle(series)}
+                          </span>
+                        ) : null}
+                        {concept.format ? (
+                          <span className="rounded-full border border-white/8 bg-white/[0.03] px-2 py-1 text-[11px] text-mute">
+                            {concept.format}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                        <FieldRow label="Scene" value={concept.scene} />
+                        <FieldRow label="Visual Direction" value={concept.visualDirection} />
+                        <FieldRow label="Product Placement" value={concept.productPlacement} />
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <EditButton onClick={() => openConcept(concept, "edit")} />
+                        <DangerButton onClick={() => deleteConcept(concept.id)}>Delete</DangerButton>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </Panel>
+      </div>
+
+      <div id={sectionIds["Publishing Calendar"]} className="scroll-mt-24">
+        <Panel
+          eyebrow="Workspace / Publishing Calendar"
+          title="Publishing Calendar"
+          accent="yellow"
+          headerAction={<PrimaryActionButton onClick={openNewPublishingItem}>Add Scheduled Post</PrimaryActionButton>}
+        >
+          <div className="space-y-4">
+            {contentPillars.length === 0 ? (
+              <p className="rounded-2xl border border-white/6 bg-black/10 p-4 text-sm leading-6 text-mute/70">
+                No content pillars defined yet. Add pillars in Content System first.
+              </p>
+            ) : null}
+
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/6 bg-black/10 p-4">
+              <div>
+                <p className="ui-micro-label">Month View</p>
+                <h3 className="mt-1 text-lg font-semibold text-ink">{formatMonthTitle(calendarMonth)}</h3>
+                <p className="mt-2 text-sm text-mute/70">Posting rhythm: define posts by pillar and date.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}
+                  className="rounded-full border border-white/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-mute"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCalendarMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}
+                  className="rounded-full border border-white/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-mute"
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}
+                  className="rounded-full border border-white/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-mute"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {contentPillars.length > 0 ? contentPillars.map((pillar) => <PillarPill key={pillar.id} pillar={pillar} />) : null}
+            </div>
+
+            {publishingCalendar.length === 0 ? (
+              <p className="rounded-2xl border border-white/6 bg-black/10 p-4 text-sm leading-6 text-mute/70">
+                No scheduled posts yet. Add a post to build this brand’s publishing rhythm.
+              </p>
+            ) : null}
+
+            <div className="hidden overflow-hidden rounded-[18px] border border-white/10 md:block">
+              <div className="grid grid-cols-7 border-b border-white/8 bg-white/[0.03]">
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+                  <div key={day} className="p-3 font-display text-[10px] uppercase tracking-[0.2em] text-mute">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7">
+                {monthDays.map((day) => {
+                  const dateKey = toDateInputValue(day);
+                  const posts = scheduledByDate.get(dateKey) ?? [];
+                  const isCurrentMonth = day.getMonth() === calendarMonth.getMonth();
+
+                  return (
+                    <div key={dateKey} className={`min-h-32 border-b border-r border-white/6 p-2 ${isCurrentMonth ? "bg-black/10" : "bg-black/25 opacity-50"}`}>
+                      <p className="font-display text-[10px] uppercase tracking-[0.18em] text-mute">{day.getDate()}</p>
+                      <div className="mt-2 space-y-1.5">
+                        {posts.map((post) => {
+                          const pillar = getPillar(contentPillars, post.pillarId);
+
+                          return (
+                            <button
+                              key={post.id}
+                              type="button"
+                              onClick={() => openPublishingItem(post)}
+                              className="block w-full rounded-xl border border-white/8 bg-white/[0.03] px-2 py-1 text-left text-[11px] leading-4 text-ink"
+                            >
+                              <span className="mb-1 block h-1 rounded-full" style={{ backgroundColor: pillar?.color ?? "#F2C94C" }} />
+                              <span className="line-clamp-2">{post.title}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-3 md:hidden">
+              {publishingCalendar
+                .filter((post) => {
+                  const date = parseDateInput(post.date);
+                  return date.getFullYear() === calendarMonth.getFullYear() && date.getMonth() === calendarMonth.getMonth();
+                })
+                .sort((a, b) => a.date.localeCompare(b.date))
+                .map((post) => (
+                  <button
+                    key={post.id}
+                    type="button"
+                    onClick={() => openPublishingItem(post)}
+                    className="w-full rounded-2xl border border-white/8 bg-black/10 p-4 text-left"
+                  >
+                    <p className="ui-micro-label">{formatReadableDate(post.date)}</p>
+                    <p className="mt-2 text-sm font-semibold text-ink">{post.title}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <PillarPill pillar={getPillar(contentPillars, post.pillarId)} />
+                      <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{post.format}</span>
+                      <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{post.status}</span>
+                    </div>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </Panel>
+      </div>
+
       <section className="space-y-5 xl:grid xl:grid-cols-2 xl:items-start xl:gap-5 xl:space-y-0">
         <div className="space-y-5">
           <div id={sectionIds.Projects} className="scroll-mt-24">
@@ -1259,6 +2071,139 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
           </InlineSection>
         </div>
       </section>
+
+      {conceptModalMode ? (
+        <ModalShell
+          eyebrow={conceptModalMode === "create" ? "Concept / New" : "Concept / Detail"}
+          title={conceptModalMode === "create" ? "Add Content Concept" : activeConcept.title}
+          onClose={closeConceptModal}
+          headerMeta={
+            <>
+              <PillarPill pillar={getPillar(contentPillars, conceptDraft.pillarId || activeConcept.pillarId)} />
+              <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">
+                {conceptDraft.status || activeConcept.status || "Idea"}
+              </span>
+            </>
+          }
+        >
+          {conceptModalMode === "view" ? (
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <FieldRow label="Title" value={activeConcept.title} />
+                <FieldRow label="Pillar" value={displayPillarName(contentPillars, activeConcept.pillarId)} />
+                <FieldRow
+                  label="Series"
+                  value={contentSeries.find((series) => series.id === activeConcept.seriesId)?.name ?? activeConcept.seriesId}
+                />
+                <FieldRow label="Episode Number" value={activeConcept.episodeNumber ? String(activeConcept.episodeNumber) : ""} />
+                <FieldRow label="Format" value={activeConcept.format} />
+                <FieldRow label="Status" value={activeConcept.status} />
+              </div>
+              <FieldRow label="Scene" value={activeConcept.scene} />
+              <FieldRow label="Visual Direction" value={activeConcept.visualDirection} />
+              <FieldRow label="Product Placement" value={activeConcept.productPlacement} />
+              <div className="grid gap-3 md:grid-cols-2">
+                <FieldRow label="English Caption Draft" value={activeConcept.englishCaptionDraft} />
+                <FieldRow label="Japanese Caption Draft" value={activeConcept.japaneseCaptionDraft} />
+              </div>
+              <FieldRow label="Notes" value={activeConcept.notes} />
+              <div className="grid gap-3 md:grid-cols-2">
+                <FieldRow label="Linked Prompts" chips={activeConcept.linkedPromptIds ?? []} />
+                <FieldRow label="Linked Actions" chips={activeConcept.linkedActionIds ?? []} />
+              </div>
+              <div className="flex flex-wrap justify-end gap-2">
+                <EditButton onClick={() => setConceptModalMode("edit")} />
+                <DangerButton onClick={() => deleteConcept(activeConcept.id)}>Delete</DangerButton>
+              </div>
+            </div>
+          ) : (
+            <ConceptForm
+              draft={conceptDraft}
+              setDraft={setConceptDraft}
+              pillarOptions={pillarOptions}
+              seriesOptions={seriesOptions}
+              onSave={saveConcept}
+              onCancel={closeConceptModal}
+            />
+          )}
+        </ModalShell>
+      ) : null}
+
+      {publishingModalMode ? (
+        <ModalShell
+          eyebrow={publishingModalMode === "create" ? "Publishing / New" : "Publishing / Brief"}
+          title={publishingModalMode === "create" ? "Add Scheduled Post" : activePublishingItem.title}
+          onClose={closePublishingModal}
+          headerMeta={
+            <>
+              <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">
+                {formatReadableDate(publishingDraft.date || activePublishingItem.date)}
+              </span>
+              <PillarPill pillar={getPillar(contentPillars, publishingDraft.pillarId || activePublishingItem.pillarId)} />
+              <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">
+                {publishingDraft.format || activePublishingItem.format || publishingFormats[0]}
+              </span>
+              <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">
+                {publishingDraft.status || activePublishingItem.status || "Scheduled"}
+              </span>
+            </>
+          }
+        >
+          {publishingModalMode === "view" ? (
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <FieldRow label="Date" value={formatReadableDate(activePublishingItem.date)} />
+                <FieldRow label="Title" value={activePublishingItem.title} />
+                <FieldRow label="Pillar" value={displayPillarName(contentPillars, activePublishingItem.pillarId)} />
+                <FieldRow label="Format" value={activePublishingItem.format} />
+                <FieldRow label="Status" value={activePublishingItem.status} />
+                <FieldRow
+                  label="Linked Concept"
+                  value={contentConcepts.find((concept) => concept.id === activePublishingItem.contentConceptId)?.title ?? activePublishingItem.contentConceptId}
+                />
+              </div>
+              <FieldRow label="Scene / Episode Brief" value={activePublishingItem.sceneBrief} />
+              <FieldRow label="Visual Direction" value={activePublishingItem.visualDirection} />
+              <FieldRow label="Product Placement" value={activePublishingItem.productPlacement} />
+              <div className="grid gap-3 md:grid-cols-2">
+                <FieldRow label="English Caption" value={activePublishingItem.englishCaption} />
+                <FieldRow label="Japanese Caption" value={activePublishingItem.japaneseCaption} />
+              </div>
+              <TextAreaField
+                label="Working Notes"
+                value={publishingDraft.workingNotes}
+                onChange={(value) => setPublishingDraft((current) => ({ ...current, workingNotes: value }))}
+                rows={5}
+              />
+              <div className="grid gap-3 md:grid-cols-2">
+                <FieldRow label="Linked Prompts" chips={activePublishingItem.linkedPromptIds ?? []} />
+                <FieldRow label="Linked Actions" chips={activePublishingItem.linkedActionIds ?? []} />
+              </div>
+              <div className="flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => savePublishingWorkingNotes(activePublishingItem, publishingDraft.workingNotes)}
+                  className="rounded-full border border-blue/30 bg-blue/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-ink"
+                >
+                  Save Notes
+                </button>
+                <EditButton onClick={() => setPublishingModalMode("edit")} />
+                <DangerButton onClick={() => deletePublishingItem(activePublishingItem.id)}>Delete</DangerButton>
+              </div>
+            </div>
+          ) : (
+            <PublishingForm
+              draft={publishingDraft}
+              setDraft={setPublishingDraft}
+              pillarOptions={pillarOptions}
+              conceptOptions={conceptOptions}
+              onConceptChange={applyConceptPrefill}
+              onSave={savePublishingItem}
+              onCancel={closePublishingModal}
+            />
+          )}
+        </ModalShell>
+      ) : null}
     </div>
   );
 }
