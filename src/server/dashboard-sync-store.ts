@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import { createSeedDashboardState } from "@/data/seed";
+import { normalizeBrandSpacesExtensions } from "@/lib/brand-space-extensions";
 import {
   DashboardState,
   SyncConflict,
@@ -100,7 +101,7 @@ function ensureCanonicalStateShape(
 function ensureDashboardStateShape(state: Partial<DashboardState> | null | undefined): DashboardState {
   return {
     brands: state?.brands ?? [],
-    brandSpaces: state?.brandSpaces ?? [],
+    brandSpaces: normalizeBrandSpacesExtensions(state?.brandSpaces ?? []),
     documents: state?.documents ?? [],
     tasks: state?.tasks ?? [],
     notes: state?.notes ?? [],
@@ -518,7 +519,6 @@ export async function processSyncRequest(input: {
     }
 
     const incoming = operation.payload as SyncableRecord;
-    const taskCountBeforeApply = nextState.tasks.length;
     const currentCollection = ensureDashboardStateShape(nextState)[operation.entity] as SyncableRecord[];
     const existing = currentCollection.find((item) => item.id === incoming.id);
     const incomingTime = getRecordTimestamp(incoming);
@@ -557,10 +557,6 @@ export async function processSyncRequest(input: {
       action: operation.action,
       recordId: operation.recordId,
       operationApplied,
-      taskCountBeforeApply,
-      taskCountAfterApply: nextState.tasks.length,
-      taskInsertedIntoCanonical:
-        operation.entity === "tasks" ? nextState.tasks.some((task) => task.id === operation.recordId) : undefined,
     });
 
     acknowledgedOperationIds.push(operation.id);

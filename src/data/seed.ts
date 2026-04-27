@@ -19,6 +19,7 @@ import { notes } from "@/data/mock/notes";
 import { projects } from "@/data/mock/projects";
 import { promptItems } from "@/data/mock/prompts";
 import { tasks } from "@/data/mock/tasks";
+import { normalizeBrandSpacesExtensions } from "@/lib/brand-space-extensions";
 
 function withSeedMetadata<
   T extends {
@@ -85,7 +86,7 @@ function sortPromptItems(items: PromptItem[]) {
 export function createSeedDashboardState(deviceId = "seed"): DashboardState {
   return {
     brands: withSeedMetadata<Brand>(brands, deviceId),
-    brandSpaces: withSeedMetadata<BrandSpace>(brandSpaces, deviceId),
+    brandSpaces: normalizeBrandSpacesExtensions(withSeedMetadata<BrandSpace>(brandSpaces, deviceId)),
     documents: sortDocuments(withSeedMetadata<DocumentItem>(documents, deviceId)),
     tasks: sortTasks(withSeedMetadata<TaskItem>(tasks, deviceId)),
     notes: sortNotes(withSeedMetadata<NoteItem>(notes, deviceId)),

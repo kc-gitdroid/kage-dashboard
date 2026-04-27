@@ -16,6 +16,7 @@ import {
   TaskItem,
 } from "@/types";
 import { createSeedDashboardState } from "@/data/seed";
+import { normalizeBrandSpacesExtensions } from "@/lib/brand-space-extensions";
 
 export const DASHBOARD_DB_NAME = "kage-dashboard-offline";
 export const DASHBOARD_DB_VERSION = 1;
@@ -46,7 +47,7 @@ function summarizeState(state: DashboardState) {
 function ensureDashboardStateShape(state: Partial<DashboardState> | null | undefined): DashboardState {
   return {
     brands: state?.brands ?? [],
-    brandSpaces: state?.brandSpaces ?? [],
+    brandSpaces: normalizeBrandSpacesExtensions(state?.brandSpaces ?? []),
     documents: state?.documents ?? [],
     tasks: state?.tasks ?? [],
     notes: state?.notes ?? [],
