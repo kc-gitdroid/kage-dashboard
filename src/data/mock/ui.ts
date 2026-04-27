@@ -13,8 +13,8 @@ export const navigation = [
   { href: "/brands", label: "Brands", marker: "01" },
   { href: "/projects", label: "Projects", marker: "02" },
   { href: "/calendar", label: "Calendar", marker: "03" },
-  { href: "/tasks", label: "Tasks", marker: "04" },
-  { href: "/notes", label: "Notes", marker: "05" },
+  { href: "/tasks", label: "Actions", marker: "04" },
+  { href: "/notes", label: "Thinking", marker: "05" },
   { href: "/prompts", label: "Prompts", marker: "06" },
 ] as const;
 
@@ -26,6 +26,6 @@ export const workspaceSections = [
   "Content",
   "Projects",
   "Prompts",
-  "Notes",
-  "Tasks",
+  "Thinking",
+  "Actions",
 ] as const;

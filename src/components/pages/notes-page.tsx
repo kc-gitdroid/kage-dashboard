@@ -121,9 +121,9 @@ export function NotesPage() {
   return (
     <div className="space-y-5 md:space-y-6">
       <Panel
-        eyebrow="Notes / Quick Capture"
+        eyebrow="Thinking / System"
         title="Quick Capture"
-        subtitle="Fast note entry for ideas, references, meeting fragments, and reflections. Built to stay lightweight and direct."
+        subtitle="Capture observations, references, caption ideas, and creative direction before they disappear."
       >
         <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
           <form onSubmit={handleSubmit} className="rounded-2xl border border-white/6 bg-black/10 p-4 md:p-5">
@@ -133,7 +133,7 @@ export function NotesPage() {
                 <input
                   value={draft.title}
                   onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
-                  placeholder="Capture the note title"
+                  placeholder="Capture the thinking title"
                   className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none placeholder:text-mute"
                 />
               </div>
@@ -177,7 +177,7 @@ export function NotesPage() {
               </div>
 
               <div>
-                <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Note Body</label>
+                <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Thinking Body</label>
                 <textarea
                   value={draft.body}
                   onChange={(event) => setDraft((current) => ({ ...current, body: event.target.value }))}
@@ -192,7 +192,7 @@ export function NotesPage() {
                   type="submit"
                   className="flex-1 rounded-2xl border border-blue/40 bg-blue/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-ink"
                 >
-                  {draft.id ? "Save Note" : "Add Note"}
+                  {draft.id ? "Save Thinking" : "Add Thinking"}
                 </button>
                 {draft.id && (
                   <>
@@ -216,7 +216,7 @@ export function NotesPage() {
 
               {draft.id && confirmDelete && (
                 <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
-                  <p className="text-sm text-mute">Delete this note from the local dashboard? This cannot be undone in the current prototype.</p>
+                  <p className="text-sm text-mute">Delete this thinking item from the dashboard? This cannot be undone.</p>
                   <div className="mt-3 flex gap-3">
                     <button
                       type="button"
@@ -239,13 +239,13 @@ export function NotesPage() {
           </form>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <SummaryBox label="Notes Visible" value={String(filteredNotes.length).padStart(2, "0")} />
+            <SummaryBox label="Thinking Visible" value={String(filteredNotes.length).padStart(2, "0")} />
             <SummaryBox label="Capture Mode" value="Live" accent="blue" />
             <div className="rounded-2xl border border-white/6 bg-white/[0.02] p-4 sm:col-span-2">
               <p className="font-display text-[11px] uppercase tracking-[0.22em] text-mute">Capture Rules</p>
               <div className="mt-3 space-y-2 text-sm leading-6 text-mute">
-                <p>Keep note entry fast enough for phone use.</p>
-                <p>Store just enough metadata to route the note later.</p>
+                <p>Keep thinking capture fast enough for phone use.</p>
+                <p>Store just enough metadata to route the thought later.</p>
                 <p>Stay closer to an inbox than an editor.</p>
               </div>
             </div>
@@ -254,8 +254,8 @@ export function NotesPage() {
       </Panel>
 
       <Panel
-        eyebrow="Notes / List"
-        title="Note Stream"
+        eyebrow="Thinking / List"
+        title="Thinking Stream"
         subtitle="Recent captures stay easy to scan on desktop and mobile, with light filters for routing and review."
         accent="blue"
       >
@@ -321,7 +321,7 @@ export function NotesPage() {
 
             {filteredNotes.length === 0 && (
               <div className="rounded-2xl border border-white/6 bg-black/10 p-6 text-sm text-mute">
-                No notes match the current filters.
+                No thinking items match the current filters.
               </div>
             )}
           </div>
@@ -331,7 +331,7 @@ export function NotesPage() {
       <PreviewDrawer
         open={Boolean(selectedNote)}
         onClose={() => setSelectedNoteId(null)}
-        eyebrow="Notes / Preview"
+        eyebrow="Thinking / Preview"
         title={selectedNote?.title ?? ""}
         subtitle={
           selectedNote
@@ -366,7 +366,7 @@ export function NotesPage() {
             <div className="rounded-2xl border border-white/6 bg-black/10 p-4">
               <p className="font-display text-[10px] uppercase tracking-[0.22em] text-mute">Edit State</p>
               <p className="mt-3 text-sm leading-6 text-mute">
-                This note is loaded into the main capture form above. Update the fields there and press save to keep the editing flow simple on mobile.
+                This thinking item is loaded into the main capture form above. Update the fields there and press save to keep the editing flow simple on mobile.
               </p>
             </div>
           </>

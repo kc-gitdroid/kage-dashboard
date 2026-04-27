@@ -157,9 +157,9 @@ export function TasksPage() {
   return (
     <div className="space-y-5 md:space-y-6">
       <Panel
-        eyebrow="Tasks / System"
-        title="Task list"
-        subtitle="A straightforward operating list for work that needs ownership, timing, and status without turning into a project-management maze."
+        eyebrow="Actions / System"
+        title="Action list"
+        subtitle="A focused list of next moves that need ownership, timing, and status."
       >
         <div className="grid gap-3 xl:grid-cols-[1fr_auto]">
           <div className="grid gap-3 md:grid-cols-3">
@@ -209,21 +209,21 @@ export function TasksPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3 xl:w-72">
-            <SummaryBox label="Visible Tasks" value={String(filteredTasks.length).padStart(2, "0")} />
+            <SummaryBox label="Visible Actions" value={String(filteredTasks.length).padStart(2, "0")} />
             <SummaryBox label="Open Items" value={String(openCount).padStart(2, "0")} accent="blue" />
             <button
               type="button"
               onClick={openCreate}
               className="col-span-2 rounded-2xl border border-blue/30 bg-blue/8 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-ink transition hover:border-blue/40"
             >
-              New Task
+              New Action
             </button>
           </div>
         </div>
       </Panel>
 
       <Panel
-        eyebrow="Tasks / List"
+        eyebrow="Actions / List"
         title="Active queue"
         subtitle="Cards stay generous on mobile, while larger screens tighten into more row-like scans."
         accent="blue"
@@ -275,7 +275,7 @@ export function TasksPage() {
 
           {filteredTasks.length === 0 && (
             <div className="rounded-2xl border border-white/6 bg-black/10 p-6 text-sm text-mute">
-              No tasks match the current filters.
+              No actions match the current filters.
             </div>
           )}
         </div>
@@ -284,8 +284,8 @@ export function TasksPage() {
       <PreviewDrawer
         open={Boolean(drawerMode)}
         onClose={closeDrawer}
-        eyebrow={`Tasks / ${drawerMode === "edit" ? "Edit" : "Create"}`}
-        title={drawerMode === "edit" ? "Edit task" : "New task"}
+        eyebrow={`Actions / ${drawerMode === "edit" ? "Edit" : "Create"}`}
+        title={drawerMode === "edit" ? "Edit action" : "New action"}
         subtitle="Changes are saved locally and update the visible queue immediately."
       >
         <div className="space-y-4">
@@ -294,7 +294,7 @@ export function TasksPage() {
             <input
               value={draft.title}
               onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
-              placeholder="Enter task title"
+              placeholder="Enter action title"
               className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none placeholder:text-mute"
             />
           </div>
@@ -349,12 +349,12 @@ export function TasksPage() {
           </div>
 
           <div>
-            <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Notes</label>
+            <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Context</label>
             <textarea
               rows={5}
               value={draft.notes}
               onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))}
-              placeholder="Add context or execution notes"
+              placeholder="Add context or execution details"
               className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-ink outline-none placeholder:text-mute"
             />
           </div>
@@ -364,7 +364,7 @@ export function TasksPage() {
             onClick={handleSave}
             className="w-full rounded-2xl border border-blue/40 bg-blue/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-ink"
           >
-            {drawerMode === "edit" ? "Save Changes" : "Save Task"}
+            {drawerMode === "edit" ? "Save Action" : "Add Action"}
           </button>
 
           {drawerMode === "edit" && draft.id && (
@@ -375,11 +375,11 @@ export function TasksPage() {
                   onClick={() => setConfirmDelete(true)}
                   className="w-full rounded-2xl border border-orange/28 bg-orange/8 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
                 >
-                  Delete Task
+                  Delete Action
                 </button>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm text-mute">Delete this task from the local dashboard? This updates the visible UI immediately.</p>
+                  <p className="text-sm text-mute">Delete this action from the dashboard? This updates the visible UI immediately.</p>
                   <div className="flex gap-3">
                     <button
                       type="button"

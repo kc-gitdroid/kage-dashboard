@@ -2840,7 +2840,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
                   onClick={() => savePublishingWorkingNotes(activePublishingItem, publishingDraft.workingNotes)}
                   className="rounded-full border border-blue/30 bg-blue/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-ink"
                 >
-                  {publishingNotesSaved ? "Saved" : "Save Notes"}
+                  {publishingNotesSaved ? "Saved" : "Save Working Context"}
                 </button>
                 <EditButton onClick={() => setPublishingModalMode("edit")} />
                 <DangerButton onClick={() => deletePublishingItem(activePublishingItem.id)}>Delete</DangerButton>

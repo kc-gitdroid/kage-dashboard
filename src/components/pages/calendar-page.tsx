@@ -667,7 +667,7 @@ export function CalendarPage() {
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
-              <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Task ID</label>
+              <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Action ID</label>
               <input
                 value={draft.linkedTaskId}
                 onChange={(event) => setDraft((current) => ({ ...current, linkedTaskId: event.target.value }))}
@@ -696,12 +696,12 @@ export function CalendarPage() {
           </div>
 
           <div>
-            <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Notes</label>
+            <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Planning Context</label>
             <textarea
               rows={4}
               value={draft.notes}
               onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))}
-              placeholder="Planning notes or context"
+              placeholder="Planning context"
               className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-ink outline-none placeholder:text-mute"
             />
           </div>

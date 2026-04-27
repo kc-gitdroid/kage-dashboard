@@ -39,7 +39,7 @@ export function Sidebar({ currentPath }: SidebarProps) {
       </nav>
 
       <div className="mt-auto rounded-[18px] border border-white/5 bg-panelMuted/92 p-4">
-        <p className="font-display text-[10px] uppercase tracking-[0.24em] text-mute">System Notes</p>
+        <p className="font-display text-[10px] uppercase tracking-[0.24em] text-mute">System Thinking</p>
         <p className="mt-2.5 text-sm leading-5 text-mute">
           Blueprint defines truth. Guidelines define execution. World defines the recurring universe.
         </p>

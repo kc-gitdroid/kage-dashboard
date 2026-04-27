@@ -155,13 +155,13 @@ const quickActions: {
 }[] = [
   {
     id: "task",
-    label: "New Task",
-    hint: "Capture a task with ownership, due date, and priority without leaving the command flow.",
+    label: "New Action",
+    hint: "Capture a next move with ownership, due date, and priority without leaving the command flow.",
   },
   {
     id: "note",
-    label: "New Note",
-    hint: "Drop in an idea, reminder, or fragment before it disappears into the day.",
+    label: "New Thinking",
+    hint: "Drop in an observation, reference, caption idea, or creative direction before it disappears.",
   },
   {
     id: "calendar",
@@ -354,7 +354,7 @@ export function HomePage() {
         id: task.id,
         title: task.title,
         brandId: task.brandId,
-        type: "overdue task",
+        type: "overdue action",
         targetType: "task" as const,
         timing: `Due ${formatMonthDay(task.dueDate)}`,
         sortTime: new Date(task.dueDate).getTime(),
@@ -368,7 +368,7 @@ export function HomePage() {
         id: task.id,
         title: task.title,
         brandId: task.brandId,
-        type: "task",
+        type: "action",
         targetType: "task" as const,
         timing: `Due today`,
         sortTime: new Date(task.dueDate).getTime(),
@@ -512,7 +512,7 @@ export function HomePage() {
         id: task.id,
         title: task.title,
         brandId: task.brandId,
-        type: "task deadline",
+        type: "action deadline",
         targetType: "task" as const,
         timing: `Due ${formatMonthDay(task.dueDate)}`,
         sortTime: new Date(task.dueDate).getTime(),
@@ -607,7 +607,7 @@ export function HomePage() {
         .map((task) => ({
           id: task.id,
           label: task.title,
-          timing: `Task deadline / ${formatRelativeDay(task.dueDate, today)}`,
+          timing: `Action deadline / ${formatRelativeDay(task.dueDate, today)}`,
           sortTime: new Date(task.dueDate).getTime(),
         })),
       ...calendarItems
@@ -945,7 +945,7 @@ export function HomePage() {
           <Panel
             eyebrow="Home / Actions"
             title="Today’s Actions"
-            subtitle="Next moves from brand workspaces, including legacy task lines when structured actions are not available yet."
+            subtitle="Next moves from brand workspaces, including legacy action lines when structured actions are not available yet."
             accent="yellow"
           >
             <div className="space-y-3">
@@ -1204,7 +1204,7 @@ export function HomePage() {
             </div>
           </Panel>
 
-          <Panel eyebrow="Home / Thinking" title="Recent Thinking" subtitle="Recent observations, references, and creative notes from brand workspaces.">
+          <Panel eyebrow="Home / Thinking" title="Recent Thinking" subtitle="Recent observations, references, and creative direction from brand workspaces.">
             <div className="space-y-3">
               {recentThinkingRows.map((item) => (
                 <button
@@ -1223,7 +1223,7 @@ export function HomePage() {
               ))}
               {recentThinkingRows.length === 0 ? (
                 <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
-                  No structured thinking items yet. Legacy notes still live inside each workspace.
+                  No structured thinking items yet. Legacy Notes still live inside each workspace.
                 </div>
               ) : null}
             </div>
@@ -1234,9 +1234,9 @@ export function HomePage() {
       <PreviewDrawer
         open={Boolean(taskDrawerMode)}
         onClose={closeTaskDrawer}
-        eyebrow={`Home / Tasks / ${taskDrawerMode === "edit" ? "Edit" : "Create"}`}
-        title={taskDrawerMode === "edit" ? "Edit task" : "New task"}
-        subtitle="Task changes save locally and keep you in the Home workflow."
+        eyebrow={`Home / Actions / ${taskDrawerMode === "edit" ? "Edit" : "Create"}`}
+        title={taskDrawerMode === "edit" ? "Edit action" : "New action"}
+        subtitle="Action changes save locally and keep you in the Home workflow."
       >
         <div className="space-y-4">
           <div>
@@ -1244,7 +1244,7 @@ export function HomePage() {
             <input
               value={taskDraft.title}
               onChange={(event) => setTaskDraft((current) => ({ ...current, title: event.target.value }))}
-              placeholder="Enter task title"
+              placeholder="Enter action title"
               className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none placeholder:text-mute"
             />
           </div>
@@ -1298,7 +1298,7 @@ export function HomePage() {
           </div>
 
           <div>
-            <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Notes</label>
+            <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Context</label>
             <textarea
               rows={4}
               value={taskDraft.notes}
@@ -1313,7 +1313,7 @@ export function HomePage() {
             onClick={handleTaskSave}
             className="w-full rounded-2xl border border-blue/40 bg-blue/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-ink"
           >
-            {taskDrawerMode === "edit" ? "Save Task" : "Add Task"}
+            {taskDrawerMode === "edit" ? "Save Action" : "Add Action"}
           </button>
 
           {taskDrawerMode === "edit" && taskDraft.id && (
@@ -1324,11 +1324,11 @@ export function HomePage() {
                   onClick={() => setTaskConfirmDelete(true)}
                   className="w-full rounded-2xl border border-orange/28 bg-orange/8 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
                 >
-                  Delete Task
+                  Delete Action
                 </button>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm text-mute">Delete this task from the local dashboard? Home and task views will update immediately.</p>
+                  <p className="text-sm text-mute">Delete this action from the dashboard? Home and action views will update immediately.</p>
                   <div className="flex gap-3">
                     <button
                       type="button"
@@ -1355,9 +1355,9 @@ export function HomePage() {
       <PreviewDrawer
         open={Boolean(noteDrawerMode)}
         onClose={closeNoteDrawer}
-        eyebrow={`Home / Notes / ${noteDrawerMode === "edit" ? "Edit" : "Create"}`}
-        title={noteDrawerMode === "edit" ? "Edit note" : "New note"}
-        subtitle="Note changes save locally and keep you in the Home workflow."
+        eyebrow={`Home / Thinking / ${noteDrawerMode === "edit" ? "Edit" : "Create"}`}
+        title={noteDrawerMode === "edit" ? "Edit thinking" : "New thinking"}
+        subtitle="Thinking changes save locally and keep you in the Home workflow."
       >
         <div className="space-y-4">
           <div>
@@ -1365,7 +1365,7 @@ export function HomePage() {
             <input
               value={noteDraft.title}
               onChange={(event) => setNoteDraft((current) => ({ ...current, title: event.target.value }))}
-              placeholder="Capture note title"
+              placeholder="Capture thinking title"
               className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none placeholder:text-mute"
             />
           </div>
@@ -1386,7 +1386,7 @@ export function HomePage() {
           </div>
 
           <div>
-            <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Note Body</label>
+            <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Thinking Body</label>
             <textarea
               rows={6}
               value={noteDraft.body}
@@ -1401,7 +1401,7 @@ export function HomePage() {
             onClick={handleNoteSave}
             className="w-full rounded-2xl border border-blue/40 bg-blue/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-ink"
           >
-            {noteDrawerMode === "edit" ? "Save Note" : "Add Note"}
+            {noteDrawerMode === "edit" ? "Save Thinking" : "Add Thinking"}
           </button>
 
           {noteDrawerMode === "edit" && noteDraft.id && (
@@ -1412,11 +1412,11 @@ export function HomePage() {
                   onClick={() => setNoteConfirmDelete(true)}
                   className="w-full rounded-2xl border border-orange/28 bg-orange/8 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
                 >
-                  Delete Note
+                  Delete Thinking
                 </button>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm text-mute">Delete this note from the local dashboard? Notes will update immediately.</p>
+                  <p className="text-sm text-mute">Delete this thinking item from the dashboard? Thinking will update immediately.</p>
                   <div className="flex gap-3">
                     <button
                       type="button"
@@ -1628,7 +1628,7 @@ export function HomePage() {
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
-              <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Task ID</label>
+              <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Action ID</label>
               <input
                 value={calendarDraft.linkedTaskId}
                 onChange={(event) => setCalendarDraft((current) => ({ ...current, linkedTaskId: event.target.value }))}
@@ -1657,12 +1657,12 @@ export function HomePage() {
           </div>
 
           <div>
-            <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Notes</label>
+            <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Planning Context</label>
             <textarea
               rows={4}
               value={calendarDraft.notes}
               onChange={(event) => setCalendarDraft((current) => ({ ...current, notes: event.target.value }))}
-              placeholder="Planning notes or context"
+              placeholder="Planning context"
               className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm leading-6 text-ink outline-none placeholder:text-mute"
             />
           </div>

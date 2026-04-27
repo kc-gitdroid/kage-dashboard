@@ -6,6 +6,18 @@ import { Panel } from "@/components/panel";
 import { useDashboardData } from "@/components/providers/dashboard-data-provider";
 import { brandWorkspaceOrder } from "@/data";
 
+function formatWorkspaceModuleLabel(module: string) {
+  if (module === "Tasks") {
+    return "Actions";
+  }
+
+  if (module === "Notes") {
+    return "Thinking";
+  }
+
+  return module;
+}
+
 export function BrandsPage() {
   const { brands, brandSpaces } = useDashboardData();
   const orderedBrands = [...brands].sort(
@@ -24,7 +36,7 @@ export function BrandsPage() {
       <Panel
         eyebrow="Brands / Overview"
         title="Workspace Directory"
-        subtitle="Every brand and working space opens into the same structured workspace system so strategy, prompts, projects, notes, and tasks stay organized without fragmenting the app."
+        subtitle="Every brand and working space opens into the same structured workspace system so strategy, prompts, projects, thinking, and actions stay organized without fragmenting the app."
       >
         <div className="grid gap-4 md:grid-cols-2">
           {orderedBrands.map((brand) => {
@@ -32,7 +44,8 @@ export function BrandsPage() {
             const summary = brandSpace?.summary ?? brand.description;
             const focus = brandSpace?.focus ?? "Workspace structure available after restore.";
             const currentPriority = brandSpace?.nextAction ?? "Open this workspace to continue organizing strategy and working materials.";
-            const modules = brandSpace?.modules ?? ["Overview", "Strategy", "Content", "Projects", "Prompts", "Notes", "Tasks"];
+            const modules = (brandSpace?.modules ?? ["Overview", "Strategy", "Content", "Projects", "Prompts", "Thinking", "Actions"])
+              .map(formatWorkspaceModuleLabel);
 
             return (
               <Link
