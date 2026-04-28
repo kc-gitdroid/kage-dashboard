@@ -1099,17 +1099,17 @@ export function HomePage() {
                   </div>
 
                   <div className="mt-3 box-border w-full max-w-full overflow-hidden rounded-[18px] border border-white/6 bg-black/10 px-2.5 py-3.5 min-[520px]:px-3.5 min-[520px]:py-4">
-                    <div className="grid w-full min-w-0 grid-cols-3 gap-1 min-[520px]:gap-2">
+                    <div className="grid w-full min-w-0 grid-cols-3 gap-x-2.5 min-[520px]:gap-x-3">
                       <div className="min-w-0 text-center">
-                        <span className="block whitespace-nowrap font-display text-[10px] uppercase tracking-[0.04em] text-mute min-[520px]:text-[clamp(10px,1vw,12px)] min-[520px]:tracking-[0.08em]">Projects</span>
+                        <span className="block whitespace-nowrap font-display text-[8px] uppercase leading-[1.1] tracking-[0.02em] text-mute min-[520px]:text-[clamp(8px,0.75vw,10px)] min-[520px]:tracking-[0.04em]">Projects</span>
                         <span className="mt-2 block text-[26px] font-semibold leading-none text-ink min-[520px]:text-[clamp(24px,3vw,36px)]">{brand.activeProjectCount}</span>
                       </div>
                       <div className="min-w-0 text-center">
-                        <span className="block whitespace-nowrap font-display text-[10px] uppercase tracking-[0.04em] text-mute min-[520px]:text-[clamp(10px,1vw,12px)] min-[520px]:tracking-[0.08em]">Actions</span>
+                        <span className="block whitespace-nowrap font-display text-[8px] uppercase leading-[1.1] tracking-[0.02em] text-mute min-[520px]:text-[clamp(8px,0.75vw,10px)] min-[520px]:tracking-[0.04em]">Actions</span>
                         <span className="mt-2 block text-[26px] font-semibold leading-none text-ink min-[520px]:text-[clamp(24px,3vw,36px)]">{brand.openTaskCount}</span>
                       </div>
                       <div className="min-w-0 text-center">
-                        <span className="block whitespace-nowrap font-display text-[10px] uppercase tracking-[0.04em] text-mute min-[520px]:text-[clamp(10px,1vw,12px)] min-[520px]:tracking-[0.08em]">Posts</span>
+                        <span className="block whitespace-nowrap font-display text-[8px] uppercase leading-[1.1] tracking-[0.02em] text-mute min-[520px]:text-[clamp(8px,0.75vw,10px)] min-[520px]:tracking-[0.04em]">Posts</span>
                         <span className="mt-2 block text-[26px] font-semibold leading-none text-ink min-[520px]:text-[clamp(24px,3vw,36px)]">{brand.scheduledContentCount}</span>
                       </div>
                     </div>
