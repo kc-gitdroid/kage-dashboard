@@ -43,7 +43,7 @@ type TaskDraft = {
 const initialTaskDraft: TaskDraft = {
   title: "",
   brandId: "aai",
-  dueDate: "2026-04-10",
+  dueDate: "2026-04-30",
   priority: "medium",
   category: "content",
   status: "planned",

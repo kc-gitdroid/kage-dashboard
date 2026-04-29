@@ -62,7 +62,7 @@ const initialDraft: CalendarDraft = {
   title: "",
   brandId: "aai",
   type: "task",
-  start: "2026-04-10T10:00",
+  start: "2026-04-30T10:00",
   end: "",
   status: "planned",
   linkedTaskId: "",

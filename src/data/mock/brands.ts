@@ -57,7 +57,7 @@ export const brandSpaces: BrandSpace[] = [
     cadence: "Material studies, prototype reviews, construction notes, product story drafts",
     nextAction: "Convert the atelier direction into a tighter product system: silhouettes, materials, offer ladder, and launch priorities.",
     status: "in-progress",
-    horizon: "System review: Apr 19",
+    horizon: "System review: May 5",
   },
   {
     ...brands[2],
@@ -67,7 +67,7 @@ export const brandSpaces: BrandSpace[] = [
     cadence: "Project frames, case-study carousels, process intelligence, in-house proof, studio notes",
     nextAction: "Reframe MO Studio content around proof, process intelligence, in-house brand proof, craft detail, and cultural observation.",
     status: "active",
-    horizon: "Studio content system review: Apr 17",
+    horizon: "Studio content system review: May 6",
   },
   {
     ...brands[3],
@@ -77,7 +77,7 @@ export const brandSpaces: BrandSpace[] = [
     cadence: "Weekly resets, idea capture, public notes, reading synthesis, energy reviews",
     nextAction: "Turn the personal brand into a repeatable rhythm: clear pillars, capture habits, publishing lanes, and review blocks.",
     status: "active",
-    horizon: "Weekly reset: Apr 12",
+    horizon: "Weekly reset: May 4",
   },
   {
     ...brands[4],
@@ -87,7 +87,7 @@ export const brandSpaces: BrandSpace[] = [
     cadence: "Prompt drafts, short notes, concept mapping, and story seeds",
     nextAction: "Shape the first set of prompt-led writing structures and connect them to working notes.",
     status: "draft",
-    horizon: "Seed review: Apr 20",
+    horizon: "Seed review: May 5",
   },
 ];
 

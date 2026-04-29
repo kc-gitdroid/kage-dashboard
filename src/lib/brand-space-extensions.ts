@@ -315,7 +315,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
       focus: "Footwear / Product craft / Material discipline / Atelier systems",
       cadence: "Material studies, prototype reviews, construction notes, product story drafts",
       nextAction: "Convert the atelier direction into a tighter product system: silhouettes, materials, offer ladder, and launch priorities.",
-      horizon: "System review: Apr 19",
+      horizon: "System review: May 5",
     },
     brandCompass: {
       strategy: {
@@ -453,7 +453,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
       {
         id: "mastery-post-material-board",
         brandId: "masteryatelier",
-        date: "2026-04-15",
+        date: "2026-05-02",
         title: "Material Board Pass",
         pillarId: "mastery-pillar-material-study",
         format: "Carousel",
@@ -473,7 +473,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
         linkedItemType: "Brand",
         linkedItemId: "masteryatelier",
         nextMove: "Choose the lead launch focus and map the minimum product page information.",
-        dueDate: "2026-04-12",
+        dueDate: "2026-05-03",
       },
     ],
     thinking: [
@@ -495,7 +495,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
       focus: "Brand worlds / Product direction / Cultural intelligence / Grounded execution",
       cadence: "Project frames, case-study carousels, process intelligence, in-house proof, studio notes",
       nextAction: "Reframe MO Studio content around proof, process intelligence, in-house brand proof, craft detail, and cultural observation.",
-      horizon: "Studio content system review: Apr 17",
+      horizon: "Studio content system review: May 6",
     },
     brandCompass: {
       strategy: {
@@ -705,7 +705,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
       {
         id: "mo-post-positioning",
         brandId: "mo-studio",
-        date: "2026-04-14",
+        date: "2026-05-01",
         title: "MO Studio Lean Positioning",
         pillarId: "mo-pillar-process-intelligence",
         format: "Single",
@@ -718,7 +718,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
       {
         id: "mo-post-case-study",
         brandId: "mo-studio",
-        date: "2026-04-17",
+        date: "2026-05-06",
         title: "First Cultural Case Study",
         pillarId: "mo-pillar-client-proof",
         format: "Carousel",
@@ -738,7 +738,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
         linkedItemType: "Brand",
         linkedItemId: "mo-studio",
         nextMove: "Group available visuals into client proof, process intelligence, in-house proof, craft detail, and cultural observation.",
-        dueDate: "2026-04-11",
+        dueDate: "2026-04-30",
       },
       {
         id: "mo-action-case-study",
@@ -748,7 +748,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
         linkedItemType: "Content Concept",
         linkedItemId: "mo-concept-cultural-case-study",
         nextMove: "Choose project and write the real question, tension, protected truth, intent, response, and scope.",
-        dueDate: "2026-04-17",
+        dueDate: "2026-05-05",
       },
     ],
     thinking: [
@@ -778,7 +778,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
       focus: "Personal brand / Creative identity / Rhythm / Reflection / Public thought",
       cadence: "Weekly resets, idea capture, public notes, reading synthesis, energy reviews",
       nextAction: "Turn the personal brand into a repeatable rhythm: clear pillars, capture habits, publishing lanes, and review blocks.",
-      horizon: "Weekly reset: Apr 12",
+      horizon: "Weekly reset: May 4",
     },
     brandCompass: {
       strategy: {
@@ -916,7 +916,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
       {
         id: "personal-post-weekly-reset",
         brandId: "personal",
-        date: "2026-04-12",
+        date: "2026-05-03",
         title: "Weekly Reset Note",
         pillarId: "personal-pillar-reflection",
         format: "Post",
@@ -936,7 +936,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
         linkedItemType: "Brand",
         linkedItemId: "personal",
         nextMove: "Map each pillar to repeatable post formats and capture windows.",
-        dueDate: "2026-04-14",
+        dueDate: "2026-05-04",
       },
     ],
     thinking: [
@@ -957,7 +957,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
       focus: "Writing / Concepts / Prompt systems / Exploratory thinking",
       cadence: "Prompt drafts, short notes, concept mapping, story seeds, and reusable writing structures",
       nextAction: "Shape the first recurring prompt system and connect strong writing seeds to content concepts.",
-      horizon: "Seed review: Apr 20",
+      horizon: "Seed review: May 5",
     },
     brandCompass: {
       strategy: {
@@ -1085,7 +1085,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
       {
         id: "biro-post-prompt-review",
         brandId: "biro",
-        date: "2026-04-20",
+        date: "2026-05-05",
         title: "Prompt Review",
         pillarId: "biro-pillar-prompt-seeds",
         format: "Note",
@@ -1105,7 +1105,7 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
         linkedItemType: "Brand",
         linkedItemId: "biro",
         nextMove: "Sort current fragments by theme and possible use.",
-        dueDate: "2026-04-20",
+        dueDate: "2026-05-05",
       },
     ],
     thinking: [

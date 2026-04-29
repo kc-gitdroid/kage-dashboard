@@ -123,7 +123,7 @@ function startOfDay(value: Date) {
 }
 
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const HYDRATION_SAFE_NOW = new Date("2026-04-13T00:00:00");
+const HYDRATION_SAFE_NOW = new Date("2026-04-29T00:00:00");
 
 function parseDateParts(value: string) {
   const [datePart, timePart = "00:00:00"] = value.split("T");
