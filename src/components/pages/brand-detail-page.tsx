@@ -39,9 +39,6 @@ type EditingSection =
   | "contentSeries"
   | "pillarRotation"
   | "contentRules"
-  | "legacyContent"
-  | "notes"
-  | "tasks"
   | null;
 
 type OverviewDraft = {
@@ -197,15 +194,6 @@ function compactText(value?: string | null) {
   return value?.trim() ?? "";
 }
 
-function firstDefined(...values: Array<string | undefined | null>) {
-  return values.map(compactText).find(Boolean) ?? "";
-}
-
-function legacyValue(items: string[], prefix: string) {
-  const line = items.find((item) => item.toLowerCase().startsWith(`${prefix.toLowerCase()}:`));
-  return line ? line.slice(line.indexOf(":") + 1).trim() : "";
-}
-
 function toOverviewDraft(brand: BrandSpace): OverviewDraft {
   return {
     name: brand.name,
@@ -221,10 +209,10 @@ function toStrategyDraft(brand: BrandSpace): StrategyDraft {
   const strategy = brand.brandCompass?.strategy ?? {};
 
   return {
-    purpose: firstDefined(strategy.purpose, legacyValue(brand.blueprint, "Purpose")),
+    purpose: compactText(strategy.purpose),
     coreBelief: compactText(strategy.coreBelief),
-    positioning: firstDefined(strategy.positioning, legacyValue(brand.blueprint, "Audience")),
-    promise: firstDefined(strategy.promise, legacyValue(brand.blueprint, "Promise")),
+    positioning: compactText(strategy.positioning),
+    promise: compactText(strategy.promise),
     tension: compactText(strategy.tension),
     neverBecome: compactText(strategy.neverBecome),
   };
@@ -239,7 +227,7 @@ function toVisualLanguageDraft(brand: BrandSpace): VisualLanguageDraft {
     colorMood: compactText(visualLanguage.colorMood),
     texture: compactText(visualLanguage.texture),
     lighting: compactText(visualLanguage.lighting),
-    references: toMultiline(visualLanguage.references?.length ? visualLanguage.references : brand.guidelines),
+    references: toMultiline(visualLanguage.references),
     avoid: toMultiline(visualLanguage.avoid),
   };
 }
@@ -248,7 +236,7 @@ function toVoiceDraft(brand: BrandSpace): VoiceDraft {
   const voice = brand.brandCompass?.voice ?? {};
 
   return {
-    tone: firstDefined(voice.tone, legacyValue(brand.guidelines, "Voice")),
+    tone: compactText(voice.tone),
     sentenceStyle: compactText(voice.sentenceStyle),
     wordsToUse: toMultiline(voice.wordsToUse),
     wordsToAvoid: toMultiline(voice.wordsToAvoid),
@@ -262,9 +250,9 @@ function toWorldDraft(brand: BrandSpace): WorldDraft {
   const brandWorld = brand.brandCompass?.brandWorld ?? {};
 
   return {
-    emotionalTone: firstDefined(brandWorld.emotionalTone, legacyValue(brand.world, "World essence")),
-    culturalTerritory: firstDefined(brandWorld.culturalTerritory, legacyValue(brand.world, "Core territories")),
-    recurringThemes: toMultiline(brandWorld.recurringThemes?.length ? brandWorld.recurringThemes : brand.world),
+    emotionalTone: compactText(brandWorld.emotionalTone),
+    culturalTerritory: compactText(brandWorld.culturalTerritory),
+    recurringThemes: toMultiline(brandWorld.recurringThemes),
     coreTension: compactText(brandWorld.coreTension),
     feeling: compactText(brandWorld.feeling),
     whatMattersMost: compactText(brandWorld.whatMattersMost),
@@ -1271,17 +1259,6 @@ function actionFromDraft(draft: ActionDraft, brand: BrandSpace, existing?: Brand
   };
 }
 
-function createLegacyActions(brand: BrandSpace): BrandAction[] {
-  return brand.tasks.map((task, index) => ({
-    id: `legacy-action-${brand.id}-${index}`,
-    brandId: brand.id,
-    title: task,
-    status: actionStatuses[0],
-    linkedItemType: "Brand",
-    linkedItemId: brand.id,
-  }));
-}
-
 function createEmptyThinkingDraft(): ThinkingDraft {
   return {
     id: createLocalId("thinking"),
@@ -1364,16 +1341,11 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const publishingCalendar = brand.publishingCalendar ?? [];
   const actions = brand.actions ?? [];
   const thinkingItems = brand.thinking ?? [];
-  const visibleActions = actions.length > 0 ? actions : createLegacyActions(brand);
+  const visibleActions = actions;
   const seriesOptions = contentSeries.map((series) => ({ value: series.id, label: getSeriesTitle(series) }));
   const pillarOptions = contentPillars.map((pillar) => ({ value: pillar.id, label: pillar.name }));
   const conceptOptions = contentConcepts.map((concept) => ({ value: concept.id, label: concept.title }));
   const scheduledPostOptions = publishingCalendar.map((post) => ({ value: post.id, label: `${post.date} / ${post.title}` }));
-  const hasStructuredContentSystem =
-    contentPillars.length > 0 ||
-    contentSeries.length > 0 ||
-    pillarRotation.length > 0 ||
-    (Array.isArray(contentRules) ? contentRules.length > 0 : Boolean(contentRules && Object.keys(contentRules).length > 0));
 
   const [editingSection, setEditingSection] = useState<EditingSection>(null);
   const [overviewDraft, setOverviewDraft] = useState<OverviewDraft>(() => toOverviewDraft(brand));
@@ -1385,9 +1357,6 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const [seriesDraft, setSeriesDraft] = useState(() => serializeSeries(contentSeries));
   const [rotationDraft, setRotationDraft] = useState(() => serializeRotation(pillarRotation));
   const [contentRulesDraft, setContentRulesDraft] = useState(() => serializeContentRules(contentRules));
-  const [contentPlanDraft, setContentPlanDraft] = useState(() => toMultiline(brand.contentPlan));
-  const [notesDraft, setNotesDraft] = useState(() => toMultiline(brand.notes));
-  const [tasksDraft, setTasksDraft] = useState(() => toMultiline(brand.tasks));
   const [conceptModalMode, setConceptModalMode] = useState<ConceptModalMode | null>(null);
   const [conceptDraft, setConceptDraft] = useState<ConceptDraft>(() => createEmptyConceptDraft(brand, contentPillars));
   const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null);
@@ -1412,8 +1381,6 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const [selectedThinkingId, setSelectedThinkingId] = useState<string | null>(null);
   const [thinkingTypeFilter, setThinkingTypeFilter] = useState("");
   const [thinkingStatusFilter, setThinkingStatusFilter] = useState("");
-  const [legacyContentExpanded, setLegacyContentExpanded] = useState(false);
-  const [workspaceThinkingExpanded, setWorkspaceThinkingExpanded] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1491,12 +1458,6 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
       setRotationDraft(serializeRotation(pillarRotation));
     } else if (section === "contentRules") {
       setContentRulesDraft(serializeContentRules(contentRules));
-    } else if (section === "legacyContent") {
-      setContentPlanDraft(toMultiline(brand.contentPlan));
-    } else if (section === "tasks") {
-      setTasksDraft(toMultiline(brand.tasks));
-    } else if (section === "notes") {
-      setNotesDraft(toMultiline(brand.notes));
     }
   }
 
@@ -2309,67 +2270,6 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
               )}
             </div>
 
-            <InlineSection
-              id="legacy-content"
-              eyebrow="Workspace / Legacy Content"
-              title="Legacy Content"
-              accent="blue"
-              editing={editingSection === "legacyContent"}
-              onEdit={() => startEditing("legacyContent")}
-              onCancel={() => {
-                resetSection("legacyContent");
-                setEditingSection(null);
-              }}
-              onSave={() => {
-                updateBrandSpace({ contentPlan: fromMultiline(contentPlanDraft) });
-                setEditingSection(null);
-              }}
-              editor={<TextAreaField label="Legacy Content Plan" value={contentPlanDraft} onChange={setContentPlanDraft} rows={8} />}
-            >
-              {hasStructuredContentSystem ? (
-                <div className="rounded-2xl border border-white/6 bg-black/10 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="ui-micro-label">Old Content Data</p>
-                      <p className="mt-2 text-sm leading-6 text-mute/75">Imported older workspace information. Expand when needed.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setLegacyContentExpanded((current) => !current)}
-                      className="rounded-full border border-white/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-mute transition hover:border-white/14 hover:text-ink"
-                    >
-                      {legacyContentExpanded ? "Collapse" : "Expand"}
-                    </button>
-                  </div>
-                  {legacyContentExpanded ? (
-                    <div className="mt-4">
-                      <SectionList items={brand.contentPlan} empty="No legacy content notes saved." />
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-white/6 bg-black/10 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="ui-micro-label">Old Content Data</p>
-                      <p className="mt-2 text-sm leading-6 text-mute/75">Imported older workspace information. Expand when needed.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setLegacyContentExpanded((current) => !current)}
-                      className="rounded-full border border-white/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-mute transition hover:border-white/14 hover:text-ink"
-                    >
-                      {legacyContentExpanded ? "Collapse" : "Expand"}
-                    </button>
-                  </div>
-                  {legacyContentExpanded ? (
-                    <div className="mt-4">
-                      <SectionList items={brand.contentPlan} empty="No legacy content notes saved." />
-                    </div>
-                  ) : null}
-                </div>
-              )}
-            </InlineSection>
           </div>
           </div>
         </Panel>
@@ -2671,12 +2571,10 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
                       {action.linkedItemType ?? "Brand"} / {resolveLinkedItemLabel({ type: action.linkedItemType, id: action.linkedItemId, brand, projects: linkedProjects, concepts: contentConcepts, posts: publishingCalendar, prompts: linkedPrompts, thinking: thinkingItems })}
                       {action.dueDate ? ` / Due ${action.dueDate}` : ""}
                     </p>
-                    {!action.id.startsWith("legacy-action-") ? (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <EditButton onClick={() => openAction(action)} />
-                        <DangerButton onClick={() => deleteAction(action.id)}>Delete</DangerButton>
-                      </div>
-                    ) : null}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <EditButton onClick={() => openAction(action)} />
+                      <DangerButton onClick={() => deleteAction(action.id)}>Delete</DangerButton>
+                    </div>
                   </div>
                 ))}
                 {filteredActions.length === 0 ? (
@@ -2698,28 +2596,6 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
                 <SelectField label="Type" value={thinkingTypeFilter} onChange={setThinkingTypeFilter} options={thinkingTypes.map((type) => ({ value: type, label: type }))} placeholder="All types" />
                 <SelectField label="Status" value={thinkingStatusFilter} onChange={setThinkingStatusFilter} options={thinkingStatuses.map((status) => ({ value: status, label: status }))} placeholder="All statuses" />
               </div>
-              {brand.notes.length > 0 ? (
-                <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="ui-micro-label">Workspace Thinking</p>
-                      <p className="mt-2 text-sm leading-6 text-mute/75">Imported older workspace thinking. Expand when needed.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setWorkspaceThinkingExpanded((current) => !current)}
-                      className="rounded-full border border-white/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-mute transition hover:border-white/14 hover:text-ink"
-                    >
-                      {workspaceThinkingExpanded ? "Collapse" : "Expand"}
-                    </button>
-                  </div>
-                  {workspaceThinkingExpanded ? (
-                    <div className="mt-4">
-                      <SectionList items={brand.notes} />
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
               {thinkingItems.length === 0 ? (
                 <p className="rounded-2xl border border-white/6 bg-black/10 p-4 text-sm leading-6 text-mute/70">
                   No thinking items yet. Add observations, references, caption ideas, or visual notes for this brand.

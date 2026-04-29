@@ -8,11 +8,11 @@ export const projects: ProjectItem[] = [
     status: "active",
     goal: "Build a clearer recurring content rhythm for AAI.",
     startDate: "2026-04-01",
-    dueDate: "2026-04-30",
+    dueDate: "2026-05-04",
     summary: "Content planning, visual system, and scheduling.",
     milestones: ["Weekly schedule locked", "Visual direction aligned", "Scheduling system finalized"],
     taskHooks: ["Finalize AAI weekly content schedule", "Review AAI product detail sequencing"],
-    calendarAnchors: ["2026-04-12 / AAI Reel Publish", "2026-04-14 / AAI Product Detail Review"],
+    calendarAnchors: ["2026-05-01 / AAI Reel Publish", "2026-05-04 / AAI Product Detail Review"],
     notes: [
       "Use the project page to keep content planning, review points, and delivery timing connected.",
       "Keep sequencing decisions visible so the Home layer reflects real operational pressure.",

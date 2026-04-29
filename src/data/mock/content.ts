@@ -11,7 +11,7 @@ export const contentItems: ContentItem[] = [
     pillar: "Uniform",
     captionStatus: "draft",
     assetStatus: "ready",
-    scheduleDate: "2026-04-12T10:00:00",
+    scheduleDate: "2026-05-01T10:00:00",
     status: "scheduled",
     linkedProjectId: "proj-aai-april",
   },

@@ -167,14 +167,6 @@ export interface BrandSpace extends Brand {
   nextAction: string;
   status: Status;
   horizon: string;
-  blueprint: string[];
-  guidelines: string[];
-  world: string[];
-  tasks: string[];
-  contentPlan: string[];
-  notes: string[];
-  calendar: string[];
-  modules: string[];
   brandCompass?: BrandCompass;
   contentSystem?: BrandContentSystem;
   contentConcepts?: ContentConcept[];

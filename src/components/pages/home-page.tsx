@@ -545,19 +545,7 @@ export function HomePage() {
     .slice(0, 6);
 
   const allBrandActions = brandSpaces.flatMap((brand) => {
-    const structuredActions = brand.actions ?? [];
-    const actions = structuredActions.length > 0
-      ? structuredActions
-      : brand.tasks.map((task, index) => ({
-          id: `legacy-action-${brand.id}-${index}`,
-          brandId: brand.id,
-          title: task,
-          status: "Next",
-          linkedItemType: "Brand",
-          linkedItemId: brand.id,
-          nextMove: "",
-          dueDate: undefined,
-        }));
+    const actions = brand.actions ?? [];
 
     return actions.map((action) => ({ ...action, brand }));
   });
@@ -661,8 +649,7 @@ export function HomePage() {
     const activeProjectCount = projects.filter((project) => project.brandId === brand.id && project.status === "active").length;
     const activeActionCount =
       (brand.actions ?? []).filter((action) => action.status !== "Done").length ||
-      tasks.filter((task) => task.brandId === brand.id && task.status !== "completed").length ||
-      brand.tasks.length;
+      tasks.filter((task) => task.brandId === brand.id && task.status !== "completed").length;
     const upcomingScheduledPosts = (brand.publishingCalendar ?? []).filter((post) => {
       const date = startOfDay(new Date(post.date));
       return date >= todayStart && date < nextWeekEnd;
