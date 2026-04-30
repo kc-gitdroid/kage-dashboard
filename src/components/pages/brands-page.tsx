@@ -6,7 +6,7 @@ import { Panel } from "@/components/panel";
 import { useDashboardData } from "@/components/providers/dashboard-data-provider";
 import { brandWorkspaceOrder } from "@/data";
 
-const brandPageSections = ["Compass", "Content System", "Concepts", "Publishing Calendar", "Prompts", "Actions", "Thinking", "Projects"] as const;
+const brandPageSections = ["Concepts", "Publishing Calendar", "Prompts", "Actions", "Thinking", "Projects", "Compass", "Content System Reference"] as const;
 
 function formatWorkspaceModuleLabel(module: string) {
   if (module === "Tasks") {

@@ -66,17 +66,20 @@ type WorldDraft = Omit<Record<keyof BrandCompassWorld, string>, "recurringThemes
 
 const sectionIds = {
   Overview: "overview",
-  Compass: "compass",
-  "Content System": "content-system",
   Concepts: "concepts",
   "Publishing Calendar": "publishing-calendar",
   Prompts: "prompts",
   Actions: "actions",
   Thinking: "thinking",
   Projects: "projects",
+  Compass: "compass",
+  "Content System Reference": "content-system-reference",
+  "Legacy Content": "legacy-content",
 } as const;
 
-const brandPageSections = ["Compass", "Content System", "Concepts", "Publishing Calendar", "Prompts", "Actions", "Thinking", "Projects"] as const;
+type BrandPageSection = keyof typeof sectionIds;
+
+const brandPageSections = ["Concepts", "Publishing Calendar", "Prompts", "Actions", "Thinking", "Projects", "Compass", "Content System Reference"] as const;
 
 const emptyText = "Not defined yet";
 
@@ -257,6 +260,29 @@ function toWorldDraft(brand: BrandSpace): WorldDraft {
     feeling: compactText(brandWorld.feeling),
     whatMattersMost: compactText(brandWorld.whatMattersMost),
   };
+}
+
+type LegacyContentKey = "blueprint" | "guidelines" | "world" | "tasks" | "contentPlan" | "notes" | "calendar";
+
+const legacyContentLabels: Array<{ key: LegacyContentKey; label: string }> = [
+  { key: "blueprint", label: "Brand Blueprint" },
+  { key: "guidelines", label: "Brand Guidelines" },
+  { key: "world", label: "Brand World" },
+  { key: "tasks", label: "Legacy Tasks" },
+  { key: "contentPlan", label: "Legacy Content Plan" },
+  { key: "notes", label: "Legacy Notes" },
+  { key: "calendar", label: "Legacy Calendar" },
+];
+
+function getLegacyContentGroups(brand: BrandSpace) {
+  const legacyRecord = brand as BrandSpace & Partial<Record<LegacyContentKey, string[]>>;
+
+  return legacyContentLabels
+    .map(({ key, label }) => ({
+      label,
+      items: Array.isArray(legacyRecord[key]) ? legacyRecord[key] ?? [] : [],
+    }))
+    .filter((group) => group.items.length > 0);
 }
 
 function TextAreaField({
@@ -446,6 +472,29 @@ function DangerButton({ children, onClick }: { children: ReactNode; onClick: () 
     >
       {children}
     </button>
+  );
+}
+
+function ReferenceToggleButton({ expanded, onClick }: { expanded: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-full border border-white/8 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-mute transition hover:border-white/14 hover:text-ink"
+    >
+      {expanded ? "Collapse" : "Expand"}
+    </button>
+  );
+}
+
+function ProjectActionLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="rounded-full border border-yellow/30 bg-yellow/10 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.18em] text-ink transition hover:border-yellow/45"
+    >
+      {children}
+    </Link>
   );
 }
 
@@ -1342,6 +1391,9 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const actions = brand.actions ?? [];
   const thinkingItems = brand.thinking ?? [];
   const visibleActions = actions;
+  const legacyContentGroups = getLegacyContentGroups(brand);
+  const visibleBrandPageSections: BrandPageSection[] =
+    legacyContentGroups.length > 0 ? [...brandPageSections, "Legacy Content"] : [...brandPageSections];
   const seriesOptions = contentSeries.map((series) => ({ value: series.id, label: getSeriesTitle(series) }));
   const pillarOptions = contentPillars.map((pillar) => ({ value: pillar.id, label: pillar.name }));
   const conceptOptions = contentConcepts.map((concept) => ({ value: concept.id, label: concept.title }));
@@ -1381,6 +1433,9 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const [selectedThinkingId, setSelectedThinkingId] = useState<string | null>(null);
   const [thinkingTypeFilter, setThinkingTypeFilter] = useState("");
   const [thinkingStatusFilter, setThinkingStatusFilter] = useState("");
+  const [brandCompassExpanded, setBrandCompassExpanded] = useState(false);
+  const [contentSystemReferenceExpanded, setContentSystemReferenceExpanded] = useState(false);
+  const [legacyContentExpanded, setLegacyContentExpanded] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1844,8 +1899,8 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   }
 
   return (
-    <div className="space-y-5 md:space-y-6">
-      <Panel eyebrow={`Workspace / ${brand.name}`} title={brand.name} subtitle={brand.description} accent={brand.tone}>
+    <div className="flex flex-col gap-5 md:gap-6">
+      <Panel eyebrow={`Workspace / ${brand.name}`} title={brand.name} subtitle={brand.description} accent={brand.tone} className="order-1">
         <div className="space-y-4">
           <div id={sectionIds.Overview} className="scroll-mt-24 rounded-2xl border border-white/6 bg-black/10 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1907,7 +1962,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {brandPageSections.map((section) => (
+            {visibleBrandPageSections.map((section) => (
               <a
                 key={section}
                 href={`#${sectionIds[section]}`}
@@ -1926,8 +1981,15 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </div>
       </Panel>
 
-      <div id={sectionIds.Compass} className="scroll-mt-24">
-        <Panel eyebrow="Workspace / Compass" title="Brand Compass" accent={brand.tone}>
+      <div id={sectionIds.Compass} className="order-7 scroll-mt-24">
+        <Panel
+          eyebrow="Workspace / Compass"
+          title="Brand Compass"
+          subtitle="Strategic reference for positioning, voice, visual language, and brand world."
+          accent={brand.tone}
+          headerAction={<ReferenceToggleButton expanded={brandCompassExpanded} onClick={() => setBrandCompassExpanded((current) => !current)} />}
+        >
+          {brandCompassExpanded ? (
           <div className="grid gap-4 xl:grid-cols-2">
           <CompassCard
             title="Strategy"
@@ -2049,11 +2111,19 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
             <FieldRow label="What Matters Most" value={worldView.whatMattersMost} />
           </CompassCard>
           </div>
+          ) : null}
         </Panel>
       </div>
 
-      <div id={sectionIds["Content System"]} className="scroll-mt-24">
-        <Panel eyebrow="Workspace / Content System" title="Content System" accent="yellow">
+      <div id={sectionIds["Content System Reference"]} className="order-8 scroll-mt-24">
+        <Panel
+          eyebrow="Workspace / Content System"
+          title="Content System Reference"
+          subtitle="Pillars, series, rotation, and rules that guide recurring content."
+          accent="yellow"
+          headerAction={<ReferenceToggleButton expanded={contentSystemReferenceExpanded} onClick={() => setContentSystemReferenceExpanded((current) => !current)} />}
+        >
+          {contentSystemReferenceExpanded ? (
           <div className="space-y-5">
           <div className="rounded-[18px] border border-white/10 bg-black/15 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/5 pb-3">
@@ -2232,7 +2302,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/5 pb-3">
                 <div>
                   <p className="ui-micro-label">Content System / Rules</p>
-                  <h3 className="mt-1 text-base font-semibold text-ink">Content Rules</h3>
+                  <h3 className="mt-1 text-base font-semibold text-ink">Current Rules</h3>
                 </div>
                 {editingSection === "contentRules" ? (
                   <SaveCancel
@@ -2272,10 +2342,11 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
 
           </div>
           </div>
+          ) : null}
         </Panel>
       </div>
 
-      <div id={sectionIds.Concepts} className="scroll-mt-24">
+      <div id={sectionIds.Concepts} className="order-2 scroll-mt-24">
         <Panel
           eyebrow="Workspace / Concepts"
           title="Content Concepts"
@@ -2370,7 +2441,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </Panel>
       </div>
 
-      <div id={sectionIds["Publishing Calendar"]} className="scroll-mt-24">
+      <div id={sectionIds["Publishing Calendar"]} className="order-3 scroll-mt-24">
         <Panel
           eyebrow="Workspace / Publishing Calendar"
           title="Publishing Calendar"
@@ -2493,18 +2564,20 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </Panel>
       </div>
 
-      <div id={sectionIds.Prompts} className="scroll-mt-24">
+      <div id={sectionIds.Prompts} className="order-4 scroll-mt-24">
         <Panel
           eyebrow="Workspace / Prompts"
           title="Prompts"
           headerAction={<PrimaryActionButton onClick={openNewPrompt}>Add Prompt</PrimaryActionButton>}
         >
           <div className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-3">
-              <SelectField label="Platform" value={promptPlatformFilter} onChange={setPromptPlatformFilter} options={promptPlatforms.map((platform) => ({ value: platform, label: platform }))} placeholder="All platforms" />
-              <SelectField label="Type" value={promptTypeFilter} onChange={setPromptTypeFilter} options={promptTypes.map((type) => ({ value: type, label: type }))} placeholder="All types" />
-              <SelectField label="Status" value={promptStatusFilter} onChange={setPromptStatusFilter} options={promptCreativeStatuses.map((status) => ({ value: status, label: status }))} placeholder="All statuses" />
-            </div>
+            {linkedPrompts.length > 0 ? (
+              <div className="grid gap-3 md:grid-cols-3">
+                <SelectField label="Platform" value={promptPlatformFilter} onChange={setPromptPlatformFilter} options={promptPlatforms.map((platform) => ({ value: platform, label: platform }))} placeholder="All platforms" />
+                <SelectField label="Type" value={promptTypeFilter} onChange={setPromptTypeFilter} options={promptTypes.map((type) => ({ value: type, label: type }))} placeholder="All types" />
+                <SelectField label="Status" value={promptStatusFilter} onChange={setPromptStatusFilter} options={promptCreativeStatuses.map((status) => ({ value: status, label: status }))} placeholder="All statuses" />
+              </div>
+            ) : null}
             {linkedPrompts.length === 0 ? (
               <p className="rounded-2xl border border-white/6 bg-black/10 p-4 text-sm leading-6 text-mute/70">
                 No prompts yet. Add image, video, edit, caption, or strategy prompts for this brand.
@@ -2544,7 +2617,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </Panel>
       </div>
 
-      <section className="space-y-5 xl:grid xl:grid-cols-2 xl:items-start xl:gap-5 xl:space-y-0">
+      <section className="order-5 space-y-5 xl:grid xl:grid-cols-2 xl:items-start xl:gap-5 xl:space-y-0">
         <div id={sectionIds.Actions} className="scroll-mt-24">
           <Panel
             eyebrow="Workspace / Actions"
@@ -2619,8 +2692,18 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </div>
       </section>
 
-      <div id={sectionIds.Projects} className="scroll-mt-24">
-        <Panel eyebrow="Workspace / Projects" title="Projects" accent="orange">
+      <div id={sectionIds.Projects} className="order-6 scroll-mt-24">
+        <Panel
+          eyebrow="Workspace / Projects"
+          title="Projects"
+          accent="orange"
+          headerAction={
+            <div className="flex flex-wrap gap-2">
+              <ProjectActionLink href="/projects">Create Project</ProjectActionLink>
+              <ProjectActionLink href="/projects">Link Existing</ProjectActionLink>
+            </div>
+          }
+        >
           <div className="space-y-3">
             {linkedProjects.length > 0 ? (
               linkedProjects.map((project) => (
@@ -2640,6 +2723,31 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
           </div>
         </Panel>
       </div>
+
+      {legacyContentGroups.length > 0 ? (
+        <div id={sectionIds["Legacy Content"]} className="order-9 scroll-mt-24">
+          <Panel
+            eyebrow="Workspace / Legacy Content"
+            title="Legacy Content"
+            subtitle="Imported older workspace information. Expand only when needed."
+            accent="blue"
+            headerAction={<ReferenceToggleButton expanded={legacyContentExpanded} onClick={() => setLegacyContentExpanded((current) => !current)} />}
+          >
+            {legacyContentExpanded ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                {legacyContentGroups.map((group) => (
+                  <div key={group.label} className="rounded-[18px] border border-white/10 bg-black/15 p-4">
+                    <p className="ui-micro-label">{group.label}</p>
+                    <div className="mt-3">
+                      <SectionList items={group.items} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </Panel>
+        </div>
+      ) : null}
 
       {conceptModalMode ? (
         <ModalShell
