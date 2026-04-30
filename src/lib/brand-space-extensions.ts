@@ -1191,6 +1191,80 @@ function mergeContentSystem(defaults?: BrandContentSystem, existing?: BrandConte
   };
 }
 
+function mergeDefinedDefaultFields<T extends Record<string, unknown>>(defaultItem: T, existingItem?: T): T {
+  if (!existingItem) {
+    return defaultItem;
+  }
+
+  return {
+    ...existingItem,
+    ...defaultItem,
+  };
+}
+
+function mergeMoStudioDefaultList<T extends { id: string }>(
+  defaultItems: T[] | undefined,
+  existingItems: T[] | undefined,
+  isSameRecord: (existingItem: T, defaultItem: T) => boolean,
+) {
+  if (!defaultItems) {
+    return existingItems ?? [];
+  }
+
+  return defaultItems.map((defaultItem) => {
+    const existingItem = existingItems?.find((item) => item.id === defaultItem.id || isSameRecord(item, defaultItem));
+    return mergeDefinedDefaultFields(defaultItem as T & Record<string, unknown>, existingItem as (T & Record<string, unknown>) | undefined) as T;
+  });
+}
+
+function resolveContentSystem(defaults: BrandSpaceDefaults | undefined, brandSpace: BrandSpace) {
+  if (brandSpace.id === "mo-studio" && defaults?.contentSystem) {
+    return defaults.contentSystem;
+  }
+
+  return mergeContentSystem(defaults?.contentSystem, brandSpace.contentSystem ?? {});
+}
+
+function resolveContentConcepts(defaults: BrandSpaceDefaults | undefined, brandSpace: BrandSpace) {
+  if (brandSpace.id === "mo-studio") {
+    return mergeMoStudioDefaultList(defaults?.contentConcepts, brandSpace.contentConcepts, (existingItem, defaultItem) => existingItem.title === defaultItem.title);
+  }
+
+  return hasList(brandSpace.contentConcepts) ? brandSpace.contentConcepts : defaults?.contentConcepts ?? [];
+}
+
+function resolvePublishingCalendar(defaults: BrandSpaceDefaults | undefined, brandSpace: BrandSpace) {
+  if (brandSpace.id === "mo-studio") {
+    return mergeMoStudioDefaultList(
+      defaults?.publishingCalendar,
+      brandSpace.publishingCalendar,
+      (existingItem, defaultItem) => existingItem.title === defaultItem.title && existingItem.date === defaultItem.date,
+    );
+  }
+
+  return hasList(brandSpace.publishingCalendar) ? brandSpace.publishingCalendar : defaults?.publishingCalendar ?? [];
+}
+
+function resolveActions(defaults: BrandSpaceDefaults | undefined, brandSpace: BrandSpace) {
+  if (brandSpace.id === "mo-studio") {
+    return mergeMoStudioDefaultList(
+      defaults?.actions,
+      brandSpace.actions,
+      (existingItem, defaultItem) => existingItem.title === defaultItem.title && existingItem.dueDate === defaultItem.dueDate,
+    );
+  }
+
+  return hasList(brandSpace.actions) ? brandSpace.actions : defaults?.actions ?? [];
+}
+
+function resolveThinking(defaults: BrandSpaceDefaults | undefined, brandSpace: BrandSpace) {
+  if (brandSpace.id === "mo-studio") {
+    return mergeMoStudioDefaultList(defaults?.thinking, brandSpace.thinking, (existingItem, defaultItem) => existingItem.title === defaultItem.title);
+  }
+
+  return hasList(brandSpace.thinking) ? brandSpace.thinking : defaults?.thinking ?? [];
+}
+
 function resolveOverviewValue(
   id: BrandSpace["id"],
   key: keyof NonNullable<BrandSpaceDefaults["overview"]>,
@@ -1218,11 +1292,11 @@ export function normalizeBrandSpaceExtensions(brandSpace: BrandSpace): BrandSpac
     nextAction: resolveOverviewValue(brandSpace.id, "nextAction", brandSpace.nextAction, defaults?.overview?.nextAction),
     horizon: resolveOverviewValue(brandSpace.id, "horizon", brandSpace.horizon, defaults?.overview?.horizon),
     brandCompass: mergeCompass(defaults?.brandCompass, brandSpace.brandCompass),
-    contentSystem: mergeContentSystem(defaults?.contentSystem, existingContentSystem),
-    contentConcepts: hasList(brandSpace.contentConcepts) ? brandSpace.contentConcepts : defaults?.contentConcepts ?? [],
-    publishingCalendar: hasList(brandSpace.publishingCalendar) ? brandSpace.publishingCalendar : defaults?.publishingCalendar ?? [],
-    actions: hasList(brandSpace.actions) ? brandSpace.actions : defaults?.actions ?? [],
-    thinking: hasList(brandSpace.thinking) ? brandSpace.thinking : defaults?.thinking ?? [],
+    contentSystem: resolveContentSystem(defaults, { ...brandSpace, contentSystem: existingContentSystem }),
+    contentConcepts: resolveContentConcepts(defaults, brandSpace),
+    publishingCalendar: resolvePublishingCalendar(defaults, brandSpace),
+    actions: resolveActions(defaults, brandSpace),
+    thinking: resolveThinking(defaults, brandSpace),
   };
 }
 
@@ -1247,11 +1321,11 @@ export function applyBrandSpaceExtensionDefaults(brandSpace: BrandSpace): BrandS
     nextAction: defaults.overview?.nextAction ?? normalized.nextAction,
     horizon: defaults.overview?.horizon ?? normalized.horizon,
     brandCompass: mergeCompass(defaults.brandCompass, brandSpace.brandCompass),
-    contentSystem: mergeContentSystem(defaults.contentSystem, brandSpace.contentSystem),
-    contentConcepts: hasList(brandSpace.contentConcepts) ? brandSpace.contentConcepts : defaults.contentConcepts ?? [],
-    publishingCalendar: hasList(brandSpace.publishingCalendar) ? brandSpace.publishingCalendar : defaults.publishingCalendar ?? [],
-    actions: hasList(brandSpace.actions) ? brandSpace.actions : defaults.actions ?? [],
-    thinking: hasList(brandSpace.thinking) ? brandSpace.thinking : defaults.thinking ?? [],
+    contentSystem: resolveContentSystem(defaults, brandSpace),
+    contentConcepts: resolveContentConcepts(defaults, brandSpace),
+    publishingCalendar: resolvePublishingCalendar(defaults, brandSpace),
+    actions: resolveActions(defaults, brandSpace),
+    thinking: resolveThinking(defaults, brandSpace),
   };
 }
 
