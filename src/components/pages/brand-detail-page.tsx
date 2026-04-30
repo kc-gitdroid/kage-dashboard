@@ -74,7 +74,6 @@ const sectionIds = {
   Projects: "projects",
   Compass: "compass",
   "Content System Reference": "content-system-reference",
-  "Legacy Content": "legacy-content",
 } as const;
 
 type BrandPageSection = keyof typeof sectionIds;
@@ -84,6 +83,21 @@ const brandPageSections = ["Concepts", "Publishing Calendar", "Prompts", "Action
 const emptyText = "Not defined yet";
 
 const conceptStatuses = ["Idea", "Draft", "Ready", "Scheduled", "Published", "Archived"] as const;
+const conceptFormats = [
+  "Single Post",
+  "Carousel",
+  "Reel",
+  "Story",
+  "Story Set",
+  "Short Video",
+  "Case Study",
+  "Studio Note",
+  "Process Post",
+  "Product Detail",
+  "Visual Reference",
+  "Moodboard",
+  "Caption Only",
+] as const;
 const publishingStatuses = ["Idea", "Draft", "Ready", "Scheduled", "Published"] as const;
 const publishingFormats = ["Single", "Carousel", "Reel", "Story", "Other"] as const;
 const promptPlatforms = ["Nano Banana", "Midjourney", "ChatGPT Image", "Veo", "Seedance", "Kling", "Higgsfield", "Other"] as const;
@@ -110,8 +124,10 @@ type ConceptDraft = {
   scene: string;
   visualDirection: string;
   productPlacement: string;
+  captionDirection: string;
   englishCaptionDraft: string;
   japaneseCaptionDraft: string;
+  publishingTargetDate: string;
   notes: string;
   status: string;
   linkedPromptIds: string;
@@ -260,29 +276,6 @@ function toWorldDraft(brand: BrandSpace): WorldDraft {
     feeling: compactText(brandWorld.feeling),
     whatMattersMost: compactText(brandWorld.whatMattersMost),
   };
-}
-
-type LegacyContentKey = "blueprint" | "guidelines" | "world" | "tasks" | "contentPlan" | "notes" | "calendar";
-
-const legacyContentLabels: Array<{ key: LegacyContentKey; label: string }> = [
-  { key: "blueprint", label: "Brand Blueprint" },
-  { key: "guidelines", label: "Brand Guidelines" },
-  { key: "world", label: "Brand World" },
-  { key: "tasks", label: "Legacy Tasks" },
-  { key: "contentPlan", label: "Legacy Content Plan" },
-  { key: "notes", label: "Legacy Notes" },
-  { key: "calendar", label: "Legacy Calendar" },
-];
-
-function getLegacyContentGroups(brand: BrandSpace) {
-  const legacyRecord = brand as BrandSpace & Partial<Record<LegacyContentKey, string[]>>;
-
-  return legacyContentLabels
-    .map(({ key, label }) => ({
-      label,
-      items: Array.isArray(legacyRecord[key]) ? legacyRecord[key] ?? [] : [],
-    }))
-    .filter((group) => group.items.length > 0);
 }
 
 function TextAreaField({
@@ -514,7 +507,7 @@ function ModalShell({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 p-3 backdrop-blur-sm sm:items-center sm:p-6">
       <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[22px] border border-white/12 bg-panel p-4 shadow-panel sm:p-5">
-        <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 border-b border-white/8 bg-panel/95 px-4 py-4 backdrop-blur sm:-mx-5 sm:-mt-5 sm:px-5">
+        <div className="mb-5 border-b border-white/8 pb-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="ui-micro-label">{eyebrow}</p>
@@ -551,6 +544,14 @@ function ConceptForm({
   onSave: () => void;
   onCancel: () => void;
 }) {
+  const [advancedExpanded, setAdvancedExpanded] = useState(false);
+  const formatOptions = conceptFormats.includes(draft.format as (typeof conceptFormats)[number])
+    ? conceptFormats.map((format) => ({ value: format, label: format }))
+    : [
+        ...conceptFormats.map((format) => ({ value: format, label: format })),
+        ...(draft.format ? [{ value: draft.format, label: draft.format }] : []),
+      ];
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
@@ -558,21 +559,34 @@ function ConceptForm({
         <SelectField label="Status" value={draft.status} onChange={(value) => setDraft((current) => ({ ...current, status: value }))} options={conceptStatuses.map((status) => ({ value: status, label: status }))} placeholder="Select status" />
         <SelectField label="Pillar" value={draft.pillarId} onChange={(value) => setDraft((current) => ({ ...current, pillarId: value }))} options={pillarOptions} placeholder="Select pillar" />
         <SelectField label="Series" value={draft.seriesId} onChange={(value) => setDraft((current) => ({ ...current, seriesId: value }))} options={seriesOptions} placeholder="No series" />
-        <TextInputField label="Episode Number" value={draft.episodeNumber} onChange={(value) => setDraft((current) => ({ ...current, episodeNumber: value }))} />
-        <TextInputField label="Format" value={draft.format} onChange={(value) => setDraft((current) => ({ ...current, format: value }))} />
+        <SelectField label="Format" value={draft.format} onChange={(value) => setDraft((current) => ({ ...current, format: value }))} options={formatOptions} placeholder="Select format" />
+        <TextInputField label="Publishing Target Date" type="date" value={draft.publishingTargetDate} onChange={(value) => setDraft((current) => ({ ...current, publishingTargetDate: value }))} />
       </div>
-      <TextAreaField label="Scene" value={draft.scene} onChange={(value) => setDraft((current) => ({ ...current, scene: value }))} rows={4} />
+      <TextAreaField label="Concept Direction" value={draft.scene} onChange={(value) => setDraft((current) => ({ ...current, scene: value }))} rows={4} />
       <TextAreaField label="Visual Direction" value={draft.visualDirection} onChange={(value) => setDraft((current) => ({ ...current, visualDirection: value }))} rows={4} />
-      <TextAreaField label="Product Placement" value={draft.productPlacement} onChange={(value) => setDraft((current) => ({ ...current, productPlacement: value }))} rows={3} />
-      <div className="grid gap-4 md:grid-cols-2">
-        <TextAreaField label="English Caption Draft" value={draft.englishCaptionDraft} onChange={(value) => setDraft((current) => ({ ...current, englishCaptionDraft: value }))} rows={5} />
-        <TextAreaField label="Japanese Caption Draft" value={draft.japaneseCaptionDraft} onChange={(value) => setDraft((current) => ({ ...current, japaneseCaptionDraft: value }))} rows={5} />
-      </div>
+      <TextAreaField label="Caption Direction" value={draft.captionDirection} onChange={(value) => setDraft((current) => ({ ...current, captionDirection: value }))} rows={3} />
       <TextAreaField label="Notes" value={draft.notes} onChange={(value) => setDraft((current) => ({ ...current, notes: value }))} rows={4} />
-      <div className="grid gap-4 md:grid-cols-2">
-        <TextAreaField label="Linked Prompt IDs" value={draft.linkedPromptIds} onChange={(value) => setDraft((current) => ({ ...current, linkedPromptIds: value }))} rows={3} />
-        <TextAreaField label="Linked Action IDs" value={draft.linkedActionIds} onChange={(value) => setDraft((current) => ({ ...current, linkedActionIds: value }))} rows={3} />
+
+      <div className="rounded-[18px] border border-white/8 bg-black/10 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="ui-micro-label">Optional</p>
+            <h4 className="mt-1 text-sm font-semibold text-ink">Advanced Details</h4>
+          </div>
+          <ReferenceToggleButton expanded={advancedExpanded} onClick={() => setAdvancedExpanded((current) => !current)} />
+        </div>
+        {advancedExpanded ? (
+          <div className="mt-4 space-y-4">
+            <TextInputField label="Episode Number" value={draft.episodeNumber} onChange={(value) => setDraft((current) => ({ ...current, episodeNumber: value }))} />
+            <TextAreaField label="Product Placement" value={draft.productPlacement} onChange={(value) => setDraft((current) => ({ ...current, productPlacement: value }))} rows={3} />
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextAreaField label="English Caption Draft" value={draft.englishCaptionDraft} onChange={(value) => setDraft((current) => ({ ...current, englishCaptionDraft: value }))} rows={4} />
+              <TextAreaField label="Japanese Caption Draft" value={draft.japaneseCaptionDraft} onChange={(value) => setDraft((current) => ({ ...current, japaneseCaptionDraft: value }))} rows={4} />
+            </div>
+          </div>
+        ) : null}
       </div>
+
       <div className="flex flex-wrap justify-end gap-2">
         <SaveCancel onCancel={onCancel} onSave={onSave} />
       </div>
@@ -615,10 +629,6 @@ function PublishingForm({
         <TextAreaField label="Japanese Caption" value={draft.japaneseCaption} onChange={(value) => setDraft((current) => ({ ...current, japaneseCaption: value }))} rows={5} />
       </div>
       <TextAreaField label="Working Notes" value={draft.workingNotes} onChange={(value) => setDraft((current) => ({ ...current, workingNotes: value }))} rows={4} />
-      <div className="grid gap-4 md:grid-cols-2">
-        <TextAreaField label="Linked Prompt IDs" value={draft.linkedPromptIds} onChange={(value) => setDraft((current) => ({ ...current, linkedPromptIds: value }))} rows={3} />
-        <TextAreaField label="Linked Action IDs" value={draft.linkedActionIds} onChange={(value) => setDraft((current) => ({ ...current, linkedActionIds: value }))} rows={3} />
-      </div>
       <div className="flex flex-wrap justify-end gap-2">
         <SaveCancel onCancel={onCancel} onSave={onSave} />
       </div>
@@ -1088,12 +1098,14 @@ function createEmptyConceptDraft(brand: BrandSpace, pillars: ContentPillar[]): C
     seriesId: "",
     episodeNumber: "",
     pillarId: pillars[0]?.id ?? "",
-    format: "",
+    format: conceptFormats[0],
     scene: "",
     visualDirection: "",
     productPlacement: "",
+    captionDirection: "",
     englishCaptionDraft: "",
     japaneseCaptionDraft: "",
+    publishingTargetDate: "",
     notes: "",
     status: conceptStatuses[0],
     linkedPromptIds: "",
@@ -1108,12 +1120,14 @@ function toConceptDraft(concept: ContentConcept): ConceptDraft {
     seriesId: concept.seriesId ?? "",
     episodeNumber: concept.episodeNumber ? String(concept.episodeNumber) : "",
     pillarId: concept.pillarId ?? "",
-    format: concept.format ?? "",
+    format: concept.format ?? conceptFormats[0],
     scene: concept.scene ?? "",
     visualDirection: concept.visualDirection ?? "",
     productPlacement: concept.productPlacement ?? "",
+    captionDirection: concept.captionDirection ?? "",
     englishCaptionDraft: concept.englishCaptionDraft ?? "",
     japaneseCaptionDraft: concept.japaneseCaptionDraft ?? "",
+    publishingTargetDate: concept.publishingTargetDate ?? "",
     notes: concept.notes ?? "",
     status: concept.status ?? conceptStatuses[0],
     linkedPromptIds: toMultiline(concept.linkedPromptIds),
@@ -1131,12 +1145,14 @@ function conceptFromDraft(draft: ConceptDraft, brand: BrandSpace, existing?: Con
     seriesId: draft.seriesId || undefined,
     episodeNumber: draft.episodeNumber ? Number.parseInt(draft.episodeNumber, 10) : undefined,
     pillarId: draft.pillarId,
-    format: draft.format.trim(),
+    format: draft.format.trim() || conceptFormats[0],
     scene: draft.scene.trim(),
     visualDirection: draft.visualDirection.trim(),
     productPlacement: draft.productPlacement.trim(),
+    captionDirection: draft.captionDirection.trim(),
     englishCaptionDraft: draft.englishCaptionDraft.trim(),
     japaneseCaptionDraft: draft.japaneseCaptionDraft.trim(),
+    publishingTargetDate: draft.publishingTargetDate || undefined,
     notes: draft.notes.trim(),
     status: draft.status || conceptStatuses[0],
     linkedPromptIds: fromMultiline(draft.linkedPromptIds),
@@ -1391,9 +1407,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const actions = brand.actions ?? [];
   const thinkingItems = brand.thinking ?? [];
   const visibleActions = actions;
-  const legacyContentGroups = getLegacyContentGroups(brand);
-  const visibleBrandPageSections: BrandPageSection[] =
-    legacyContentGroups.length > 0 ? [...brandPageSections, "Legacy Content"] : [...brandPageSections];
+  const visibleBrandPageSections: BrandPageSection[] = [...brandPageSections];
   const seriesOptions = contentSeries.map((series) => ({ value: series.id, label: getSeriesTitle(series) }));
   const pillarOptions = contentPillars.map((pillar) => ({ value: pillar.id, label: pillar.name }));
   const conceptOptions = contentConcepts.map((concept) => ({ value: concept.id, label: concept.title }));
@@ -1435,7 +1449,6 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const [thinkingStatusFilter, setThinkingStatusFilter] = useState("");
   const [brandCompassExpanded, setBrandCompassExpanded] = useState(false);
   const [contentSystemReferenceExpanded, setContentSystemReferenceExpanded] = useState(false);
-  const [legacyContentExpanded, setLegacyContentExpanded] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -2724,31 +2737,6 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </Panel>
       </div>
 
-      {legacyContentGroups.length > 0 ? (
-        <div id={sectionIds["Legacy Content"]} className="order-9 scroll-mt-24">
-          <Panel
-            eyebrow="Workspace / Legacy Content"
-            title="Legacy Content"
-            subtitle="Imported older workspace information. Expand only when needed."
-            accent="blue"
-            headerAction={<ReferenceToggleButton expanded={legacyContentExpanded} onClick={() => setLegacyContentExpanded((current) => !current)} />}
-          >
-            {legacyContentExpanded ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {legacyContentGroups.map((group) => (
-                  <div key={group.label} className="rounded-[18px] border border-white/10 bg-black/15 p-4">
-                    <p className="ui-micro-label">{group.label}</p>
-                    <div className="mt-3">
-                      <SectionList items={group.items} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </Panel>
-        </div>
-      ) : null}
-
       {conceptModalMode ? (
         <ModalShell
           eyebrow={conceptModalMode === "create" ? "Concept / New" : "Concept / Detail"}
@@ -2772,13 +2760,17 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
                   label="Series"
                   value={contentSeries.find((series) => series.id === activeConcept.seriesId)?.name ?? activeConcept.seriesId}
                 />
-                <FieldRow label="Episode Number" value={activeConcept.episodeNumber ? String(activeConcept.episodeNumber) : ""} />
                 <FieldRow label="Format" value={activeConcept.format} />
                 <FieldRow label="Status" value={activeConcept.status} />
+                <FieldRow label="Publishing Target Date" value={activeConcept.publishingTargetDate} />
               </div>
-              <FieldRow label="Scene" value={activeConcept.scene} />
+              <FieldRow label="Concept Direction" value={activeConcept.scene} />
               <FieldRow label="Visual Direction" value={activeConcept.visualDirection} />
-              <FieldRow label="Product Placement" value={activeConcept.productPlacement} />
+              <FieldRow label="Caption Direction" value={activeConcept.captionDirection} />
+              <div className="grid gap-3 md:grid-cols-2">
+                <FieldRow label="Episode Number" value={activeConcept.episodeNumber ? String(activeConcept.episodeNumber) : ""} />
+                <FieldRow label="Product Placement" value={activeConcept.productPlacement} />
+              </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <FieldRow label="English Caption Draft" value={activeConcept.englishCaptionDraft} />
                 <FieldRow label="Japanese Caption Draft" value={activeConcept.japaneseCaptionDraft} />

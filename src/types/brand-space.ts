@@ -103,8 +103,10 @@ export interface ContentConcept {
   scene?: string;
   visualDirection?: string;
   productPlacement?: string;
+  captionDirection?: string;
   englishCaptionDraft?: string;
   japaneseCaptionDraft?: string;
+  publishingTargetDate?: string;
   notes?: string;
   status?: string;
   linkedPromptIds?: string[];
