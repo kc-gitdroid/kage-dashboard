@@ -87,11 +87,58 @@ const LEGACY_OVERVIEW_VALUES: Partial<Record<BrandSpace["id"], Partial<Record<ke
     horizon: ["Checkpoint: Apr 12", "Ops review: Apr 17"],
   },
   personal: {
-    summary: ["A private command layer for goals, notes, reading, and reflective planning."],
-    focus: ["Rhythm / Health / Reflection"],
+    summary: [
+      "A private command layer for goals, notes, reading, and reflective planning.",
+      "Kage's personal command layer for identity, visibility, learning, energy, and long-range direction.",
+    ],
+    focus: ["Rhythm / Health / Reflection", "Personal brand / Creative identity / Rhythm / Reflection / Public thought"],
     cadence: ["Weekly reviews, note capture, reading and idea synthesis"],
-    nextAction: ["Prepare the next weekly reset and roll active notes into the calendar."],
+    nextAction: [
+      "Prepare the next weekly reset and roll active notes into the calendar.",
+      "Turn the personal brand into a repeatable rhythm: clear pillars, capture habits, publishing lanes, and review blocks.",
+    ],
     horizon: ["Reset: Apr 12"],
+  },
+};
+
+const PERSONAL_LEGACY_BRAND_COMPASS: BrandCompass = {
+  strategy: {
+    purpose: "Build a public and private operating system that helps Kage think clearly, create consistently, and move with intention.",
+    coreBelief: "The personal brand should make the larger brand universe easier to trust, not compete with it.",
+    positioning: "The human signal behind AAI, Masteryatelier, MO Studio, Biro, and the command center itself.",
+    promise: "Show the thinking behind the work through honest process, taste, discipline, growth, and useful reflection.",
+    tension: "Be public enough to build trust without turning the private operating system into a performance surface.",
+    neverBecome: "Generic creator advice, vague motivation, over-polished guru language, or tracking for the sake of tracking.",
+  },
+  visualLanguage: {
+    photography: "Real workspace cues, desk notes, references, calendar blocks, walking observations, and honest progress moments.",
+    composition: "Simple frames, sharp notes, clear hierarchy, and quiet personal documentation.",
+    colorMood: "Near-black, lime signal, paper whites, muted reference tones, and practical dashboard clarity.",
+    texture: "Notebook pages, screenshots, highlighted references, books, fabric, product fragments, and daily system traces.",
+    lighting: "Natural, available, and unforced. It should feel lived-in but still intentional.",
+    references: ["Build logs", "Weekly reviews", "Reading notes", "Taste references", "Personal operating systems"],
+    avoid: ["Guru visuals", "Fake vulnerability", "Motivation-post design", "Overly polished productivity content"],
+  },
+  voice: {
+    tone: "Warm, direct, grounded, reflective, and specific.",
+    sentenceStyle: "Clear first-person notes that connect decisions, lessons, and lived process.",
+    wordsToUse: ["decision", "rhythm", "energy", "clarity", "building", "taste", "reflection"],
+    wordsToAvoid: ["grindset", "hack", "guru", "manifest", "dominate"],
+    captionLogic: "Tie personal reflections to a real project, decision, lesson, or operating rhythm.",
+    ctaStyle: "Usually no hard CTA. Invite conversation or mark the thought for future use.",
+    exampleLines: [
+      "The system is only useful if it lowers friction.",
+      "The strongest personal content is often a decision record.",
+      "Energy and recovery are operating inputs, not side notes.",
+    ],
+  },
+  brandWorld: {
+    emotionalTone: "Clear, intimate, calm, ambitious, honest, and self-directed.",
+    culturalTerritory: "Creative identity, personal systems, taste, learning, brand-building, reading, recovery, and public thought.",
+    recurringThemes: ["Weekly reset", "Build log", "Taste notes", "Decision record", "Energy check", "Lessons in public"],
+    coreTension: "Building multiple worlds requires visibility and discipline, but the inner rhythm must stay real.",
+    feeling: "A personal cockpit for becoming sharper, healthier, and more intentional over time.",
+    whatMattersMost: "Capture, sort, decide, publish, review. Keep the system light enough to actually use.",
   },
 };
 
@@ -1273,6 +1320,33 @@ function mergeTextObject<T extends object>(defaults?: T, existing?: T): T | unde
   return next;
 }
 
+function sameStoredValue(left: unknown, right: unknown) {
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length && left.every((entry, index) => entry === right[index]);
+  }
+
+  return left === right;
+}
+
+function mergeTextObjectReplacingLegacy<T extends object>(defaults?: T, existing?: T, legacy?: T): T | undefined {
+  if (!defaults && !existing) {
+    return undefined;
+  }
+
+  const next = { ...(defaults ?? {}) } as T;
+
+  Object.entries((existing ?? {}) as Record<string, unknown>).forEach(([key, value]) => {
+    const hasValue = Array.isArray(value) ? value.length > 0 : typeof value === "string" ? hasText(value) : Boolean(value);
+    const legacyValue = (legacy as Record<string, unknown> | undefined)?.[key];
+
+    if (hasValue && !sameStoredValue(value, legacyValue)) {
+      (next as Record<string, unknown>)[key] = value;
+    }
+  });
+
+  return next;
+}
+
 function mergeCompass(defaults?: BrandCompass, existing?: BrandCompass): BrandCompass | undefined {
   if (!defaults && !existing) {
     return undefined;
@@ -1283,6 +1357,19 @@ function mergeCompass(defaults?: BrandCompass, existing?: BrandCompass): BrandCo
     visualLanguage: mergeTextObject(defaults?.visualLanguage, existing?.visualLanguage),
     voice: mergeTextObject(defaults?.voice, existing?.voice),
     brandWorld: mergeTextObject(defaults?.brandWorld, existing?.brandWorld),
+  };
+}
+
+function mergeCompassReplacingLegacy(defaults?: BrandCompass, existing?: BrandCompass, legacy?: BrandCompass): BrandCompass | undefined {
+  if (!defaults && !existing) {
+    return undefined;
+  }
+
+  return {
+    strategy: mergeTextObjectReplacingLegacy(defaults?.strategy, existing?.strategy, legacy?.strategy),
+    visualLanguage: mergeTextObjectReplacingLegacy(defaults?.visualLanguage, existing?.visualLanguage, legacy?.visualLanguage),
+    voice: mergeTextObjectReplacingLegacy(defaults?.voice, existing?.voice, legacy?.voice),
+    brandWorld: mergeTextObjectReplacingLegacy(defaults?.brandWorld, existing?.brandWorld, legacy?.brandWorld),
   };
 }
 
@@ -1384,6 +1471,14 @@ function resolveBrandSpaceDefaults(id: BrandSpace["id"]) {
   return id === "mo-studio" ? moStudioBrandSpaceDefaults : BRAND_SPACE_DEFAULTS[id];
 }
 
+function resolveBrandCompass(defaults: BrandSpaceDefaults | undefined, brandSpace: BrandSpace) {
+  if (brandSpace.id === "personal") {
+    return mergeCompassReplacingLegacy(defaults?.brandCompass, brandSpace.brandCompass, PERSONAL_LEGACY_BRAND_COMPASS);
+  }
+
+  return mergeCompass(defaults?.brandCompass, brandSpace.brandCompass);
+}
+
 export function normalizeBrandSpaceExtensions(brandSpace: BrandSpace): BrandSpace {
   const defaults = resolveBrandSpaceDefaults(brandSpace.id);
   const existingContentSystem = brandSpace.contentSystem ?? {};
@@ -1396,7 +1491,7 @@ export function normalizeBrandSpaceExtensions(brandSpace: BrandSpace): BrandSpac
     cadence: resolveOverviewValue(brandSpace.id, "cadence", brandSpace.cadence, defaults?.overview?.cadence),
     nextAction: resolveOverviewValue(brandSpace.id, "nextAction", brandSpace.nextAction, defaults?.overview?.nextAction),
     horizon: resolveOverviewValue(brandSpace.id, "horizon", brandSpace.horizon, defaults?.overview?.horizon),
-    brandCompass: mergeCompass(defaults?.brandCompass, brandSpace.brandCompass),
+    brandCompass: resolveBrandCompass(defaults, brandSpace),
     contentSystem: resolveContentSystem(defaults, { ...brandSpace, contentSystem: existingContentSystem }),
     contentConcepts: resolveContentConcepts(defaults, brandSpace),
     publishingCalendar: resolvePublishingCalendar(defaults, brandSpace),
@@ -1425,7 +1520,7 @@ export function applyBrandSpaceExtensionDefaults(brandSpace: BrandSpace): BrandS
     cadence: defaults.overview?.cadence ?? normalized.cadence,
     nextAction: defaults.overview?.nextAction ?? normalized.nextAction,
     horizon: defaults.overview?.horizon ?? normalized.horizon,
-    brandCompass: mergeCompass(defaults.brandCompass, brandSpace.brandCompass),
+    brandCompass: resolveBrandCompass(defaults, brandSpace),
     contentSystem: resolveContentSystem(defaults, brandSpace),
     contentConcepts: resolveContentConcepts(defaults, brandSpace),
     publishingCalendar: resolvePublishingCalendar(defaults, brandSpace),
