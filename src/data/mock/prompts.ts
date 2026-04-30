@@ -29,13 +29,82 @@ export const promptItems: PromptItem[] = [
     updatedAt: "2026-04-12",
   },
   {
-    id: "prompt-personal-weekly-reset",
-    title: "Personal Weekly Reset",
+    id: "prompt-personal-caption",
+    title: "Personal Caption Prompt",
     brandId: "personal",
-    summary: "Use notes and open tasks to produce a weekly reset, focus list, and reflection prompt.",
-    body: "Summarize the week in calm, direct language. Return wins, open loops, next focus, and one reflection question.",
+    summary: "Turn an idea into an editorial, human, understated personal brand caption for Kage.",
+    body:
+      "Turn this idea into a personal brand caption for Kage.\n\nKeep the tone editorial, human, understated, precise, and culturally aware.\n\nAvoid influencer language, motivational hooks, sales copy, founder cliches, and obvious personal branding.\n\nThe writing should reveal taste, thinking, and authorship.\n\nConnect the idea subtly to MO Studio, AAI, Masteryatelier, biro, or Kage's wider brand world only when it feels natural.",
     status: "active",
-    updatedAt: "2026-04-14",
+    updatedAt: "2026-04-30",
+    type: "Caption",
+    promptBody:
+      "Turn this idea into a personal brand caption for Kage.\n\nKeep the tone editorial, human, understated, precise, and culturally aware.\n\nAvoid influencer language, motivational hooks, sales copy, founder cliches, and obvious personal branding.\n\nThe writing should reveal taste, thinking, and authorship.\n\nConnect the idea subtly to MO Studio, AAI, Masteryatelier, biro, or Kage's wider brand world only when it feels natural.",
+  },
+  {
+    id: "prompt-personal-listening-notes",
+    title: "Listening Notes Prompt",
+    brandId: "personal",
+    summary: "Shape music references into a Listening Notes post about mood, rhythm, atmosphere, and cultural texture.",
+    body:
+      "Turn these songs, albums, or music references into a Listening Notes post for Kage's personal brand.\n\nDo not write it like a playlist recommendation.\n\nWrite it as an editorial note on mood, rhythm, atmosphere, timing, and cultural texture.\n\nConnect the music subtly to visual direction, brand world, space, campaign feeling, or personal observation.\n\nKeep the tone understated, precise, and human.\n\nAvoid hype, music-review cliches, and influencer-style language.",
+    status: "active",
+    updatedAt: "2026-04-30",
+    type: "Caption / Culture",
+    promptBody:
+      "Turn these songs, albums, or music references into a Listening Notes post for Kage's personal brand.\n\nDo not write it like a playlist recommendation.\n\nWrite it as an editorial note on mood, rhythm, atmosphere, timing, and cultural texture.\n\nConnect the music subtly to visual direction, brand world, space, campaign feeling, or personal observation.\n\nKeep the tone understated, precise, and human.\n\nAvoid hype, music-review cliches, and influencer-style language.",
+  },
+  {
+    id: "prompt-personal-cultural-reading",
+    title: "Cultural Reading Prompt",
+    brandId: "personal",
+    summary: "Turn a brand, object, ritual, product, place, or reference into a short cultural reading.",
+    body:
+      "Turn this brand, object, ritual, magazine, product, space, restaurant, or cultural reference into a short cultural reading.\n\nExplain what is being understood, not just what it looks like.\n\nKeep the tone editorial, thoughtful, and grounded.\n\nAvoid academic language, trend language, and obvious \"case study\" cliches.\n\nThe result should feel useful for brand-building and visual direction.",
+    status: "active",
+    updatedAt: "2026-04-30",
+    type: "Strategy / Caption",
+    promptBody:
+      "Turn this brand, object, ritual, magazine, product, space, restaurant, or cultural reference into a short cultural reading.\n\nExplain what is being understood, not just what it looks like.\n\nKeep the tone editorial, thoughtful, and grounded.\n\nAvoid academic language, trend language, and obvious \"case study\" cliches.\n\nThe result should feel useful for brand-building and visual direction.",
+  },
+  {
+    id: "prompt-personal-decision-record",
+    title: "Decision Record Prompt",
+    brandId: "personal",
+    summary: "Turn a creative, brand, product, or operating decision into a concise public note.",
+    body:
+      "Turn this decision into a clear public note.\n\nExplain what was chosen, why it mattered, what tradeoff was accepted, and how it shaped the work.\n\nKeep it concise and human.\n\nDo not over-explain.\nDo not turn it into a lesson thread.\nDo not make it sound like founder content.",
+    status: "active",
+    updatedAt: "2026-04-30",
+    type: "Strategy / Caption",
+    promptBody:
+      "Turn this decision into a clear public note.\n\nExplain what was chosen, why it mattered, what tradeoff was accepted, and how it shaped the work.\n\nKeep it concise and human.\n\nDo not over-explain.\nDo not turn it into a lesson thread.\nDo not make it sound like founder content.",
+  },
+  {
+    id: "prompt-personal-studio-thinking",
+    title: "Studio Thinking Prompt",
+    brandId: "personal",
+    summary: "Turn a process, reference, visual direction, or campaign thought into a Studio Thinking post.",
+    body:
+      "Turn this process, reference, visual direction, or campaign thought into a Studio Thinking post.\n\nThe writing should make the thinking behind the work visible.\n\nKeep the tone understated, specific, and culturally aware.\n\nAvoid selling the service.\nAvoid loud expertise.\nAvoid generic branding advice.",
+    status: "active",
+    updatedAt: "2026-04-30",
+    type: "Strategy / Caption",
+    promptBody:
+      "Turn this process, reference, visual direction, or campaign thought into a Studio Thinking post.\n\nThe writing should make the thinking behind the work visible.\n\nKeep the tone understated, specific, and culturally aware.\n\nAvoid selling the service.\nAvoid loud expertise.\nAvoid generic branding advice.",
+  },
+  {
+    id: "prompt-personal-visual-direction",
+    title: "Visual Direction Prompt",
+    brandId: "personal",
+    summary: "Create an image or video prompt for Kage's personal brand world.",
+    body:
+      "Create an image or video prompt for Kage's personal brand world.\n\nThe visual should feel editorial, restrained, culturally aware, slightly analog, and authored.\n\nUse real notes, references, desk cues, materials, magazines, objects, screenshots, garments, leather, brass, paper, denim, whisky glass, or studio fragments.\n\nAvoid influencer aesthetics, generic productivity desk setups, polished founder portraits, motivational quote graphics, and over-designed personal branding.",
+    status: "active",
+    updatedAt: "2026-04-30",
+    type: "Image / Video",
+    promptBody:
+      "Create an image or video prompt for Kage's personal brand world.\n\nThe visual should feel editorial, restrained, culturally aware, slightly analog, and authored.\n\nUse real notes, references, desk cues, materials, magazines, objects, screenshots, garments, leather, brass, paper, denim, whisky glass, or studio fragments.\n\nAvoid influencer aesthetics, generic productivity desk setups, polished founder portraits, motivational quote graphics, and over-designed personal branding.",
   },
   {
     id: "prompt-biro-story-seed",

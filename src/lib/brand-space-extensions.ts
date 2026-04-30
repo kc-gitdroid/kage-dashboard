@@ -142,6 +142,18 @@ const PERSONAL_LEGACY_BRAND_COMPASS: BrandCompass = {
   },
 };
 
+const PERSONAL_LEGACY_CONTENT_SYSTEM_IDS = {
+  pillars: ["personal-pillar-build-log", "personal-pillar-reflection", "personal-pillar-taste-notes", "personal-pillar-lessons"],
+  series: ["personal-series-weekly-reset"],
+};
+
+const PERSONAL_LEGACY_RECORD_IDS = {
+  contentConcepts: ["personal-concept-weekly-reset"],
+  publishingCalendar: ["personal-post-weekly-reset"],
+  actions: ["personal-action-pillars"],
+  thinking: ["personal-thinking-decision-record"],
+};
+
 const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>> = {
   aai: {
     overview: {
@@ -976,52 +988,57 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
     contentSystem: {
       contentPillars: [
         {
-          id: "personal-pillar-build-log",
+          id: "personal-pillar-studio-thinking",
           order: 1,
-          name: "Build Log",
-          description: "What is being built across the brands, what decision was made, and what changed because of it.",
-          tags: ["Projects", "Process"],
+          name: "Studio Thinking",
+          description:
+            "How Kage frames brand, design, campaigns, visual language, trust, and cultural relevance.\n\nThis pillar makes the thinking behind the work visible without turning it into a lesson or sales pitch.",
+          tags: ["Studio thinking", "Visual language", "Trust", "Process"],
           color: "#B7FF00",
           active: true,
         },
         {
-          id: "personal-pillar-reflection",
+          id: "personal-pillar-cultural-reading",
           order: 2,
-          name: "Reflection",
-          description: "Weekly resets, energy, recovery, direction, commitments, and honest notes from the private operating system.",
-          tags: ["Weekly reset", "Energy"],
+          name: "Cultural Reading",
+          description:
+            "How Kage studies brands, products, rituals, magazines, music, spaces, objects, retail, restaurants, and everyday culture.\n\nThis pillar shows the cultural logic behind references, not just the surface look.",
+          tags: ["Culture", "References", "Brand study", "Context"],
           color: "#F2C94C",
           active: true,
         },
         {
-          id: "personal-pillar-taste-notes",
+          id: "personal-pillar-curated-perspective",
           order: 3,
-          name: "Taste Notes",
-          description: "References, objects, systems, products, images, and ideas that sharpen the point of view.",
-          tags: ["References", "Taste"],
+          name: "Curated Perspective",
+          description:
+            "Music, magazines, garments, objects, interiors, materials, and references that shape taste and atmosphere.\n\nThis pillar is where Listening Notes can live as a recurring music-led format.",
+          tags: ["Taste", "Listening Notes", "Objects", "Atmosphere"],
           color: "#8CE6FF",
           active: true,
         },
         {
-          id: "personal-pillar-lessons",
+          id: "personal-pillar-decision-record",
           order: 4,
-          name: "Lessons in Public",
-          description: "Useful lessons from building, editing, launching, organizing, and making decisions.",
-          tags: ["Learning", "Public thought"],
+          name: "Decision Record",
+          description:
+            "What was chosen, why it mattered, and how the decision shaped the work, brand, campaign, object, or direction.\n\nThis pillar turns decisions into clear public thought without over-explaining.",
+          tags: ["Decision", "Original brands", "Brand proof", "Clarity"],
           color: "#1D4DFF",
           active: true,
         },
       ],
       contentSeries: [
         {
-          id: "personal-series-weekly-reset",
+          id: "personal-series-listening-notes",
           order: 1,
-          name: "Weekly Reset",
-          title: "Weekly Reset",
-          description: "A recurring review of priorities, calendar, energy, open loops, and brand commitments.",
-          relatedPillarIds: ["personal-pillar-reflection"],
-          episodeStructure: "What mattered / what moved / what needs attention / next rhythm",
-          productLogic: "Keep private planning connected to public clarity.",
+          name: "Listening Notes",
+          title: "Listening Notes",
+          description:
+            "Three tracks, one album, or one listening mood connected to atmosphere, rhythm, space, campaign feeling, visual direction, or personal observation.\n\nThis should not read like a playlist recommendation. It should feel like an editorial note on sound as cultural texture.",
+          relatedPillarIds: ["personal-pillar-curated-perspective", "personal-pillar-cultural-reading"],
+          episodeStructure: "Sound / mood / visual rhythm / what it is shaping",
+          productLogic: "Use music as atmosphere, not filler content.",
           active: true,
         },
         {
@@ -1029,77 +1046,340 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
           order: 2,
           name: "Decision Record",
           title: "Decision Record",
-          description: "Short public notes explaining decisions made while building the brand ecosystem.",
-          relatedPillarIds: ["personal-pillar-build-log", "personal-pillar-lessons"],
+          description: "Short public notes explaining a creative, brand, visual, product, or operating decision.",
+          relatedPillarIds: ["personal-pillar-decision-record", "personal-pillar-studio-thinking"],
           episodeStructure: "Decision / why / tradeoff / next move",
           productLogic: "Make thinking visible without over-explaining.",
           active: true,
         },
+        {
+          id: "personal-series-reference-study",
+          order: 3,
+          name: "Reference Study",
+          title: "Reference Study",
+          description: "A small study of a magazine, object, brand, material, garment, campaign, space, or ritual.",
+          relatedPillarIds: ["personal-pillar-cultural-reading", "personal-pillar-curated-perspective"],
+          episodeStructure: "Reference / context / what was understood / how it could inform work",
+          productLogic: "Turn taste into a usable brand-building archive.",
+          active: true,
+        },
+        {
+          id: "personal-series-working-notes",
+          order: 4,
+          name: "Working Notes",
+          title: "Working Notes",
+          description: "Short observations from active studio work, brand-building, image-making, prompt development, planning, or visual direction.",
+          relatedPillarIds: ["personal-pillar-studio-thinking", "personal-pillar-decision-record"],
+          episodeStructure: "What is being shaped / what changed / what needs attention",
+          productLogic: "Keep the personal brand close to real work and real decisions.",
+          active: true,
+        },
       ],
       pillarRotation: [
-        { postNumber: 1, pillarId: "personal-pillar-build-log", format: "Post", direction: "A real decision or project movement." },
-        { postNumber: 2, pillarId: "personal-pillar-reflection", format: "Note", direction: "Weekly reset or energy observation." },
-        { postNumber: 3, pillarId: "personal-pillar-taste-notes", format: "Carousel", direction: "Reference and why it matters." },
-        { postNumber: 4, pillarId: "personal-pillar-lessons", format: "Post", direction: "Lesson from execution." },
+        {
+          postNumber: 1,
+          pillarId: "personal-pillar-studio-thinking",
+          format: "Post",
+          direction: "Monday: Start the week with an authored point of view on brand, visual language, process, trust, or creative direction.",
+        },
+        {
+          postNumber: 2,
+          pillarId: "personal-pillar-cultural-reading",
+          format: "Post",
+          direction: "Tuesday: Study one brand, object, product, ritual, magazine, space, or cultural reference through Kage's point of view.",
+        },
+        {
+          postNumber: 3,
+          pillarId: "personal-pillar-curated-perspective",
+          format: "Post",
+          direction:
+            "Wednesday: Share taste, references, objects, visual cues, or Listening Notes. Every other Wednesday should become Listening Notes; alternate Wednesdays can be Reference Study, object note, magazine note, or taste note.",
+        },
+        {
+          postNumber: 4,
+          pillarId: "personal-pillar-decision-record",
+          format: "Post",
+          direction:
+            "Friday: Close the week with one decision, tradeoff, original brand proof, or reflection from MO Studio, AAI, Masteryatelier, biro, or the wider Massiveoutfit world.",
+        },
       ],
       contentRules: {
-        productRole: "Personal content supports trust in the broader brand ecosystem.",
-        captionRules: "Be specific, grounded, and tied to a real decision, project, or rhythm.",
-        visualRules: "Use real notes, references, system views, and simple frames.",
-        postingRules: "Rotate build log, reflection, taste note, and lesson.",
-        avoid: "Avoid guru tone, generic motivation, and private tracking that becomes performance.",
+        productRole:
+          "Personal content supports trust in the broader brand ecosystem.\n\nIt should make the human point of view behind MO Studio, AAI, Masteryatelier, biro, and Massiveoutfit easier to understand.",
+        captionRules:
+          "Be specific, grounded, and tied to a real decision, reference, project, rhythm, object, material, sound, or observation.\n\nDo not over-explain.\nDo not force a lesson.\nDo not write like a creator account.\nLet the thinking show through the detail.",
+        visualRules:
+          "Use real notes, references, system views, desk cues, objects, materials, magazine logic, screenshots, process fragments, and simple editorial frames.\n\nThe visual should feel observed, intentional, and culturally specific.",
+        postingRules:
+          "Post 4 times per week on weekdays only.\n\nDefault rhythm:\n- Monday: Studio Thinking\n- Tuesday: Cultural Reading\n- Wednesday: Curated Perspective\n- Friday: Decision Record\n\nDo not schedule posts on Saturday or Sunday.\n\nUse Thursday for capture, drafting, editing, review, and preparation.\n\nListening Notes appears every other Wednesday under Curated Perspective.",
+        avoid:
+          "Avoid guru tone, generic motivation, founder cliches, productivity performance, viral hooks, engagement bait, over-polished personal branding, and private tracking that becomes performance.",
       },
     },
     contentConcepts: [
       {
-        id: "personal-concept-weekly-reset",
+        id: "personal-concept-understood-before-designed",
         brandId: "personal",
-        title: "Weekly Reset Note",
-        seriesId: "personal-series-weekly-reset",
-        pillarId: "personal-pillar-reflection",
+        title: "What Was Understood Before Anything Was Designed",
+        seriesId: "personal-series-working-notes",
+        pillarId: "personal-pillar-studio-thinking",
         format: "Post",
-        scene: "A concise note from the weekly reset.",
-        visualDirection: "Simple dashboard or notebook frame with one clear thought.",
-        englishCaptionDraft: "The system is only useful if it lowers friction.",
-        notes: "Use private notes only when they have a clear public lesson.",
+        scene: "A concise note on the thinking that happens before visual direction begins.",
+        visualDirection: "Notebook page, reference scan, quiet desk frame, or simple editorial text layout.",
+        productPlacement: "MO Studio / Personal point of view.",
+        status: "Draft",
+      },
+      {
+        id: "personal-concept-listening-notes-001",
+        brandId: "personal",
+        title: "Listening Notes 001",
+        seriesId: "personal-series-listening-notes",
+        pillarId: "personal-pillar-curated-perspective",
+        format: "Post",
+        scene: "Three tracks currently shaping the atmosphere, rhythm, or visual mood.",
+        visualDirection: "Record sleeve, playlist screenshot, notebook note, or abstract editorial layout with track titles.",
+        productPlacement: "Sound as atmosphere for Kage's brand world.",
+        status: "Draft",
+      },
+      {
+        id: "personal-concept-aai-brand-building-proof",
+        brandId: "personal",
+        title: "AAI as Brand-Building Proof",
+        seriesId: "personal-series-decision-record",
+        pillarId: "personal-pillar-decision-record",
+        format: "Post",
+        scene: "A short note on how AAI demonstrates intent, optimism, street culture, and authored brand-building.",
+        visualDirection: "AAI garment detail, campaign still, reference board, or minimal text/image frame.",
+        productPlacement: "AAI as proof of Kage's brand logic.",
+        status: "Draft",
+      },
+      {
+        id: "personal-concept-masteryatelier-craft-proof",
+        brandId: "personal",
+        title: "Masteryatelier as Craft Proof",
+        seriesId: "personal-series-decision-record",
+        pillarId: "personal-pillar-decision-record",
+        format: "Post",
+        scene: "A note on how handmade intervention, leather, sneakers, and material transformation express craft logic.",
+        visualDirection: "Leather detail, tassel process, handwork close-up, or product fragment.",
+        productPlacement: "Masteryatelier as proof of craft and transformation.",
+        status: "Draft",
+      },
+      {
+        id: "personal-concept-japanese-magazine-logic",
+        brandId: "personal",
+        title: "Japanese Magazine Logic in Brand Work",
+        seriesId: "personal-series-reference-study",
+        pillarId: "personal-pillar-cultural-reading",
+        format: "Post",
+        scene: "A cultural note on how Japanese editorial logic can shape pacing, hierarchy, restraint, and brand storytelling.",
+        visualDirection: "Magazine spread reference, grid layout, cropped typography, or publication-style composition.",
+        productPlacement: "Cultural reading applied to studio work.",
+        status: "Draft",
+      },
+      {
+        id: "personal-concept-reference-to-visual-direction",
+        brandId: "personal",
+        title: "From Reference to Visual Direction",
+        seriesId: "personal-series-working-notes",
+        pillarId: "personal-pillar-studio-thinking",
+        format: "Post",
+        scene: "A note on how a reference becomes mood, image logic, typography, campaign feeling, or spatial direction.",
+        visualDirection: "Before-and-after reference board, prompt note, image contact sheet, or studio desktop view.",
+        productPlacement: "MO Studio / Personal process.",
+        status: "Draft",
+      },
+      {
+        id: "personal-concept-object-remembers",
+        brandId: "personal",
+        title: "The Object Matters Because of What It Remembers",
+        seriesId: "personal-series-reference-study",
+        pillarId: "personal-pillar-curated-perspective",
+        format: "Post",
+        scene: "A short observation on objects, material memory, patina, and cultural meaning.",
+        visualDirection: "Brass, leather, denim, paper, ceramic, wood, or whisky glass close-up.",
+        productPlacement: "Material language and personal taste.",
+        status: "Draft",
+      },
+      {
+        id: "personal-concept-authored-not-advertised",
+        brandId: "personal",
+        title: "The Work Should Feel Authored, Not Advertised",
+        seriesId: "personal-series-working-notes",
+        pillarId: "personal-pillar-studio-thinking",
+        format: "Post",
+        scene: "A direct note on the difference between authored brand language and surface-level promotion.",
+        visualDirection: "Clean editorial text frame, campaign sketch, studio note, or visual direction board.",
+        productPlacement: "Kage personal brand / MO Studio.",
         status: "Draft",
       },
     ],
     publishingCalendar: [
       {
-        id: "personal-post-weekly-reset",
+        id: "personal-post-2026-05-04-understood-before-designed",
         brandId: "personal",
-        date: "2026-05-03",
-        title: "Weekly Reset Note",
-        pillarId: "personal-pillar-reflection",
+        date: "2026-05-04",
+        title: "What Was Understood Before Anything Was Designed",
+        pillarId: "personal-pillar-studio-thinking",
         format: "Post",
         status: "Draft",
-        contentConceptId: "personal-concept-weekly-reset",
-        sceneBrief: "One useful observation from reset.",
-        visualDirection: "Quiet note or dashboard crop.",
-        workingNotes: "Keep it specific and non-performative.",
+        contentConceptId: "personal-concept-understood-before-designed",
+        sceneBrief: "A concise note on the thinking that happens before visual direction begins.",
+        workingNotes: "Monday Studio Thinking sample post.",
+      },
+      {
+        id: "personal-post-2026-05-05-japanese-magazine-logic",
+        brandId: "personal",
+        date: "2026-05-05",
+        title: "Japanese Magazine Logic in Brand Work",
+        pillarId: "personal-pillar-cultural-reading",
+        format: "Post",
+        status: "Draft",
+        contentConceptId: "personal-concept-japanese-magazine-logic",
+        sceneBrief: "Study Japanese editorial pacing, hierarchy, restraint, and brand storytelling.",
+        workingNotes: "Tuesday Cultural Reading sample post.",
+      },
+      {
+        id: "personal-post-2026-05-06-listening-notes-001",
+        brandId: "personal",
+        date: "2026-05-06",
+        title: "Listening Notes 001",
+        pillarId: "personal-pillar-curated-perspective",
+        format: "Post",
+        status: "Draft",
+        contentConceptId: "personal-concept-listening-notes-001",
+        sceneBrief: "Three tracks shaping atmosphere, rhythm, or visual mood.",
+        workingNotes: "Wednesday Curated Perspective sample post. Listening Notes recurring format.",
+      },
+      {
+        id: "personal-post-2026-05-08-authored-not-advertised",
+        brandId: "personal",
+        date: "2026-05-08",
+        title: "The Work Should Feel Authored, Not Advertised",
+        pillarId: "personal-pillar-decision-record",
+        format: "Post",
+        status: "Draft",
+        contentConceptId: "personal-concept-authored-not-advertised",
+        sceneBrief: "A direct note on authored brand language versus surface-level promotion.",
+        workingNotes: "Friday Decision Record sample post.",
       },
     ],
     actions: [
       {
-        id: "personal-action-pillars",
+        id: "personal-action-first-4-weeks",
         brandId: "personal",
-        title: "Define 4 personal content pillars",
+        title: "Define the first 4 weeks of Personal content",
         status: "Next",
         linkedItemType: "Brand",
         linkedItemId: "personal",
-        nextMove: "Map each pillar to repeatable post formats and capture windows.",
-        dueDate: "2026-05-04",
+        nextMove: "Map Monday, Tuesday, Wednesday, and Friday posts using Studio Thinking, Cultural Reading, Curated Perspective, and Decision Record.",
+        notes: "Map Monday, Tuesday, Wednesday, and Friday posts using Studio Thinking, Cultural Reading, Curated Perspective, and Decision Record.",
+      },
+      {
+        id: "personal-action-first-3-listening-notes",
+        brandId: "personal",
+        title: "Draft first 3 Listening Notes",
+        status: "Next",
+        linkedItemType: "Brand",
+        linkedItemId: "personal",
+        nextMove: "Create three music-led notes that connect sound to atmosphere, rhythm, visual direction, or campaign mood.",
+        notes: "Create three music-led notes that connect sound to atmosphere, rhythm, visual direction, or campaign mood.",
+      },
+      {
+        id: "personal-action-reference-archive",
+        brandId: "personal",
+        title: "Build a personal reference archive",
+        status: "Next",
+        linkedItemType: "Brand",
+        linkedItemId: "personal",
+        nextMove: "Collect magazines, objects, music, materials, spaces, retail notes, garments, and screenshots that can become future content.",
+        notes: "Collect magazines, objects, music, materials, spaces, retail notes, garments, and screenshots that can become future content.",
+      },
+      {
+        id: "personal-action-draft-8-concepts",
+        brandId: "personal",
+        title: "Draft first 8 Personal content concepts",
+        status: "Next",
+        linkedItemType: "Brand",
+        linkedItemId: "personal",
+        nextMove: "Use the seeded concepts as starting points and turn them into publishable captions or visual directions.",
+        notes: "Use the seeded concepts as starting points and turn them into publishable captions or visual directions.",
+      },
+      {
+        id: "personal-action-connect-to-mo-studio",
+        brandId: "personal",
+        title: "Connect Personal content to MO Studio",
+        status: "Next",
+        linkedItemType: "Brand",
+        linkedItemId: "personal",
+        nextMove: "Identify where personal observations can strengthen trust in the studio without sounding promotional.",
+        notes: "Identify where personal observations can strengthen trust in the studio without sounding promotional.",
+      },
+      {
+        id: "personal-action-visual-template-direction",
+        brandId: "personal",
+        title: "Create Personal visual template direction",
+        status: "Next",
+        linkedItemType: "Brand",
+        linkedItemId: "personal",
+        nextMove: "Define simple recurring formats for notes, reference studies, Listening Notes, and Decision Records.",
+        notes: "Define simple recurring formats for notes, reference studies, Listening Notes, and Decision Records.",
+      },
+      {
+        id: "personal-action-monthly-rhythm-review",
+        brandId: "personal",
+        title: "Review Personal content rhythm monthly",
+        status: "Next",
+        linkedItemType: "Brand",
+        linkedItemId: "personal",
+        nextMove: "Check whether the 4-post weekday rhythm is useful, sustainable, and still aligned with the personal brand world.",
+        notes: "Check whether the 4-post weekday rhythm is useful, sustainable, and still aligned with the personal brand world.",
       },
     ],
     thinking: [
       {
-        id: "personal-thinking-decision-record",
+        id: "personal-thinking-authored-point-of-view",
         brandId: "personal",
-        title: "Personal content as decision record",
-        body: "The strongest personal content will likely come from decisions made while building the brands.",
+        title: "Personal content as authored point of view",
+        body: "The strongest personal content should not come from performing personality. It should come from showing how Kage sees, selects, frames, and decides.",
         type: "Strategy",
-        possibleUse: "Content pillar / caption logic",
+        possibleUse: "Personal brand / Studio thinking / Authorship",
+        status: "Useful",
+      },
+      {
+        id: "personal-thinking-listening-notes-atmospheric",
+        brandId: "personal",
+        title: "Listening Notes should feel atmospheric",
+        body: "Music should not appear as random recommendations. It should act as a way to describe rhythm, timing, space, mood, campaign feeling, and visual atmosphere.",
+        type: "Content",
+        possibleUse: "Listening Notes / Music / Atmosphere",
+        status: "Useful",
+      },
+      {
+        id: "personal-thinking-original-brands-proof",
+        brandId: "personal",
+        title: "Original brands are proof",
+        body: "AAI, Masteryatelier, and biro should act as living evidence of Kage's brand-building logic, not separate disconnected projects.",
+        type: "Strategy",
+        possibleUse: "Original brands / Brand proof / Decision record",
+        status: "Useful",
+      },
+      {
+        id: "personal-thinking-reflection-performance",
+        brandId: "personal",
+        title: "Avoid turning reflection into performance",
+        body: "The personal brand needs visibility, but it should not turn private tracking, productivity, or self-management into public performance.",
+        type: "Voice",
+        possibleUse: "Voice / Boundaries / Restraint",
+        status: "Useful",
+      },
+      {
+        id: "personal-thinking-taste-needs-structure",
+        brandId: "personal",
+        title: "Taste needs structure",
+        body: "Taste becomes useful when it is captured, sorted, and connected to decisions. The system should help references become direction.",
+        type: "Content System",
+        possibleUse: "Taste / References / Content system",
         status: "Useful",
       },
     ],
@@ -1414,12 +1694,27 @@ function resolveContentSystem(defaults: BrandSpaceDefaults | undefined, brandSpa
     return defaults.contentSystem;
   }
 
+  if (brandSpace.id === "personal" && defaults?.contentSystem) {
+    const existingContentSystem = brandSpace.contentSystem;
+    const hasLegacyPillars = existingContentSystem?.contentPillars?.some((item) => PERSONAL_LEGACY_CONTENT_SYSTEM_IDS.pillars.includes(item.id));
+    const hasLegacySeries = existingContentSystem?.contentSeries?.some((item) => PERSONAL_LEGACY_CONTENT_SYSTEM_IDS.series.includes(item.id));
+
+    if (!hasList(existingContentSystem?.contentPillars) || hasLegacyPillars || hasLegacySeries) {
+      return defaults.contentSystem;
+    }
+  }
+
   return mergeContentSystem(defaults?.contentSystem, brandSpace.contentSystem ?? {});
 }
 
 function resolveContentConcepts(defaults: BrandSpaceDefaults | undefined, brandSpace: BrandSpace) {
   if (brandSpace.id === "mo-studio") {
     return mergeMoStudioDefaultList(defaults?.contentConcepts, brandSpace.contentConcepts, (existingItem, defaultItem) => existingItem.title === defaultItem.title);
+  }
+
+  if (brandSpace.id === "personal" && defaults?.contentConcepts) {
+    const hasLegacyRecords = brandSpace.contentConcepts?.some((item) => PERSONAL_LEGACY_RECORD_IDS.contentConcepts.includes(item.id));
+    return !hasList(brandSpace.contentConcepts) || hasLegacyRecords ? defaults.contentConcepts : brandSpace.contentConcepts;
   }
 
   return hasList(brandSpace.contentConcepts) ? brandSpace.contentConcepts : defaults?.contentConcepts ?? [];
@@ -1434,6 +1729,11 @@ function resolvePublishingCalendar(defaults: BrandSpaceDefaults | undefined, bra
     );
   }
 
+  if (brandSpace.id === "personal" && defaults?.publishingCalendar) {
+    const hasLegacyRecords = brandSpace.publishingCalendar?.some((item) => PERSONAL_LEGACY_RECORD_IDS.publishingCalendar.includes(item.id));
+    return !hasList(brandSpace.publishingCalendar) || hasLegacyRecords ? defaults.publishingCalendar : brandSpace.publishingCalendar;
+  }
+
   return hasList(brandSpace.publishingCalendar) ? brandSpace.publishingCalendar : defaults?.publishingCalendar ?? [];
 }
 
@@ -1446,12 +1746,22 @@ function resolveActions(defaults: BrandSpaceDefaults | undefined, brandSpace: Br
     );
   }
 
+  if (brandSpace.id === "personal" && defaults?.actions) {
+    const hasLegacyRecords = brandSpace.actions?.some((item) => PERSONAL_LEGACY_RECORD_IDS.actions.includes(item.id));
+    return !hasList(brandSpace.actions) || hasLegacyRecords ? defaults.actions : brandSpace.actions;
+  }
+
   return hasList(brandSpace.actions) ? brandSpace.actions : defaults?.actions ?? [];
 }
 
 function resolveThinking(defaults: BrandSpaceDefaults | undefined, brandSpace: BrandSpace) {
   if (brandSpace.id === "mo-studio") {
     return mergeMoStudioDefaultList(defaults?.thinking, brandSpace.thinking, (existingItem, defaultItem) => existingItem.title === defaultItem.title);
+  }
+
+  if (brandSpace.id === "personal" && defaults?.thinking) {
+    const hasLegacyRecords = brandSpace.thinking?.some((item) => PERSONAL_LEGACY_RECORD_IDS.thinking.includes(item.id));
+    return !hasList(brandSpace.thinking) || hasLegacyRecords ? defaults.thinking : brandSpace.thinking;
   }
 
   return hasList(brandSpace.thinking) ? brandSpace.thinking : defaults?.thinking ?? [];
