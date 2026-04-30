@@ -120,10 +120,14 @@ export interface PublishingCalendarItem {
   brandId: BrandId;
   date: string;
   title: string;
+  platform?: string;
+  type?: string;
   pillarId?: string;
+  seriesId?: string;
   format?: string;
   status?: string;
   contentConceptId?: string;
+  direction?: string;
   sceneBrief?: string;
   visualDirection?: string;
   productPlacement?: string;
@@ -141,9 +145,11 @@ export interface BrandAction {
   brandId: BrandId;
   title: string;
   status?: string;
+  priority?: string;
   linkedItemType?: string;
   linkedItemId?: string;
   nextMove?: string;
+  notes?: string;
   dueDate?: string;
   createdAt?: string;
   updatedAt?: string;

@@ -8,6 +8,7 @@ import type {
   ContentPillar,
   PublishingCalendarItem,
 } from "@/types";
+import { moStudioBrandSpaceDefaults } from "@/lib/mo-studio-defaults";
 
 export const AAI_CONTENT_PILLARS: ContentPillar[] = [
   {
@@ -1200,8 +1201,12 @@ function resolveOverviewValue(
   return !hasText(current) || legacyValues.includes(current) ? fallback ?? current : current;
 }
 
+function resolveBrandSpaceDefaults(id: BrandSpace["id"]) {
+  return id === "mo-studio" ? moStudioBrandSpaceDefaults : BRAND_SPACE_DEFAULTS[id];
+}
+
 export function normalizeBrandSpaceExtensions(brandSpace: BrandSpace): BrandSpace {
-  const defaults = BRAND_SPACE_DEFAULTS[brandSpace.id];
+  const defaults = resolveBrandSpaceDefaults(brandSpace.id);
   const existingContentSystem = brandSpace.contentSystem ?? {};
 
   return {
@@ -1222,12 +1227,12 @@ export function normalizeBrandSpaceExtensions(brandSpace: BrandSpace): BrandSpac
 }
 
 export function getBrandSpaceExtensionDefaults(id: BrandSpace["id"]) {
-  return BRAND_SPACE_DEFAULTS[id];
+  return resolveBrandSpaceDefaults(id);
 }
 
 export function applyBrandSpaceExtensionDefaults(brandSpace: BrandSpace): BrandSpace {
   const normalized = normalizeBrandSpaceExtensions(brandSpace);
-  const defaults = BRAND_SPACE_DEFAULTS[brandSpace.id];
+  const defaults = resolveBrandSpaceDefaults(brandSpace.id);
 
   if (!defaults) {
     return normalized;
