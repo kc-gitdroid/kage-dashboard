@@ -775,50 +775,155 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
   },
   personal: {
     overview: {
-      summary: "Kage's personal command layer for identity, visibility, learning, energy, and long-range direction.",
-      focus: "Personal brand / Creative identity / Rhythm / Reflection / Public thought",
+      summary:
+        "Kage's personal brand layer for making the thinking behind MO Studio, AAI, Masteryatelier, biro, and the wider Massiveoutfit world visible through taste, cultural reading, craft, rhythm, and authored point of view.",
+      focus:
+        "Authored point of view / Studio thinking / Cultural reading / Personal taste / Brand-building proof / Craft / Music / Material language / Japan and Singapore perspective",
       cadence: "Weekly resets, idea capture, public notes, reading synthesis, energy reviews",
-      nextAction: "Turn the personal brand into a repeatable rhythm: clear pillars, capture habits, publishing lanes, and review blocks.",
+      nextAction:
+        "Make Kage's point of view visible without becoming performative: define the foundation, clarify the voice, connect personal taste to studio work, and prepare a repeatable content rhythm for the Personal workspace.",
       horizon: "Weekly reset: May 4",
     },
     brandCompass: {
       strategy: {
-        purpose: "Build a public and private operating system that helps Kage think clearly, create consistently, and move with intention.",
-        coreBelief: "The personal brand should make the larger brand universe easier to trust, not compete with it.",
-        positioning: "The human signal behind AAI, Masteryatelier, MO Studio, Biro, and the command center itself.",
-        promise: "Show the thinking behind the work through honest process, taste, discipline, growth, and useful reflection.",
-        tension: "Be public enough to build trust without turning the private operating system into a performance surface.",
-        neverBecome: "Generic creator advice, vague motivation, over-polished guru language, or tracking for the sake of tracking.",
+        purpose:
+          "Make the thinking behind the work visible.\n\nThe Personal workspace should help people understand how Kage sees, frames, and shapes brand worlds across MO Studio, AAI, Masteryatelier, biro, and the wider Massiveoutfit universe.",
+        coreBelief:
+          "Taste, trust, cultural reading, and material understanding build stronger brands than surface promotion.\n\nThe personal brand should not exist to perform personality. It should exist to reveal the quality of attention behind the work.",
+        positioning:
+          "The human and cultural point of view behind MO Studio, AAI, Masteryatelier, biro, and the wider Massiveoutfit world.\n\nKage is positioned as a creative and cultural mind who builds brands through taste, instinct, craft, visual language, and emotional clarity.",
+        promise:
+          "Show how brands are seen, shaped, and understood.\n\nThe Personal workspace should reveal the thinking behind the image, the reason behind the reference, and the intent behind the decision.",
+        tension:
+          "Be public enough to build trust without turning private life into performance.\n\nThe personal brand should show thinking, taste, and process, but never become loud, overly exposed, or self-promotional.",
+        neverBecome:
+          "Generic creator advice, vague motivation, guru language, founder cliches, over-polished personal branding, productivity performance, or content made only for visibility.",
       },
       visualLanguage: {
-        photography: "Real workspace cues, desk notes, references, calendar blocks, walking observations, and honest progress moments.",
-        composition: "Simple frames, sharp notes, clear hierarchy, and quiet personal documentation.",
-        colorMood: "Near-black, lime signal, paper whites, muted reference tones, and practical dashboard clarity.",
-        texture: "Notebook pages, screenshots, highlighted references, books, fabric, product fragments, and daily system traces.",
-        lighting: "Natural, available, and unforced. It should feel lived-in but still intentional.",
-        references: ["Build logs", "Weekly reviews", "Reading notes", "Taste references", "Personal operating systems"],
-        avoid: ["Guru visuals", "Fake vulnerability", "Motivation-post design", "Overly polished productivity content"],
+        photography:
+          "Editorial workspace cues, cultural references, process fragments, objects, garments, materials, books, magazines, music, interiors, street observations, and real moments from the making of brand worlds.\n\nImages should feel observed, not staged for attention.",
+        composition:
+          "Simple frames, quiet hierarchy, negative space, sharp notes, clear crops, object studies, reference layouts, and publication-like arrangements.\n\nThe composition should feel intentional but not over-designed.",
+        colorMood:
+          "Near-black, paper white, muted reference tones, deep blue, indigo, brass, leather brown, charcoal, soft natural light, and practical dashboard clarity.\n\nColor should support atmosphere, not decoration.",
+        texture:
+          "Notebook pages, scans, screenshots, printed references, magazine spreads, fabric, leather, brass, denim, paper, wood grain, whisky glass, product fragments, and daily system traces.\n\nTexture should make the personal brand feel lived-in and culturally specific.",
+        lighting:
+          "Natural, available, quiet, and unforced.\n\nThe lighting should feel lived-in, reflective, and intentional without looking like a commercial setup.",
+        references: [
+          "Japanese editorial magazines",
+          "idea magazine logic",
+          "Popeye / Brutus sensibility",
+          "whisky culture",
+          "uniforms",
+          "craft objects",
+          "leather goods",
+          "street culture",
+          "old media",
+          "record sleeves",
+          "retail spaces",
+          "restaurant atmosphere",
+          "interiors",
+          "everyday objects with cultural memory",
+        ],
+        avoid: [
+          "Founder portrait cliches",
+          "Motivational quote cards",
+          "Generic creator templates",
+          "Over-polished lifestyle imagery",
+          "Loud personal branding graphics",
+          "Fake productivity setups",
+          "Visuals that feel made only for engagement",
+        ],
       },
       voice: {
-        tone: "Warm, direct, grounded, reflective, and specific.",
-        sentenceStyle: "Clear first-person notes that connect decisions, lessons, and lived process.",
-        wordsToUse: ["decision", "rhythm", "energy", "clarity", "building", "taste", "reflection"],
-        wordsToAvoid: ["grindset", "hack", "guru", "manifest", "dominate"],
-        captionLogic: "Tie personal reflections to a real project, decision, lesson, or operating rhythm.",
-        ctaStyle: "Usually no hard CTA. Invite conversation or mark the thought for future use.",
+        tone:
+          "Editorial, human, understated, precise, culturally aware, calm, observant, and quietly confident.\n\nThe tone should feel like someone noticing carefully, not someone trying to perform expertise.",
+        sentenceStyle:
+          "Clear first-person or close observational notes that connect decisions, references, process, and lived taste.\n\nSentences can be short, reflective, and direct. Avoid over-explaining. Let the observation carry the weight.",
+        wordsToUse: [
+          "taste",
+          "rhythm",
+          "intent",
+          "reference",
+          "craft",
+          "material",
+          "trust",
+          "atmosphere",
+          "culture",
+          "clarity",
+          "author",
+          "authored",
+          "signal",
+          "restraint",
+          "memory",
+          "point of view",
+          "studio thinking",
+          "visual language",
+          "decision",
+          "process",
+          "world",
+        ],
+        wordsToAvoid: [
+          "grindset",
+          "hack",
+          "guru",
+          "manifest",
+          "dominate",
+          "disrupt",
+          "crushing it",
+          "personal brand tips",
+          "founder journey",
+          "content hack",
+          "viral",
+          "game changer",
+          "10x",
+          "hustle",
+          "thought leader",
+          "value bomb",
+        ],
+        captionLogic:
+          "Tie personal reflection to a real project, reference, object, material, sound, decision, or operating rhythm.\n\nEvery caption should make the thinking more visible without explaining too much.",
+        ctaStyle:
+          "Usually no hard CTA.\n\nIf needed, use soft invitations such as:\n- a note for later\n- a reference worth keeping\n- something I am still thinking through\n- one way to read it\n- filed under studio thinking",
         exampleLines: [
-          "The system is only useful if it lowers friction.",
-          "The strongest personal content is often a decision record.",
-          "Energy and recovery are operating inputs, not side notes.",
+          "What was understood before anything was designed.",
+          "The reference was not used for its look, but for its logic.",
+          "Some decisions are quiet because they are doing structural work.",
+          "Taste is not decoration. It is a way of choosing.",
+          "A brand becomes clearer when the unnecessary parts are removed.",
+          "The work should feel authored, not advertised.",
+          "Music sometimes explains the atmosphere better than a moodboard.",
+          "The object matters because of what it remembers.",
+          "A material carries time differently when it is allowed to age.",
+          "This is less about showing the process and more about keeping the thinking visible.",
         ],
       },
       brandWorld: {
-        emotionalTone: "Clear, intimate, calm, ambitious, honest, and self-directed.",
-        culturalTerritory: "Creative identity, personal systems, taste, learning, brand-building, reading, recovery, and public thought.",
-        recurringThemes: ["Weekly reset", "Build log", "Taste notes", "Decision record", "Energy check", "Lessons in public"],
-        coreTension: "Building multiple worlds requires visibility and discipline, but the inner rhythm must stay real.",
-        feeling: "A personal cockpit for becoming sharper, healthier, and more intentional over time.",
-        whatMattersMost: "Capture, sort, decide, publish, review. Keep the system light enough to actually use.",
+        emotionalTone:
+          "Clear, calm, intimate, ambitious, honest, self-directed, culturally aware, and quietly optimistic.\n\nThe world should feel personal, but not overly private.",
+        culturalTerritory:
+          "Brand-building, visual language, cultural reading, craft, music, magazines, uniforms, objects, materials, whisky, street culture, Japanese editorial logic, Singapore and Japan context, personal rhythm, and authored creative direction.",
+        recurringThemes: [
+          "Taste as authorship",
+          "Studio thinking",
+          "Cultural case studies",
+          "Material memory",
+          "Listening notes",
+          "Brand worlds",
+          "Original brands as proof",
+          "Reference logic",
+          "Craft and construction",
+          "Quiet confidence",
+          "Public thought without performance",
+          "The relationship between work, rhythm, and self-direction",
+        ],
+        coreTension:
+          "Building multiple worlds requires visibility and discipline, but the inner rhythm must stay real.\n\nThe personal brand must become visible enough to build trust while staying grounded enough to avoid performance.",
+        feeling:
+          "A personal cockpit for becoming sharper, calmer, healthier, more intentional, and more culturally precise over time.\n\nIt should feel like a living archive of taste, thought, work, and direction.",
+        whatMattersMost:
+          "Capture, sort, decide, publish, and review.\n\nKeep the system light enough to actually use, but clear enough to make the personal point of view stronger over time.",
       },
     },
     contentSystem: {
