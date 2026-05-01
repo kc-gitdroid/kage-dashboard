@@ -62,6 +62,13 @@ type BrandSpaceDefaults = {
 };
 
 const LEGACY_OVERVIEW_VALUES: Partial<Record<BrandSpace["id"], Partial<Record<keyof NonNullable<BrandSpaceDefaults["overview"]>, string[]>>>> = {
+  aai: {
+    summary: ["Clarity, restraint, and self-direction translated into a living brand system."],
+    focus: ["Uniform / Craft detail / Urban stillness / Self-direction"],
+    cadence: ["Editorial stills, quiet movement clips, product detail studies, and perspective-led captions"],
+    nextAction: ["Lock the next AAI content pass around intent, observation, continuity, and the individual."],
+    horizon: ["Next review: May 4"],
+  },
   masteryatelier: {
     summary: ["A structured knowledge space for curriculum, systems thinking, and personal growth."],
     focus: ["Programs / Methods / Insight systems"],
@@ -98,6 +105,47 @@ const LEGACY_OVERVIEW_VALUES: Partial<Record<BrandSpace["id"], Partial<Record<ke
       "Turn the personal brand into a repeatable rhythm: clear pillars, capture habits, publishing lanes, and review blocks.",
     ],
     horizon: ["Reset: Apr 12"],
+  },
+};
+
+const AAI_LEGACY_BRAND_COMPASS: BrandCompass = {
+  strategy: {
+    purpose: "Encourage greater clarity, intention, and self-direction through clothing, image, and daily presence.",
+    coreBelief: "What you wear is a decision before it becomes a signal. Style should clarify the individual, not erase them.",
+    positioning: "A restrained contemporary clothing brand for thoughtful individuals who choose quiet confidence over algorithmic sameness.",
+    promise: "A calmer, more intentional expression of self through uniform thinking, material presence, and editorial restraint.",
+    tension: "Stay emotionally human and culturally sharp without becoming trend-led, cold, or over-explained.",
+    neverBecome: "A generic minimalist label, a hype cycle brand, or a fashion account that performs depth without lived identity.",
+  },
+  visualLanguage: {
+    photography: "Editorial stillness, natural posture, product on body, city solitude, close material detail, and quiet movement.",
+    composition: "Disciplined frames with negative space, cropped gestures, uniform repetition, and calm product sequencing.",
+    colorMood: "Near-black, white, electric blue restraint, soft urban neutrals, denim, concrete, skin, and controlled daylight.",
+    texture: "Cotton, denim, wool, folds, seams, worn surfaces, city walls, paper, shadow, and lived-in material detail.",
+    lighting: "Soft daylight, muted shadow, late afternoon city light, and clean studio light that keeps the product honest.",
+    references: ["Uniform in motion", "Quiet city", "Material presence", "People With Intent", "Anti-trend style documentation"],
+    avoid: ["Over-styling", "Loud trend language", "Artificial luxury", "Generic fashion captions", "Cold minimalism without feeling"],
+  },
+  voice: {
+    tone: "Understated, human, emotionally intelligent, precise, and quietly assertive.",
+    sentenceStyle: "Short, reflective lines that feel observed rather than marketed.",
+    wordsToUse: ["intent", "individual", "presence", "uniform", "clarity", "continuity", "material", "decision"],
+    wordsToAvoid: ["must-have", "drop", "viral", "elevated basics", "quiet luxury", "fit check"],
+    captionLogic: "Start from the decision or observation, then connect the garment to self-direction, material, or lived routine.",
+    ctaStyle: "Soft and direct. Invite people to observe, choose, save, wear, revisit, or enter the world.",
+    exampleLines: [
+      "A uniform is not repetition. It is a decision you keep returning to.",
+      "The garment is quiet so the individual can become clearer.",
+      "Not styled for attention. Worn with intent.",
+    ],
+  },
+  brandWorld: {
+    emotionalTone: "Calm, observant, independent, restrained, and quietly confident.",
+    culturalTerritory: "Daily rituals, city solitude, uniform dressing, anti-trend continuity, human presence, and intentional identity.",
+    recurringThemes: ["Uniform in Motion", "The Quiet City", "Material Presence", "People With Intent", "Continuity over trend"],
+    coreTension: "Build desire without noise, and make restraint feel alive rather than empty.",
+    feeling: "A quiet city morning where clothing, posture, and attention move with intention.",
+    whatMattersMost: "AAI should make the individual feel clearer, not consumed by the brand.",
   },
 };
 
@@ -158,50 +206,167 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
   aai: {
     overview: {
       description: "Intentional contemporary clothing brand.",
-      summary: "Clarity, restraint, and self-direction translated into a living brand system.",
-      focus: "Uniform / Craft detail / Urban stillness / Self-direction",
+      summary:
+        "An Autonomous Individual is a brand built around intent, individuality, self-discovery, and the quiet confidence to choose your own direction.\n\nIt sits between street culture, editorial restraint, personal philosophy, and everyday uniform. The brand should feel optimistic, grounded, culturally aware, and human.\n\nAAI is not about fashion as display. It is about clothing as a way of living, moving, noticing, and staying with yourself through changing rhythms.",
+      focus:
+        "To pursue with intent.\n\nAAI is for the individual who moves with awareness and confidence. It encourages self-direction, repeat wear, personal rhythm, and a clearer way of seeing.\n\nThe brand should connect street culture with self-discovery, city life with nature, and product with lived experience.",
       cadence: "Editorial stills, quiet movement clips, product detail studies, and perspective-led captions",
-      nextAction: "Lock the next AAI content pass around intent, observation, continuity, and the individual.",
+      nextAction:
+        "Build visible signal without losing restraint: clarify the voice, show the product through real rhythm, connect city life with nature, and make every post feel like proof of the individual.\n\nEvery post should strengthen the world, not just fill the feed.",
       horizon: "Next review: May 4",
     },
     brandCompass: {
       strategy: {
-        purpose: "Encourage greater clarity, intention, and self-direction through clothing, image, and daily presence.",
-        coreBelief: "What you wear is a decision before it becomes a signal. Style should clarify the individual, not erase them.",
-        positioning: "A restrained contemporary clothing brand for thoughtful individuals who choose quiet confidence over algorithmic sameness.",
-        promise: "A calmer, more intentional expression of self through uniform thinking, material presence, and editorial restraint.",
-        tension: "Stay emotionally human and culturally sharp without becoming trend-led, cold, or over-explained.",
-        neverBecome: "A generic minimalist label, a hype cycle brand, or a fashion account that performs depth without lived identity.",
+        purpose:
+          "To pursue with intent.\n\nAAI exists to encourage people to choose their own direction, stay with it through changing rhythms, and develop a clearer relationship with self, clothing, environment, and movement.",
+        coreBelief:
+          "Individuality should be practiced, not performed.\n\nAAI believes that confidence is built through awareness, repetition, self-discovery, and the quiet decisions people make every day.",
+        positioning:
+          "Street culture, editorial restraint, personal philosophy, and everyday uniform for people who move with intent.\n\nAAI should feel like a lived practice, not a fashion statement.",
+        promise:
+          "A deeper way of expressing identity.\n\nAAI gives the individual clothing, language, and atmosphere that support self-direction, quiet confidence, and intentional living.",
+        tension:
+          "Build desire without becoming loud, trend-driven, or hollow.\n\nThe brand must stay visually compelling and culturally alive while avoiding hype mechanics, empty minimalism, and generic lifestyle language.",
+        neverBecome:
+          "Trend-chasing, generic minimalism, empty inspiration, over-styled fashion language, influencer streetwear, loud luxury, hollow motivation, or AI-generated aspiration.",
       },
       visualLanguage: {
-        photography: "Editorial stillness, natural posture, product on body, city solitude, close material detail, and quiet movement.",
-        composition: "Disciplined frames with negative space, cropped gestures, uniform repetition, and calm product sequencing.",
-        colorMood: "Near-black, white, electric blue restraint, soft urban neutrals, denim, concrete, skin, and controlled daylight.",
-        texture: "Cotton, denim, wool, folds, seams, worn surfaces, city walls, paper, shadow, and lived-in material detail.",
-        lighting: "Soft daylight, muted shadow, late afternoon city light, and clean studio light that keeps the product honest.",
-        references: ["Uniform in motion", "Quiet city", "Material presence", "People With Intent", "Anti-trend style documentation"],
-        avoid: ["Over-styling", "Loud trend language", "Artificial luxury", "Generic fashion captions", "Cold minimalism without feeling"],
+        photography:
+          "Film-grain 35mm / 55mm feeling, daylight, in-between moments, city walks, quiet interiors, natural posture, garment movement, product worn in real life, and people caught inside their own rhythm.\n\nPhotography should feel observed, not staged for fashion performance.",
+        composition:
+          "Centered when it gives calm. Broken when it creates movement.\n\nUse negative space, quiet symmetry, off-center framing, shadow, posture, repetition, and small environmental details.\n\nComposition should feel intentional but alive.",
+        colorMood:
+          "Muted earth, black, washed neutrals, indigo, deep blue, concrete grey, foliage green, seasonal tones, soft shadow, and natural daylight.\n\nThe palette should feel grounded, worn-in, and emotionally clear.",
+        texture:
+          "Worn cotton, washed fabric, leather, denim, concrete, paper, foliage, rain, shadow, skin, hair, movement, and the surface of daily life.\n\nTexture should make the product feel lived with, not styled for one moment.",
+        lighting:
+          "Soft daylight, practical light, late afternoon, overcast sky, window light, early morning, shadowed streets, and natural available light.\n\nLighting should feel calm, real, and unforced.",
+        references: [
+          "Saul Leiter",
+          "Harry Gruyaert",
+          "Popeye / Brutus magazine sensibility",
+          "Japanese street style",
+          "everyday uniforms",
+          "city solitude",
+          "mother nature",
+          "quiet parks",
+          "riverside walks",
+          "rain",
+          "cafes",
+          "record sleeves",
+          "personal rituals",
+          "understated editorial fashion",
+        ],
+        avoid: [
+          "Over-polished luxury cliches",
+          "Noisy streetwear",
+          "Generic AI gloss",
+          "Overly cinematic drama",
+          "Fake candid imagery",
+          "Influencer posing",
+          "Empty minimalism",
+          "Sterile studio fashion",
+          "Visuals that make the brand louder than the individual",
+        ],
       },
       voice: {
-        tone: "Understated, human, emotionally intelligent, precise, and quietly assertive.",
-        sentenceStyle: "Short, reflective lines that feel observed rather than marketed.",
-        wordsToUse: ["intent", "individual", "presence", "uniform", "clarity", "continuity", "material", "decision"],
-        wordsToAvoid: ["must-have", "drop", "viral", "elevated basics", "quiet luxury", "fit check"],
-        captionLogic: "Start from the decision or observation, then connect the garment to self-direction, material, or lived routine.",
-        ctaStyle: "Soft and direct. Invite people to observe, choose, save, wear, revisit, or enter the world.",
+        tone:
+          "Human, clear, grounded, reflective, quietly confident, and optimistic.\n\nThe voice should feel close to the individual, not like a brand speaking from above.",
+        sentenceStyle:
+          "First person, second person, or no-person observational lines.\n\nShort sentences are preferred. One to three lines maximum when possible. The shorter it is, the more specific it must be.\n\nThe voice should feel present tense, immediate, and lived-in.",
+        wordsToUse: [
+          "intent",
+          "rhythm",
+          "individual",
+          "awareness",
+          "direction",
+          "presence",
+          "confidence",
+          "movement",
+          "uniform",
+          "continuity",
+          "practice",
+          "self-discovery",
+          "clarity",
+          "season",
+          "repeat",
+          "worn-in",
+          "grounded",
+          "quiet",
+          "alive",
+          "signal",
+          "choose",
+          "stay",
+          "notice",
+          "go deeper",
+        ],
+        wordsToAvoid: [
+          "grindset",
+          "hack",
+          "guru",
+          "manifest",
+          "dominate",
+          "disrupt",
+          "viral",
+          "hype",
+          "drop culture",
+          "luxury flex",
+          "must-have",
+          "elevated basics",
+          "minimalist essential",
+          "quiet luxury",
+          "main character",
+          "unlock your potential",
+          "motivational",
+          "aspiration",
+        ],
+        captionLogic:
+          "Do not explain everything.\n\nConnect the product or image to a real feeling, rhythm, choice, environment, or moment of self-direction.\n\nThe caption should make the individual feel clearer, not make the brand sound louder.",
+        ctaStyle:
+          "Soft, never pushy.\n\nPrefer no hard CTA. If needed, use quiet invitations such as:\n- keep moving with intent\n- stay with your rhythm\n- choose what stays with you\n- go deeper, not louder\n- file under intent\n- worn with purpose",
         exampleLines: [
+          "To pursue with intent.",
+          "Go deep, not just to do more.",
+          "Rhythm changes. Intent stays.",
+          "What you wear is a decision before it becomes an outfit.",
+          "The clearer you become, the quieter the signal can be.",
           "A uniform is not repetition. It is a decision you keep returning to.",
-          "The garment is quiet so the individual can become clearer.",
-          "Not styled for attention. Worn with intent.",
+          "Move with awareness. Stay with yourself.",
+          "The city moves fast. The individual does not need to.",
+          "Some pieces are not styled. They are lived with.",
+          "Confidence does not need to announce itself.",
+          "Nature resets what the city asks from you.",
+          "The product should never become louder than the person wearing it.",
         ],
       },
       brandWorld: {
-        emotionalTone: "Calm, observant, independent, restrained, and quietly confident.",
-        culturalTerritory: "Daily rituals, city solitude, uniform dressing, anti-trend continuity, human presence, and intentional identity.",
-        recurringThemes: ["Uniform in Motion", "The Quiet City", "Material Presence", "People With Intent", "Continuity over trend"],
-        coreTension: "Build desire without noise, and make restraint feel alive rather than empty.",
-        feeling: "A quiet city morning where clothing, posture, and attention move with intention.",
-        whatMattersMost: "AAI should make the individual feel clearer, not consumed by the brand.",
+        emotionalTone:
+          "Calm, observant, independent, optimistic, restrained, grounded, and quietly confident.\n\nThe world should feel like a personal journey toward sharper awareness and self-belief.",
+        culturalTerritory:
+          "Street culture, personal philosophy, daily rituals, city solitude, nature as recalibration, repeat wear, uniforms, anti-trend continuity, human presence, intentional identity, quiet confidence, and self-discovery.",
+        recurringThemes: [
+          "To pursue with intent",
+          "The individual over the algorithm",
+          "AAI vs AI",
+          "Human presence",
+          "Street culture with awareness",
+          "City life and mother nature",
+          "Uniform as direction",
+          "Repeat wear",
+          "Continuity over trend",
+          "Quiet confidence",
+          "Self-discovery",
+          "Movement and posture",
+          "Product as lived experience",
+          "Go deep, not just to do more",
+          "Rhythm changes. Intent stays.",
+        ],
+        coreTension:
+          "Make restraint feel alive.\n\nAAI must build desire, emotion, and cultural signal without becoming loud, trend-led, overly motivational, or consumed by the product itself.",
+        feeling:
+          "A quiet city morning where clothing, posture, rhythm, and attention move with intention.\n\nThe brand should feel like a person becoming clearer while moving through city life, nature, work, solitude, and daily rituals.",
+        whatMattersMost:
+          "AAI should make the individual feel clearer, more confident, and more self-directed.\n\nThe brand must support the person, not consume them.\n\nEvery product, image, caption, and campaign should point back to intent.",
       },
     },
     contentSystem: {
@@ -1782,6 +1947,10 @@ function resolveBrandSpaceDefaults(id: BrandSpace["id"]) {
 }
 
 function resolveBrandCompass(defaults: BrandSpaceDefaults | undefined, brandSpace: BrandSpace) {
+  if (brandSpace.id === "aai") {
+    return mergeCompassReplacingLegacy(defaults?.brandCompass, brandSpace.brandCompass, AAI_LEGACY_BRAND_COMPASS);
+  }
+
   if (brandSpace.id === "personal") {
     return mergeCompassReplacingLegacy(defaults?.brandCompass, brandSpace.brandCompass, PERSONAL_LEGACY_BRAND_COMPASS);
   }
