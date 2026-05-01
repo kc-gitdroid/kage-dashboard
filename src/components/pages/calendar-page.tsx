@@ -588,7 +588,7 @@ export function CalendarPage() {
                   {(dateEventMap[cell] ?? []).length > 4 && <span className="text-[10px] text-mute">+</span>}
                 </div>
                 <div className="mt-3 hidden space-y-2 md:block">
-                  {(dateEventMap[cell] ?? []).slice(0, 2).map((event) => {
+                  {(dateEventMap[cell] ?? []).slice(0, 4).map((event) => {
                     const brand = brands.find((entry) => entry.id === event.brandId);
                     return (
                       <button
@@ -612,6 +612,11 @@ export function CalendarPage() {
                       </button>
                     );
                   })}
+                  {(dateEventMap[cell] ?? []).length > 4 ? (
+                    <p className="px-2 font-display text-[10px] uppercase tracking-[0.16em] text-mute">
+                      +{(dateEventMap[cell] ?? []).length - 4} more
+                    </p>
+                  ) : null}
                 </div>
               </div>
             ))}
