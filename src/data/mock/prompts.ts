@@ -2,13 +2,95 @@ import { PromptItem } from "@/types";
 
 export const promptItems: PromptItem[] = [
   {
-    id: "prompt-aai-campaign-angle",
-    title: "AAI Campaign Angle Builder",
+    id: "prompt-aai-caption",
+    title: "AAI Caption Prompt",
     brandId: "aai",
-    summary: "Generate calm, identity-led campaign angles from product, ritual, and city mood inputs.",
-    body: "Use AAI tone: restrained, precise, reflective. Turn the source material into 3 campaign angles, 3 short captions, and 1 longer editorial direction.",
+    summary: "Turn an idea into a human, concise, editorial AAI caption.",
+    body:
+      "Turn this idea into an AAI caption.\n\nKeep the tone human, concise, editorial, grounded, quietly confident, and optimistic.\n\nAvoid motivational language, hype, hard selling, generic minimalism, AI-sounding aspiration, and fashion cliches.\n\nThe caption should connect the image to intent, rhythm, self-direction, movement, environment, repeat wear, or the individual.\n\nDo not over-explain. One clear thought is stronger than a slogan.",
     status: "active",
-    updatedAt: "2026-04-13",
+    updatedAt: "2026-05-01",
+    type: "Caption",
+    promptBody:
+      "Turn this idea into an AAI caption.\n\nKeep the tone human, concise, editorial, grounded, quietly confident, and optimistic.\n\nAvoid motivational language, hype, hard selling, generic minimalism, AI-sounding aspiration, and fashion cliches.\n\nThe caption should connect the image to intent, rhythm, self-direction, movement, environment, repeat wear, or the individual.\n\nDo not over-explain. One clear thought is stronger than a slogan.",
+  },
+  {
+    id: "prompt-aai-visual-direction",
+    title: "AAI Visual Direction Prompt",
+    brandId: "aai",
+    summary: "Create an image prompt for An Autonomous Individual.",
+    body:
+      "Create an image prompt for An Autonomous Individual.\n\nThe visual should feel like street culture with awareness, editorial restraint, and real human rhythm.\n\nUse soft daylight, 35mm / 55mm film grain, quiet city context, natural posture, garment movement, worn fabric, muted tones, and the feeling of a person moving with intent.\n\nInclude city life and, when relevant, nature as recalibration.\n\nAvoid over-polished fashion, loud streetwear, luxury cliches, generic AI gloss, fake candid poses, and sterile studio minimalism.",
+    status: "active",
+    updatedAt: "2026-05-01",
+    type: "Image",
+    promptBody:
+      "Create an image prompt for An Autonomous Individual.\n\nThe visual should feel like street culture with awareness, editorial restraint, and real human rhythm.\n\nUse soft daylight, 35mm / 55mm film grain, quiet city context, natural posture, garment movement, worn fabric, muted tones, and the feeling of a person moving with intent.\n\nInclude city life and, when relevant, nature as recalibration.\n\nAvoid over-polished fashion, loud streetwear, luxury cliches, generic AI gloss, fake candid poses, and sterile studio minimalism.",
+  },
+  {
+    id: "prompt-aai-reel",
+    title: "AAI Reel Prompt",
+    brandId: "aai",
+    summary: "Create a short reel concept showing a real person inside rhythm, ritual, movement, or environment.",
+    body:
+      "Create a short reel concept for An Autonomous Individual.\n\nThe reel should show a real person inside a rhythm, ritual, movement, or environment.\n\nFocus on hands, posture, walking, fabric movement, light, small decisions, and quiet confidence.\n\nThe product should feel naturally worn, not inserted.\n\nKeep the pacing calm, human, and visually intentional.",
+    status: "active",
+    updatedAt: "2026-05-01",
+    type: "Video",
+    promptBody:
+      "Create a short reel concept for An Autonomous Individual.\n\nThe reel should show a real person inside a rhythm, ritual, movement, or environment.\n\nFocus on hands, posture, walking, fabric movement, light, small decisions, and quiet confidence.\n\nThe product should feel naturally worn, not inserted.\n\nKeep the pacing calm, human, and visually intentional.",
+  },
+  {
+    id: "prompt-aai-product-in-life",
+    title: "AAI Product-in-Life Prompt",
+    brandId: "aai",
+    summary: "Turn an AAI product into a lived scene.",
+    body:
+      "Turn this product into a lived scene.\n\nShow the garment as part of a person's rhythm, not as the only subject.\n\nConnect the product to movement, weather, city, nature, work, solitude, or repeat wear.\n\nKeep the tone grounded, editorial, and human.",
+    status: "active",
+    updatedAt: "2026-05-01",
+    type: "Image / Video",
+    promptBody:
+      "Turn this product into a lived scene.\n\nShow the garment as part of a person's rhythm, not as the only subject.\n\nConnect the product to movement, weather, city, nature, work, solitude, or repeat wear.\n\nKeep the tone grounded, editorial, and human.",
+  },
+  {
+    id: "prompt-aai-vs-ai",
+    title: "AAI vs AI Prompt",
+    brandId: "aai",
+    summary: "Turn an idea into an AAI vs AI concept about self-direction versus algorithmic sameness.",
+    body:
+      "Turn this idea into an AAI vs AI concept.\n\nThe contrast is not technology versus fashion. It is self-direction versus algorithmic sameness.\n\nKeep the tone precise, human, restrained, and culturally aware.\n\nShow the individual choosing awareness, presence, rhythm, and depth over automated taste.",
+    status: "active",
+    updatedAt: "2026-05-01",
+    type: "Campaign / Caption",
+    promptBody:
+      "Turn this idea into an AAI vs AI concept.\n\nThe contrast is not technology versus fashion. It is self-direction versus algorithmic sameness.\n\nKeep the tone precise, human, restrained, and culturally aware.\n\nShow the individual choosing awareness, presence, rhythm, and depth over automated taste.",
+  },
+  {
+    id: "prompt-aai-repeat-wear",
+    title: "Repeat Wear Prompt",
+    brandId: "aai",
+    summary: "Turn a garment or outfit into a repeat wear story.",
+    body:
+      "Turn this garment or outfit into a repeat wear story.\n\nShow how the piece changes through time, use, weather, season, and personal rhythm.\n\nAvoid making it about novelty.\n\nFocus on continuity, confidence, material, movement, and why the piece stays.",
+    status: "active",
+    updatedAt: "2026-05-01",
+    type: "Content / Caption",
+    promptBody:
+      "Turn this garment or outfit into a repeat wear story.\n\nShow how the piece changes through time, use, weather, season, and personal rhythm.\n\nAvoid making it about novelty.\n\nFocus on continuity, confidence, material, movement, and why the piece stays.",
+  },
+  {
+    id: "prompt-aai-city-nature-rhythm",
+    title: "City / Nature Rhythm Prompt",
+    brandId: "aai",
+    summary: "Create a visual or caption direction that moves between city life and mother nature.",
+    body:
+      "Create a visual or caption direction that moves between city life and mother nature.\n\nThe city should feel active but not overwhelming.\nNature should feel like recalibration, not escape.\n\nConnect the scene to intent, breath, movement, fabric, posture, and the individual returning clearer.",
+    status: "active",
+    updatedAt: "2026-05-01",
+    type: "Image / Video",
+    promptBody:
+      "Create a visual or caption direction that moves between city life and mother nature.\n\nThe city should feel active but not overwhelming.\nNature should feel like recalibration, not escape.\n\nConnect the scene to intent, breath, movement, fabric, posture, and the individual returning clearer.",
   },
   {
     id: "prompt-mastery-framework",

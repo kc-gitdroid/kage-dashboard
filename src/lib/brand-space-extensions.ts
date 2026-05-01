@@ -211,6 +211,62 @@ const PERSONAL_LEGACY_RECORD_IDS = {
   thinking: ["personal-thinking-decision-record"],
 };
 
+const AAI_REQUIRED_CONTENT_SYSTEM_IDS = {
+  series: [
+    "aai-series-pursue-with-intent",
+    "aai-series-the-individual",
+    "aai-series-repeat-wear",
+    "aai-series-city-nature-rhythm",
+    "aai-series-uniform-proof",
+    "aai-series-quiet-signals",
+  ],
+};
+
+const AAI_REQUIRED_RECORD_IDS = {
+  contentConcepts: [
+    "aai-concept-barista-rhythm",
+    "aai-concept-rhythm-changes-intent-stays",
+    "aai-concept-repeat-wear-not-repetition",
+    "aai-concept-individual-over-algorithm",
+    "aai-concept-nature-resets-city",
+    "aai-concept-uniform-as-direction",
+    "aai-concept-continuity-over-trend",
+    "aai-concept-quiet-signals",
+    "aai-concept-go-deep",
+    "aai-concept-florist-routine",
+  ],
+  publishingCalendar: [
+    "aai-post-2026-05-04-rhythm-changes",
+    "aai-post-2026-05-05-barista-rhythm",
+    "aai-post-2026-05-06-repeat-wear",
+    "aai-post-2026-05-08-individual-over-algorithm",
+  ],
+  actions: [
+    "aai-action-first-4-weeks",
+    "aai-action-draft-10-concepts",
+    "aai-action-reference-board",
+    "aai-action-product-in-life-formats",
+    "aai-action-aai-vs-ai-post",
+    "aai-action-repeat-wear-documentation",
+    "aai-action-monthly-rhythm-review",
+  ],
+  thinking: [
+    "aai-thinking-product-supports-individual",
+    "aai-thinking-aai-vs-ai-self-direction",
+    "aai-thinking-nature-recalibration",
+    "aai-thinking-repeat-wear-meaning",
+    "aai-thinking-intent-optimistic",
+    "aai-thinking-street-culture-without-hype",
+  ],
+};
+
+const AAI_LEGACY_RECORD_IDS = {
+  contentConcepts: ["aai-concept-uniform-decision", "aai-concept-people-with-intent"],
+  publishingCalendar: ["aai-post-uniform-decision", "aai-post-people-with-intent"],
+  actions: ["aai-action-final-selects", "aai-action-caption-ladder", "aai-action-product-sequence"],
+  thinking: ["aai-thinking-decision-filter", "aai-thinking-anti-algorithm"],
+};
+
 const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>> = {
   aai: {
     overview: {
@@ -379,166 +435,447 @@ const BRAND_SPACE_DEFAULTS: Partial<Record<BrandSpace["id"], BrandSpaceDefaults>
       },
     },
     contentSystem: {
-      contentPillars: AAI_CONTENT_PILLARS,
+      contentPillars: [
+        {
+          ...AAI_CONTENT_PILLARS[0],
+          description:
+            "Why you move the way you move.\n\nDecisions made before anyone else had input. Clothing as direction, not decoration. This pillar connects product, movement, awareness, and personal choice.",
+          tags: ["Product", "Styling decisions", "Philosophy", "Direction"],
+        },
+        {
+          ...AAI_CONTENT_PILLARS[1],
+          description:
+            "What you notice when you are present.\n\nReal people, small rituals, city rhythm, nature, cafes, streets, gestures, posture, and product in lived environments. The product should appear as part of a life, never as the sole focus.",
+          tags: ["People", "Environment", "Daily rhythm", "Presence"],
+        },
+        {
+          ...AAI_CONTENT_PILLARS[2],
+          description:
+            "Staying with something through changing seasons.\n\nRepeat wear, worn-in pieces, anti-trend rhythm, material aging, familiar locations, and the confidence of not needing constant change.",
+          tags: ["Repeat wear", "Anti-trend", "Time passed", "Uniform"],
+        },
+        {
+          ...AAI_CONTENT_PILLARS[3],
+          description:
+            "Self-direction in the age of the algorithm.\n\nHuman presence against sameness. The individual choosing awareness, confidence, and depth over automated taste or trend-following.",
+          tags: ["AAI vs AI", "Identity", "Self-discovery", "Human signal"],
+        },
+      ],
       contentSeries: [
         {
-          id: "aai-series-uniform-in-motion",
+          id: "aai-series-pursue-with-intent",
           order: 1,
-          name: "Uniform in Motion",
-          title: "Uniform in Motion",
-          description: "Quiet movement clips and stills showing how the garment lives on the body through routine, pace, and posture.",
-          relatedPillarIds: ["aai-content-pillar-intent", "aai-content-pillar-continuity"],
-          episodeStructure: "Decision / movement / product detail / closing line",
-          productLogic: "Let the product appear as part of a lived rhythm, not a standalone sales object.",
+          name: "Pursue With Intent",
+          title: "Pursue With Intent",
+          description: "Short notes on direction, awareness, self-trust, and choosing how to move.",
+          relatedPillarIds: ["aai-content-pillar-intent", "aai-content-pillar-individual"],
+          episodeStructure: "Choice / movement / reason / what stays",
+          productLogic: "Product supports the decision behind the person.",
           active: true,
         },
         {
-          id: "aai-series-people-with-intent",
+          id: "aai-series-the-individual",
           order: 2,
-          name: "People With Intent",
-          title: "People With Intent",
-          description: "Profiles and observations about individuals who move with clarity against algorithmic sameness.",
+          name: "The Individual",
+          title: "The Individual",
+          description: "Human portraits, character studies, real people, daily rituals, AAI vs AI, and self-direction.",
           relatedPillarIds: ["aai-content-pillar-observation", "aai-content-pillar-individual"],
-          episodeStructure: "Person / detail noticed / internal decision / AAI lens",
-          productLogic: "Make the human signal stronger than the styling signal.",
+          episodeStructure: "Person / rhythm / environment / signal",
+          productLogic: "The person leads. The product supports.",
           active: true,
         },
         {
-          id: "aai-series-material-presence",
+          id: "aai-series-repeat-wear",
           order: 3,
-          name: "Material Presence",
-          title: "Material Presence",
-          description: "Product detail studies that connect fabric, proportion, and construction to a calmer way of dressing.",
-          relatedPillarIds: ["aai-content-pillar-intent", "aai-content-pillar-observation"],
-          episodeStructure: "Material / close detail / use / feeling",
-          productLogic: "Use detail to prove restraint, not to over-explain.",
+          name: "Repeat Wear",
+          title: "Repeat Wear",
+          description: "Continuity, anti-trend dressing, worn-in pieces, seasonal use, familiar garments, and the confidence of staying with something.",
+          relatedPillarIds: ["aai-content-pillar-continuity", "aai-content-pillar-intent"],
+          episodeStructure: "Piece / repeated use / what changed / why it stays",
+          productLogic: "Show clothing as lived continuity, not novelty.",
+          active: true,
+        },
+        {
+          id: "aai-series-city-nature-rhythm",
+          order: 4,
+          name: "City / Nature Rhythm",
+          title: "City / Nature Rhythm",
+          description:
+            "The movement between city life and mother nature as recalibration.\n\nUrban solitude, walking, parks, rivers, rain, sunlight, foliage, and moments where the individual resets without disappearing from the city.",
+          relatedPillarIds: ["aai-content-pillar-observation", "aai-content-pillar-continuity"],
+          episodeStructure: "City / nature / reset / return",
+          productLogic: "Show AAI as clothing for changing environments and inner rhythm.",
+          active: true,
+        },
+        {
+          id: "aai-series-uniform-proof",
+          order: 5,
+          name: "Uniform Proof",
+          title: "Uniform Proof",
+          description: "Product, fit, silhouette, fabric, styling, movement, and repeat wear shown through real life.",
+          relatedPillarIds: ["aai-content-pillar-intent", "aai-content-pillar-continuity"],
+          episodeStructure: "Garment / fit / movement / use / why it works",
+          productLogic: "Make product clear without turning the feed into product-only content.",
+          active: true,
+        },
+        {
+          id: "aai-series-quiet-signals",
+          order: 6,
+          name: "Quiet Signals",
+          title: "Quiet Signals",
+          description: "Small details that carry confidence: posture, collar, fabric weight, sleeve, hem, shadow, stance, object, movement, or expression.",
+          relatedPillarIds: ["aai-content-pillar-observation", "aai-content-pillar-individual"],
+          episodeStructure: "Detail / signal / feeling / why it matters",
+          productLogic: "Let subtle details carry the emotional message.",
           active: true,
         },
       ],
       pillarRotation: [
-        { postNumber: 1, pillarId: "aai-content-pillar-intent", format: "Single", direction: "Decision-led still or caption about dressing with intent." },
-        { postNumber: 2, pillarId: "aai-content-pillar-observation", format: "Reel", direction: "Quiet movement or People With Intent observation." },
-        { postNumber: 3, pillarId: "aai-content-pillar-continuity", format: "Carousel", direction: "Repeat wear, same garment, or anti-trend continuity sequence." },
-        { postNumber: 4, pillarId: "aai-content-pillar-individual", format: "Note", direction: "Short AAI vs AI / self-direction point of view." },
+        {
+          postNumber: 1,
+          pillarId: "aai-content-pillar-intent",
+          format: "Post",
+          direction: "Monday: Start the week with direction, awareness, personal rhythm, or product as decision.",
+        },
+        {
+          postNumber: 2,
+          pillarId: "aai-content-pillar-observation",
+          format: "Reel",
+          direction: "Tuesday: Show real scenes, people, gestures, city rhythm, nature, movement, or product in lived environment.",
+        },
+        {
+          postNumber: 3,
+          pillarId: "aai-content-pillar-continuity",
+          format: "Carousel",
+          direction: "Wednesday: Show repeat wear, uniform logic, material, seasonality, anti-trend rhythm, or worn-in confidence.",
+        },
+        {
+          postNumber: 4,
+          pillarId: "aai-content-pillar-individual",
+          format: "Post",
+          direction: "Friday: Close the week with self-direction, AAI vs AI, human presence, confidence, or personal philosophy.",
+        },
       ],
       contentRules: {
-        productRole: "Product should support the individual and the decision behind the outfit. It should never feel pasted into the scene.",
-        captionRules: "Keep captions precise, reflective, and human. One clear thought is stronger than a slogan.",
-        visualRules: "Use restraint, space, texture, posture, and quiet city context. Let movement and material carry the mood.",
-        postingRules: "Rotate intent, observation, continuity, and the individual so the feed does not become only product or only philosophy.",
-        avoid: "Avoid over-styled fashion language, hype mechanics, generic minimalism, and captions that sound like AI-generated aspiration.",
+        productRole:
+          "Product should support the individual and the decision behind the outfit.\n\nIt should never feel pasted into the scene or louder than the person wearing it.",
+        captionRules:
+          "Keep captions precise, reflective, and human.\n\nOne clear thought is stronger than a slogan. Connect the image to a real rhythm, decision, movement, environment, or feeling.\n\nDo not explain everything. Stop before the caption becomes too obvious.",
+        visualRules:
+          "Use restraint, space, texture, posture, movement, city context, and nature as recalibration.\n\nLet fabric, fit, body language, light, and environment carry the mood.\n\nAvoid over-styling. Product should feel lived with.",
+        postingRules:
+          "Post 4 times per week on weekdays only.\n\nDefault rhythm:\n- Monday: Intent\n- Tuesday: Observation\n- Wednesday: Continuity\n- Friday: The Individual\n\nDo not schedule posts on Saturday or Sunday.\n\nUse Thursday for capture, drafting, editing, review, and preparation.\n\nRotate product, people, philosophy, and environment so the feed does not become only product or only abstract thought.",
+        avoid:
+          "Avoid over-styled fashion language, hype mechanics, generic minimalism, empty inspiration, AI-generated aspiration, loud trend language, hard selling, and captions that sound like motivational posters.",
       },
     },
     contentConcepts: [
       {
-        id: "aai-concept-uniform-decision",
+        id: "aai-concept-barista-rhythm",
         brandId: "aai",
-        title: "The Uniform Decision",
-        seriesId: "aai-series-uniform-in-motion",
-        episodeNumber: 1,
-        pillarId: "aai-content-pillar-intent",
-        format: "Reel",
-        scene: "A quiet morning sequence: jacket on chair, hand detail, walking out, city threshold.",
-        visualDirection: "Soft daylight, restrained crops, no performance energy, product visible through movement.",
-        productPlacement: "Garment appears as part of the routine before the caption names the decision.",
-        englishCaptionDraft: "A uniform is not repetition. It is a decision you keep returning to.",
-        notes: "Use this as the first post after the April reset.",
-        status: "Ready",
-      },
-      {
-        id: "aai-concept-people-with-intent",
-        brandId: "aai",
-        title: "People With Intent: City Observation",
-        seriesId: "aai-series-people-with-intent",
+        title: "The Barista's Rhythm",
+        seriesId: "aai-series-city-nature-rhythm",
         episodeNumber: 1,
         pillarId: "aai-content-pillar-observation",
+        format: "Reel",
+        scene: "Small cafe owner preparing before dawn. Steam, hands, sunlight through a low window, dust in the air, quiet movement before the city fully starts.",
+        visualDirection: "35mm film grain, soft daylight, hands in motion, product worn naturally, quiet cafe interior.",
+        productPlacement: "Wide Shirt or LS Logotype Pullover worn naturally.",
+        status: "Idea",
+      },
+      {
+        id: "aai-concept-rhythm-changes-intent-stays",
+        brandId: "aai",
+        title: "Rhythm Changes. Intent Stays.",
+        seriesId: "aai-series-pursue-with-intent",
+        episodeNumber: 2,
+        pillarId: "aai-content-pillar-intent",
+        format: "Post",
+        scene: "A short note on how routine changes, seasons shift, but the individual keeps moving with direction.",
+        visualDirection: "Simple editorial portrait, walking frame, or quiet text/image composition.",
+        productPlacement: "AAI uniform as direction, not styling.",
+        status: "Draft",
+      },
+      {
+        id: "aai-concept-repeat-wear-not-repetition",
+        brandId: "aai",
+        title: "Repeat Wear Is Not Repetition",
+        seriesId: "aai-series-repeat-wear",
+        episodeNumber: 3,
+        pillarId: "aai-content-pillar-continuity",
         format: "Carousel",
-        scene: "Observed details from a person moving through the city with quiet self-direction.",
-        visualDirection: "Editorial crops, posture, fabric, hand, street edge, and one clear line per frame.",
-        productPlacement: "AAI appears through the lens and styling logic, not as a forced product shot.",
-        englishCaptionDraft: "Not everyone is trying to be seen. Some people are trying to be clear.",
-        notes: "Keep it human and specific. Avoid making the subject feel like a trope.",
+        scene: "The same garment worn across different days, locations, and moods.",
+        visualDirection: "Three to five frames showing familiar piece in changing light, weather, and context.",
+        productPlacement: "One key AAI garment shown through repeated use.",
+        status: "Draft",
+      },
+      {
+        id: "aai-concept-individual-over-algorithm",
+        brandId: "aai",
+        title: "The Individual Over the Algorithm",
+        seriesId: "aai-series-the-individual",
+        episodeNumber: 4,
+        pillarId: "aai-content-pillar-individual",
+        format: "Post",
+        scene: "A note on human presence, self-direction, and resisting sameness in the age of algorithmic taste.",
+        visualDirection: "Minimal portrait, city shadow, or AAI vs AI editorial frame.",
+        productPlacement: "AAI as human signal against sameness.",
+        status: "Draft",
+      },
+      {
+        id: "aai-concept-nature-resets-city",
+        brandId: "aai",
+        title: "Nature Resets What the City Asks From You",
+        seriesId: "aai-series-city-nature-rhythm",
+        episodeNumber: 5,
+        pillarId: "aai-content-pillar-observation",
+        format: "Reel",
+        scene: "A person moving from street, train, or cafe into a park, riverside, garden, or green space.",
+        visualDirection: "City texture to foliage, soft wind, fabric movement, overcast daylight, slow quiet pacing.",
+        productPlacement: "AAI garment in city and nature transition.",
+        status: "Draft",
+      },
+      {
+        id: "aai-concept-uniform-as-direction",
+        brandId: "aai",
+        title: "Uniform as Direction",
+        seriesId: "aai-series-pursue-with-intent",
+        episodeNumber: 6,
+        pillarId: "aai-content-pillar-intent",
+        format: "Post",
+        scene: "A note on uniform not as sameness, but as clarity and self-direction.",
+        visualDirection: "Still portrait, garment detail, collar/sleeve/fold, or simple text over product image.",
+        productPlacement: "AAI shirt, hoodie, or core piece.",
+        status: "Draft",
+      },
+      {
+        id: "aai-concept-continuity-over-trend",
+        brandId: "aai",
+        title: "Continuity Over Trend",
+        seriesId: "aai-series-repeat-wear",
+        episodeNumber: 7,
+        pillarId: "aai-content-pillar-continuity",
+        format: "Carousel",
+        scene: "A comparison between constant novelty and staying with pieces that gain meaning over time.",
+        visualDirection: "Worn fabric detail, repeat location, subdued street frame, seasonal light.",
+        productPlacement: "Core AAI garment with worn-in context.",
+        status: "Draft",
+      },
+      {
+        id: "aai-concept-quiet-signals",
+        brandId: "aai",
+        title: "Quiet Signals",
+        seriesId: "aai-series-quiet-signals",
+        episodeNumber: 8,
+        pillarId: "aai-content-pillar-individual",
+        format: "Post",
+        scene: "Small details that show confidence without announcement: posture, collar, fabric, stance, gaze, or movement.",
+        visualDirection: "Close crop, collar detail, hand gesture, body posture, subtle expression.",
+        productPlacement: "AAI product detail as emotional signal.",
+        status: "Draft",
+      },
+      {
+        id: "aai-concept-go-deep",
+        brandId: "aai",
+        title: "Go Deep, Not Just To Do More",
+        seriesId: "aai-series-pursue-with-intent",
+        episodeNumber: 9,
+        pillarId: "aai-content-pillar-intent",
+        format: "Post",
+        scene: "A reflection on depth, focus, and not confusing motion with direction.",
+        visualDirection: "Quiet interior, notebook, street walk, or calm portrait with negative space.",
+        productPlacement: "AAI as practice of intent.",
+        status: "Draft",
+      },
+      {
+        id: "aai-concept-florist-routine",
+        brandId: "aai",
+        title: "The Florist's Routine",
+        seriesId: "aai-series-city-nature-rhythm",
+        episodeNumber: 10,
+        pillarId: "aai-content-pillar-observation",
+        format: "Reel",
+        scene: "Florist opening the shop, trimming stems, preparing water, moving between buckets and morning light.",
+        visualDirection: "Hands, flowers, fabric movement, quiet rhythm, natural light, lived workspace.",
+        productPlacement: "AAI garment worn naturally inside the working ritual.",
         status: "Draft",
       },
     ],
     publishingCalendar: [
       {
-        id: "aai-post-uniform-decision",
-        brandId: "aai",
-        date: "2026-05-01",
-        title: "The Uniform Decision",
-        pillarId: "aai-content-pillar-intent",
-        format: "Reel",
-        status: "Ready",
-        contentConceptId: "aai-concept-uniform-decision",
-        sceneBrief: "Quiet morning movement sequence with product embedded in routine.",
-        visualDirection: "Soft daylight, restrained movement, close material detail, city threshold.",
-        englishCaption: "A uniform is not repetition. It is a decision you keep returning to.",
-        workingNotes: "Publish after final still/video selection is confirmed.",
-      },
-      {
-        id: "aai-post-people-with-intent",
+        id: "aai-post-2026-05-04-rhythm-changes",
         brandId: "aai",
         date: "2026-05-04",
-        title: "People With Intent: City Observation",
+        title: "Rhythm Changes. Intent Stays.",
+        pillarId: "aai-content-pillar-intent",
+        format: "Post",
+        status: "Draft",
+        contentConceptId: "aai-concept-rhythm-changes-intent-stays",
+        sceneBrief: "A short note on how routine changes, seasons shift, but the individual keeps moving with direction.",
+        workingNotes: "Monday Intent sample post.",
+      },
+      {
+        id: "aai-post-2026-05-05-barista-rhythm",
+        brandId: "aai",
+        date: "2026-05-05",
+        title: "The Barista's Rhythm",
         pillarId: "aai-content-pillar-observation",
+        format: "Reel",
+        status: "Idea",
+        contentConceptId: "aai-concept-barista-rhythm",
+        sceneBrief: "Small cafe owner preparing before dawn: steam, hands, sunlight, and quiet movement.",
+        workingNotes: "Tuesday Observation sample post.",
+      },
+      {
+        id: "aai-post-2026-05-06-repeat-wear",
+        brandId: "aai",
+        date: "2026-05-06",
+        title: "Repeat Wear Is Not Repetition",
+        pillarId: "aai-content-pillar-continuity",
         format: "Carousel",
         status: "Draft",
-        contentConceptId: "aai-concept-people-with-intent",
-        sceneBrief: "City observation sequence about self-direction and quiet confidence.",
-        visualDirection: "Editorial crops, human posture, restrained text pacing.",
-        workingNotes: "Choose one person/detail and keep the copy grounded.",
+        contentConceptId: "aai-concept-repeat-wear-not-repetition",
+        sceneBrief: "The same garment worn across different days, locations, and moods.",
+        workingNotes: "Wednesday Continuity sample post.",
+      },
+      {
+        id: "aai-post-2026-05-08-individual-over-algorithm",
+        brandId: "aai",
+        date: "2026-05-08",
+        title: "The Individual Over the Algorithm",
+        pillarId: "aai-content-pillar-individual",
+        format: "Post",
+        status: "Draft",
+        contentConceptId: "aai-concept-individual-over-algorithm",
+        sceneBrief: "A note on human presence, self-direction, and resisting algorithmic taste.",
+        workingNotes: "Friday The Individual sample post.",
       },
     ],
     actions: [
       {
-        id: "aai-action-final-selects",
+        id: "aai-action-first-4-weeks",
         brandId: "aai",
-        title: "Approve final selects for The Uniform Decision",
-        status: "Next",
-        linkedItemType: "Scheduled Post",
-        linkedItemId: "aai-post-uniform-decision",
-        nextMove: "Choose final reel cut, cover frame, and three supporting stills.",
-        dueDate: "2026-04-30",
-      },
-      {
-        id: "aai-action-caption-ladder",
-        brandId: "aai",
-        title: "Refine AAI caption ladder",
+        title: "Build the first 4 weeks of AAI content",
         status: "Next",
         linkedItemType: "Brand",
         linkedItemId: "aai",
-        nextMove: "Tighten intent, observation, continuity, and individual caption formulas into reusable lines.",
-        dueDate: "2026-05-02",
+        nextMove: "Map Monday, Tuesday, Wednesday, and Friday posts using Intent, Observation, Continuity, and The Individual.",
+        notes: "Map Monday, Tuesday, Wednesday, and Friday posts using Intent, Observation, Continuity, and The Individual.",
       },
       {
-        id: "aai-action-product-sequence",
+        id: "aai-action-draft-10-concepts",
         brandId: "aai",
-        title: "Review product detail sequencing",
-        status: "In Progress",
-        linkedItemType: "Content Concept",
-        linkedItemId: "aai-concept-uniform-decision",
-        nextMove: "Confirm how product details appear without overpowering the person or scene.",
-        dueDate: "2026-05-04",
+        title: "Draft first 10 AAI content concepts",
+        status: "Next",
+        linkedItemType: "Brand",
+        linkedItemId: "aai",
+        nextMove: "Use the seeded concepts as starting points and turn them into captions, visual directions, or reel prompts.",
+        notes: "Use the seeded concepts as starting points and turn them into captions, visual directions, or reel prompts.",
+      },
+      {
+        id: "aai-action-reference-board",
+        brandId: "aai",
+        title: "Create AAI visual reference board",
+        status: "Next",
+        linkedItemType: "Brand",
+        linkedItemId: "aai",
+        nextMove: "Collect references for city rhythm, nature recalibration, uniforms, posture, movement, film grain, and editorial restraint.",
+        notes: "Collect references for city rhythm, nature recalibration, uniforms, posture, movement, film grain, and editorial restraint.",
+      },
+      {
+        id: "aai-action-product-in-life-formats",
+        brandId: "aai",
+        title: "Define AAI product-in-life formats",
+        status: "Next",
+        linkedItemType: "Brand",
+        linkedItemId: "aai",
+        nextMove: "Create repeatable formats for product worn naturally in cafes, streets, parks, studios, homes, and working rituals.",
+        notes: "Create repeatable formats for product worn naturally in cafes, streets, parks, studios, homes, and working rituals.",
+      },
+      {
+        id: "aai-action-aai-vs-ai-post",
+        brandId: "aai",
+        title: "Develop first AAI vs AI post",
+        status: "Next",
+        linkedItemType: "Brand",
+        linkedItemId: "aai",
+        nextMove: "Frame the idea as self-direction versus algorithmic sameness, with the individual as the center.",
+        notes: "Frame the idea as self-direction versus algorithmic sameness, with the individual as the center.",
+      },
+      {
+        id: "aai-action-repeat-wear-documentation",
+        brandId: "aai",
+        title: "Build repeat wear documentation",
+        status: "Next",
+        linkedItemType: "Brand",
+        linkedItemId: "aai",
+        nextMove: "Document one garment across multiple days, locations, weather, and movement to show continuity.",
+        notes: "Document one garment across multiple days, locations, weather, and movement to show continuity.",
+      },
+      {
+        id: "aai-action-monthly-rhythm-review",
+        brandId: "aai",
+        title: "Review AAI content rhythm monthly",
+        status: "Next",
+        linkedItemType: "Brand",
+        linkedItemId: "aai",
+        nextMove: "Check whether the 4-post weekday rhythm is building signal without making the brand too loud or product-heavy.",
+        notes: "Check whether the 4-post weekday rhythm is building signal without making the brand too loud or product-heavy.",
       },
     ],
     thinking: [
       {
-        id: "aai-thinking-decision-filter",
+        id: "aai-thinking-product-supports-individual",
         brandId: "aai",
-        title: "Decision Filter",
-        body: "AAI should make the person feel clearer. If a post makes the brand louder than the individual, reduce it.",
+        title: "The product should support the individual",
+        body: "AAI should never make the product louder than the person. The garment should support rhythm, posture, movement, and self-direction.",
         type: "Strategy",
-        possibleUse: "Brand compass / caption review / creative direction",
+        possibleUse: "Product / Individual / Brand compass",
         status: "Useful",
       },
       {
-        id: "aai-thinking-anti-algorithm",
+        id: "aai-thinking-aai-vs-ai-self-direction",
         brandId: "aai",
-        title: "AAI vs AI",
-        body: "The contrast is not technology versus fashion. It is self-direction versus algorithmic sameness.",
+        title: "AAI vs AI is about self-direction",
+        body: "The contrast is not technology versus fashion. It is self-direction versus algorithmic sameness. AAI should stand for human presence and awareness.",
         type: "Caption",
-        possibleUse: "The Individual pillar / short post / profile copy",
+        possibleUse: "AAI vs AI / The Individual / Identity",
+        status: "Useful",
+      },
+      {
+        id: "aai-thinking-nature-recalibration",
+        brandId: "aai",
+        title: "Nature is recalibration, not escape",
+        body: "Mother nature should appear as a way for the individual to reset and return clearer. It should not disconnect the brand from city life.",
+        type: "Visual",
+        possibleUse: "Nature / City rhythm / Observation",
+        status: "Useful",
+      },
+      {
+        id: "aai-thinking-repeat-wear-meaning",
+        brandId: "aai",
+        title: "Repeat wear builds meaning",
+        body: "Continuity is not repetition. A worn piece gains meaning when it moves through time, weather, routine, and personal rhythm.",
+        type: "Content",
+        possibleUse: "Repeat wear / Continuity / Uniform",
+        status: "Useful",
+      },
+      {
+        id: "aai-thinking-intent-optimistic",
+        brandId: "aai",
+        title: "Intent must stay optimistic",
+        body: "AAI should not sound heavy, cynical, or overly philosophical. The brand should encourage bold self-discovery while staying grounded and human.",
+        type: "Voice",
+        possibleUse: "Voice / Intent / Optimism",
+        status: "Useful",
+      },
+      {
+        id: "aai-thinking-street-culture-without-hype",
+        brandId: "aai",
+        title: "Street culture without hype",
+        body: "AAI can speak to street culture without using hype mechanics. The signal should come from posture, confidence, product, rhythm, and point of view.",
+        type: "Strategy",
+        possibleUse: "Street culture / Restraint / Signal",
         status: "Useful",
       },
     ],
@@ -1868,6 +2205,15 @@ function resolveContentSystem(defaults: BrandSpaceDefaults | undefined, brandSpa
     return defaults.contentSystem;
   }
 
+  if (brandSpace.id === "aai" && defaults?.contentSystem) {
+    const existingSeriesIds = new Set(brandSpace.contentSystem?.contentSeries?.map((item) => item.id) ?? []);
+    const hasRequiredSeries = AAI_REQUIRED_CONTENT_SYSTEM_IDS.series.every((id) => existingSeriesIds.has(id));
+
+    if (!hasRequiredSeries) {
+      return defaults.contentSystem;
+    }
+  }
+
   if (brandSpace.id === "personal" && defaults?.contentSystem) {
     const existingContentSystem = brandSpace.contentSystem;
     const hasLegacyPillars = existingContentSystem?.contentPillars?.some((item) => PERSONAL_LEGACY_CONTENT_SYSTEM_IDS.pillars.includes(item.id));
@@ -1884,6 +2230,13 @@ function resolveContentSystem(defaults: BrandSpaceDefaults | undefined, brandSpa
 function resolveContentConcepts(defaults: BrandSpaceDefaults | undefined, brandSpace: BrandSpace) {
   if (brandSpace.id === "mo-studio") {
     return mergeMoStudioDefaultList(defaults?.contentConcepts, brandSpace.contentConcepts, (existingItem, defaultItem) => existingItem.title === defaultItem.title);
+  }
+
+  if (brandSpace.id === "aai" && defaults?.contentConcepts) {
+    const existingIds = new Set(brandSpace.contentConcepts?.map((item) => item.id) ?? []);
+    const hasRequiredRecords = AAI_REQUIRED_RECORD_IDS.contentConcepts.every((id) => existingIds.has(id));
+    const hasLegacyRecords = brandSpace.contentConcepts?.some((item) => AAI_LEGACY_RECORD_IDS.contentConcepts.includes(item.id));
+    return !hasList(brandSpace.contentConcepts) || !hasRequiredRecords || hasLegacyRecords ? defaults.contentConcepts : brandSpace.contentConcepts;
   }
 
   if (brandSpace.id === "personal" && defaults?.contentConcepts) {
@@ -1903,6 +2256,13 @@ function resolvePublishingCalendar(defaults: BrandSpaceDefaults | undefined, bra
     );
   }
 
+  if (brandSpace.id === "aai" && defaults?.publishingCalendar) {
+    const existingIds = new Set(brandSpace.publishingCalendar?.map((item) => item.id) ?? []);
+    const hasRequiredRecords = AAI_REQUIRED_RECORD_IDS.publishingCalendar.every((id) => existingIds.has(id));
+    const hasLegacyRecords = brandSpace.publishingCalendar?.some((item) => AAI_LEGACY_RECORD_IDS.publishingCalendar.includes(item.id));
+    return !hasList(brandSpace.publishingCalendar) || !hasRequiredRecords || hasLegacyRecords ? defaults.publishingCalendar : brandSpace.publishingCalendar;
+  }
+
   if (brandSpace.id === "personal" && defaults?.publishingCalendar) {
     const hasLegacyRecords = brandSpace.publishingCalendar?.some((item) => PERSONAL_LEGACY_RECORD_IDS.publishingCalendar.includes(item.id));
     return !hasList(brandSpace.publishingCalendar) || hasLegacyRecords ? defaults.publishingCalendar : brandSpace.publishingCalendar;
@@ -1920,6 +2280,13 @@ function resolveActions(defaults: BrandSpaceDefaults | undefined, brandSpace: Br
     );
   }
 
+  if (brandSpace.id === "aai" && defaults?.actions) {
+    const existingIds = new Set(brandSpace.actions?.map((item) => item.id) ?? []);
+    const hasRequiredRecords = AAI_REQUIRED_RECORD_IDS.actions.every((id) => existingIds.has(id));
+    const hasLegacyRecords = brandSpace.actions?.some((item) => AAI_LEGACY_RECORD_IDS.actions.includes(item.id));
+    return !hasList(brandSpace.actions) || !hasRequiredRecords || hasLegacyRecords ? defaults.actions : brandSpace.actions;
+  }
+
   if (brandSpace.id === "personal" && defaults?.actions) {
     const hasLegacyRecords = brandSpace.actions?.some((item) => PERSONAL_LEGACY_RECORD_IDS.actions.includes(item.id));
     return !hasList(brandSpace.actions) || hasLegacyRecords ? defaults.actions : brandSpace.actions;
@@ -1931,6 +2298,13 @@ function resolveActions(defaults: BrandSpaceDefaults | undefined, brandSpace: Br
 function resolveThinking(defaults: BrandSpaceDefaults | undefined, brandSpace: BrandSpace) {
   if (brandSpace.id === "mo-studio") {
     return mergeMoStudioDefaultList(defaults?.thinking, brandSpace.thinking, (existingItem, defaultItem) => existingItem.title === defaultItem.title);
+  }
+
+  if (brandSpace.id === "aai" && defaults?.thinking) {
+    const existingIds = new Set(brandSpace.thinking?.map((item) => item.id) ?? []);
+    const hasRequiredRecords = AAI_REQUIRED_RECORD_IDS.thinking.every((id) => existingIds.has(id));
+    const hasLegacyRecords = brandSpace.thinking?.some((item) => AAI_LEGACY_RECORD_IDS.thinking.includes(item.id));
+    return !hasList(brandSpace.thinking) || !hasRequiredRecords || hasLegacyRecords ? defaults.thinking : brandSpace.thinking;
   }
 
   if (brandSpace.id === "personal" && defaults?.thinking) {
