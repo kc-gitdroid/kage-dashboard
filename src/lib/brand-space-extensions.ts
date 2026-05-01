@@ -63,10 +63,19 @@ type BrandSpaceDefaults = {
 
 const LEGACY_OVERVIEW_VALUES: Partial<Record<BrandSpace["id"], Partial<Record<keyof NonNullable<BrandSpaceDefaults["overview"]>, string[]>>>> = {
   aai: {
-    summary: ["Clarity, restraint, and self-direction translated into a living brand system."],
-    focus: ["Uniform / Craft detail / Urban stillness / Self-direction"],
+    summary: [
+      "Clarity, restraint, and self-direction translated into a living brand system.",
+      "AAI is a brand built around intent, individuality, and self-discovery.",
+    ],
+    focus: [
+      "Uniform / Craft detail / Urban stillness / Self-direction",
+      "To pursue with intent. AAI is for the individual. It encourages people to move with awareness and confidence. It is not only fashion; it is a way of living and seeing. It should feel optimistic, grounded, and culturally aware. The brand must feel clear, modern, and emotionally resonant.",
+    ],
     cadence: ["Editorial stills, quiet movement clips, product detail studies, and perspective-led captions"],
-    nextAction: ["Lock the next AAI content pass around intent, observation, continuity, and the individual."],
+    nextAction: [
+      "Lock the next AAI content pass around intent, observation, continuity, and the individual.",
+      "Building signal. Establishing the voice before the volume. Every post either earns the next one or doesn't. Moving into more editorial, artsy, and dynamic.",
+    ],
     horizon: ["Next review: May 4"],
   },
   masteryatelier: {
@@ -1946,7 +1955,25 @@ function resolveBrandSpaceDefaults(id: BrandSpace["id"]) {
   return id === "mo-studio" ? moStudioBrandSpaceDefaults : BRAND_SPACE_DEFAULTS[id];
 }
 
+function hasLegacyOverviewValue(id: BrandSpace["id"], key: keyof NonNullable<BrandSpaceDefaults["overview"]>, current: string) {
+  const legacyValues = LEGACY_OVERVIEW_VALUES[id]?.[key] ?? [];
+  return legacyValues.includes(current);
+}
+
+function hasLegacyAaiFoundation(brandSpace: BrandSpace) {
+  return (
+    brandSpace.id === "aai" &&
+    (hasLegacyOverviewValue("aai", "summary", brandSpace.summary) ||
+      hasLegacyOverviewValue("aai", "focus", brandSpace.focus) ||
+      hasLegacyOverviewValue("aai", "nextAction", brandSpace.nextAction))
+  );
+}
+
 function resolveBrandCompass(defaults: BrandSpaceDefaults | undefined, brandSpace: BrandSpace) {
+  if (hasLegacyAaiFoundation(brandSpace)) {
+    return defaults?.brandCompass ?? brandSpace.brandCompass;
+  }
+
   if (brandSpace.id === "aai") {
     return mergeCompassReplacingLegacy(defaults?.brandCompass, brandSpace.brandCompass, AAI_LEGACY_BRAND_COMPASS);
   }
