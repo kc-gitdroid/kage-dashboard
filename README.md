@@ -59,3 +59,4 @@ npm run start
 
 - The repo ignores generated build output, local sync state, local environment files, and installed dependencies.
 - Sync can use Upstash when `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are provided, but those values should live in local environment files and never be committed.
+- AAI content concepts assemble Brand Compass and Content System context in `src/lib/aai-prompt-generation.ts`; generated prompt sets are stored on the concept record so the local generator can later be replaced by an API response without changing modal data flow.

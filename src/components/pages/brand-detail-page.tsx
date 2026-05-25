@@ -7,6 +7,10 @@ import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { BrandPill } from "@/components/brand-pill";
 import { Panel } from "@/components/panel";
 import { useDashboardData } from "@/components/providers/dashboard-data-provider";
+import {
+  assembleAaiPromptGenerationContext,
+  generateAaiPromptSet,
+} from "@/lib/aai-prompt-generation";
 import type {
   BrandCompassStrategy,
   BrandCompassVisualLanguage,
@@ -17,6 +21,7 @@ import type {
   BrandSpace,
   BrandThinkingItem,
   ContentConcept,
+  ContentPromptStatus,
   ContentPillar,
   ContentPillarRotationItem,
   ContentRules,
@@ -83,6 +88,7 @@ const brandPageSections = ["Concepts", "Publishing Calendar", "Prompts", "Action
 const emptyText = "Not defined yet";
 
 const conceptStatuses = ["Idea", "Draft", "Ready", "Scheduled", "Published", "Archived"] as const;
+const conceptPromptStatuses: ContentPromptStatus[] = ["Prompt Pending", "Prompt Ready", "Revised", "Approved"];
 const conceptFormats = [
   "Single Post",
   "Carousel",
@@ -130,6 +136,13 @@ type ConceptDraft = {
   publishingTargetDate: string;
   notes: string;
   status: string;
+  nanoBananaPrompt: string;
+  higgsfieldPrompt: string;
+  videoPrompt: string;
+  captionOptions: string;
+  storySuggestions: string;
+  promptSetGeneratedAt: string;
+  promptStatus: ContentPromptStatus;
   linkedPromptIds: string;
   linkedActionIds: string;
 };
@@ -529,9 +542,180 @@ function ModalShell({
   );
 }
 
+type PromptOutputFields = Pick<
+  ConceptDraft,
+  "nanoBananaPrompt" | "higgsfieldPrompt" | "videoPrompt" | "captionOptions" | "storySuggestions"
+>;
+
+function hasGeneratedPromptOutputs(item: PromptOutputFields) {
+  return Boolean(
+    item.nanoBananaPrompt.trim() ||
+      item.higgsfieldPrompt.trim() ||
+      item.videoPrompt.trim() ||
+      item.captionOptions.trim() ||
+      item.storySuggestions.trim(),
+  );
+}
+
+function GeneratedOutputBlock({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="min-w-0 rounded-2xl border border-white/6 bg-black/10 p-3">
+      <p className="font-display text-[10px] uppercase tracking-[0.2em] text-yellow/80">{label}</p>
+      <p className={`mt-2 whitespace-pre-wrap break-words text-sm leading-6 ${value ? "text-mute" : "text-mute/55"}`}>
+        {value || emptyText}
+      </p>
+    </div>
+  );
+}
+
+function PromptGenerationEditor({
+  draft,
+  setDraft,
+  brand,
+}: {
+  draft: ConceptDraft;
+  setDraft: Dispatch<SetStateAction<ConceptDraft>>;
+  brand: BrandSpace;
+}) {
+  const [generating, setGenerating] = useState(false);
+  const missingInputs = [
+    !draft.scene.trim() ? "Concept Direction" : "",
+    !draft.visualDirection.trim() ? "Visual Direction" : "",
+    !draft.productPlacement.trim() ? "Product Placement" : "",
+  ].filter(Boolean);
+  const hasOutputs = hasGeneratedPromptOutputs(draft);
+
+  async function handleGenerate() {
+    if (hasOutputs && !window.confirm("Regenerating will overwrite the existing prompt outputs. Continue?")) {
+      return;
+    }
+
+    setGenerating(true);
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 360));
+    const context = assembleAaiPromptGenerationContext(conceptFromDraft(draft, brand), brand);
+    const generated = generateAaiPromptSet(context);
+
+    setDraft((current) => ({
+      ...current,
+      ...generated,
+      promptSetGeneratedAt: nowIso(),
+      promptStatus: "Prompt Ready",
+    }));
+    setGenerating(false);
+  }
+
+  return (
+    <div className="rounded-[18px] border border-blue/20 bg-blue/[0.04] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="ui-micro-label">AI Generation</p>
+          <h4 className="mt-1 text-sm font-semibold text-ink">Generation-ready outputs</h4>
+          {draft.promptSetGeneratedAt ? (
+            <p className="mt-2 text-xs text-mute/70">Generated {new Date(draft.promptSetGeneratedAt).toLocaleString()}</p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          disabled={generating}
+          onClick={() => void handleGenerate()}
+          className="rounded-full border border-blue/30 bg-blue/10 px-3 py-2 font-display text-[10px] uppercase tracking-[0.18em] text-ink disabled:cursor-wait disabled:opacity-60"
+        >
+          {generating ? "Generating..." : hasOutputs ? "Regenerate Prompt Set" : "Generate Prompt Set"}
+        </button>
+      </div>
+      {missingInputs.length > 0 ? (
+        <p className="mt-3 text-xs leading-5 text-mute/70">
+          Prompts will improve when {missingInputs.join(", ")} {missingInputs.length === 1 ? "is" : "are"} filled in.
+        </p>
+      ) : null}
+      <div className="mt-4">
+        <SelectField
+          label="Prompt Status"
+          value={draft.promptStatus}
+          onChange={(value) => setDraft((current) => ({ ...current, promptStatus: value as ContentPromptStatus }))}
+          options={conceptPromptStatuses.map((status) => ({ value: status, label: status }))}
+          placeholder="Select prompt status"
+        />
+      </div>
+      {hasOutputs ? (
+        <div className="mt-4 space-y-4">
+          <TextAreaField label="Nano Banana Prompt" value={draft.nanoBananaPrompt} onChange={(value) => setDraft((current) => ({ ...current, nanoBananaPrompt: value }))} rows={8} />
+          <TextAreaField label="Higgsfield Prompt" value={draft.higgsfieldPrompt} onChange={(value) => setDraft((current) => ({ ...current, higgsfieldPrompt: value }))} rows={8} />
+          <TextAreaField label="Video Prompt" value={draft.videoPrompt} onChange={(value) => setDraft((current) => ({ ...current, videoPrompt: value }))} rows={9} />
+          <TextAreaField label="Caption Options" value={draft.captionOptions} onChange={(value) => setDraft((current) => ({ ...current, captionOptions: value }))} rows={6} />
+          <TextAreaField label="Story Suggestions" value={draft.storySuggestions} onChange={(value) => setDraft((current) => ({ ...current, storySuggestions: value }))} rows={9} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PromptGenerationDetail({
+  concept,
+  generating,
+  onGenerate,
+}: {
+  concept: ContentConcept;
+  generating: boolean;
+  onGenerate: () => Promise<void>;
+}) {
+  const promptOutputs: PromptOutputFields = {
+    nanoBananaPrompt: concept.nanoBananaPrompt ?? "",
+    higgsfieldPrompt: concept.higgsfieldPrompt ?? "",
+    videoPrompt: concept.videoPrompt ?? "",
+    captionOptions: concept.captionOptions ?? "",
+    storySuggestions: concept.storySuggestions ?? "",
+  };
+  const hasOutputs = hasGeneratedPromptOutputs(promptOutputs);
+  const missingInputs = [
+    !concept.scene?.trim() ? "Concept Direction" : "",
+    !concept.visualDirection?.trim() ? "Visual Direction" : "",
+    !concept.productPlacement?.trim() ? "Product Placement" : "",
+  ].filter(Boolean);
+
+  return (
+    <div className="rounded-[18px] border border-blue/20 bg-blue/[0.04] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="ui-micro-label">AI Generation</p>
+          <h4 className="mt-1 text-sm font-semibold text-ink">{concept.promptStatus ?? "Prompt Pending"}</h4>
+          {concept.promptSetGeneratedAt ? (
+            <p className="mt-2 text-xs text-mute/70">Generated {new Date(concept.promptSetGeneratedAt).toLocaleString()}</p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          disabled={generating}
+          onClick={() => void onGenerate()}
+          className="rounded-full border border-blue/30 bg-blue/10 px-3 py-2 font-display text-[10px] uppercase tracking-[0.18em] text-ink disabled:cursor-wait disabled:opacity-60"
+        >
+          {generating ? "Generating..." : hasOutputs ? "Regenerate Prompt Set" : "Generate Prompt Set"}
+        </button>
+      </div>
+      {missingInputs.length > 0 ? (
+        <p className="mt-3 text-xs leading-5 text-mute/70">
+          Prompts will improve when {missingInputs.join(", ")} {missingInputs.length === 1 ? "is" : "are"} filled in.
+        </p>
+      ) : null}
+      {hasOutputs ? (
+        <div className="mt-4 space-y-3">
+          <GeneratedOutputBlock label="Nano Banana Prompt" value={concept.nanoBananaPrompt} />
+          <GeneratedOutputBlock label="Higgsfield Prompt" value={concept.higgsfieldPrompt} />
+          <GeneratedOutputBlock label="Video Prompt" value={concept.videoPrompt} />
+          <GeneratedOutputBlock label="Caption Options" value={concept.captionOptions} />
+          <GeneratedOutputBlock label="Story Suggestions" value={concept.storySuggestions} />
+        </div>
+      ) : (
+        <p className="mt-4 text-sm leading-6 text-mute/65">No generated prompt set yet.</p>
+      )}
+    </div>
+  );
+}
+
 function ConceptForm({
   draft,
   setDraft,
+  brand,
   pillarOptions,
   seriesOptions,
   onSave,
@@ -539,6 +723,7 @@ function ConceptForm({
 }: {
   draft: ConceptDraft;
   setDraft: Dispatch<SetStateAction<ConceptDraft>>;
+  brand: BrandSpace;
   pillarOptions: Array<{ value: string; label: string }>;
   seriesOptions: Array<{ value: string; label: string }>;
   onSave: () => void;
@@ -566,6 +751,8 @@ function ConceptForm({
       <TextAreaField label="Visual Direction" value={draft.visualDirection} onChange={(value) => setDraft((current) => ({ ...current, visualDirection: value }))} rows={4} />
       <TextAreaField label="Caption Direction" value={draft.captionDirection} onChange={(value) => setDraft((current) => ({ ...current, captionDirection: value }))} rows={3} />
       <TextAreaField label="Notes" value={draft.notes} onChange={(value) => setDraft((current) => ({ ...current, notes: value }))} rows={4} />
+
+      {brand.id === "aai" ? <PromptGenerationEditor draft={draft} setDraft={setDraft} brand={brand} /> : null}
 
       <div className="rounded-[18px] border border-white/8 bg-black/10 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1108,6 +1295,13 @@ function createEmptyConceptDraft(brand: BrandSpace, pillars: ContentPillar[]): C
     publishingTargetDate: "",
     notes: "",
     status: conceptStatuses[0],
+    nanoBananaPrompt: "",
+    higgsfieldPrompt: "",
+    videoPrompt: "",
+    captionOptions: "",
+    storySuggestions: "",
+    promptSetGeneratedAt: "",
+    promptStatus: "Prompt Pending",
     linkedPromptIds: "",
     linkedActionIds: "",
   };
@@ -1130,6 +1324,13 @@ function toConceptDraft(concept: ContentConcept): ConceptDraft {
     publishingTargetDate: concept.publishingTargetDate ?? "",
     notes: concept.notes ?? "",
     status: concept.status ?? conceptStatuses[0],
+    nanoBananaPrompt: concept.nanoBananaPrompt ?? "",
+    higgsfieldPrompt: concept.higgsfieldPrompt ?? "",
+    videoPrompt: concept.videoPrompt ?? "",
+    captionOptions: concept.captionOptions ?? "",
+    storySuggestions: concept.storySuggestions ?? "",
+    promptSetGeneratedAt: concept.promptSetGeneratedAt ?? "",
+    promptStatus: concept.promptStatus ?? "Prompt Pending",
     linkedPromptIds: toMultiline(concept.linkedPromptIds),
     linkedActionIds: toMultiline(concept.linkedActionIds),
   };
@@ -1155,6 +1356,13 @@ function conceptFromDraft(draft: ConceptDraft, brand: BrandSpace, existing?: Con
     publishingTargetDate: draft.publishingTargetDate || undefined,
     notes: draft.notes.trim(),
     status: draft.status || conceptStatuses[0],
+    nanoBananaPrompt: draft.nanoBananaPrompt.trim(),
+    higgsfieldPrompt: draft.higgsfieldPrompt.trim(),
+    videoPrompt: draft.videoPrompt.trim(),
+    captionOptions: draft.captionOptions.trim(),
+    storySuggestions: draft.storySuggestions.trim(),
+    promptSetGeneratedAt: draft.promptSetGeneratedAt || undefined,
+    promptStatus: draft.promptStatus,
     linkedPromptIds: fromMultiline(draft.linkedPromptIds),
     linkedActionIds: fromMultiline(draft.linkedActionIds),
     createdAt: existing?.createdAt ?? timestamp,
@@ -1426,6 +1634,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const [conceptModalMode, setConceptModalMode] = useState<ConceptModalMode | null>(null);
   const [conceptDraft, setConceptDraft] = useState<ConceptDraft>(() => createEmptyConceptDraft(brand, contentPillars));
   const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null);
+  const [conceptPromptGenerating, setConceptPromptGenerating] = useState(false);
   const [conceptPillarFilter, setConceptPillarFilter] = useState("");
   const [conceptStatusFilter, setConceptStatusFilter] = useState("");
   const [publishingModalMode, setPublishingModalMode] = useState<PublishingModalMode | null>(null);
@@ -1663,6 +1872,37 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
     updateBrandSpace({ contentConcepts: nextConcepts });
     setSelectedConceptId(nextConcept.id);
     setConceptModalMode("view");
+  }
+
+  async function generatePromptSetForConcept(concept: ContentConcept) {
+    if (
+      hasGeneratedPromptOutputs(toConceptDraft(concept)) &&
+      !window.confirm("Regenerating will overwrite the existing prompt outputs. Continue?")
+    ) {
+      return;
+    }
+
+    setConceptPromptGenerating(true);
+
+    try {
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 360));
+      const generated = generateAaiPromptSet(assembleAaiPromptGenerationContext(concept, brand));
+      const timestamp = nowIso();
+      const nextConcept: ContentConcept = {
+        ...concept,
+        ...generated,
+        promptSetGeneratedAt: timestamp,
+        promptStatus: "Prompt Ready",
+        updatedAt: timestamp,
+      };
+      const nextConcepts = contentConcepts.map((item) => (item.id === nextConcept.id ? nextConcept : item));
+
+      updateBrandSpace({ contentConcepts: nextConcepts });
+      setConceptDraft(toConceptDraft(nextConcept));
+      setSelectedConceptId(nextConcept.id);
+    } finally {
+      setConceptPromptGenerating(false);
+    }
   }
 
   function deleteConcept(conceptId: string) {
@@ -2767,6 +3007,14 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
               <FieldRow label="Concept Direction" value={activeConcept.scene} />
               <FieldRow label="Visual Direction" value={activeConcept.visualDirection} />
               <FieldRow label="Caption Direction" value={activeConcept.captionDirection} />
+              <FieldRow label="Notes" value={activeConcept.notes} />
+              {brand.id === "aai" ? (
+                <PromptGenerationDetail
+                  concept={activeConcept}
+                  generating={conceptPromptGenerating}
+                  onGenerate={() => generatePromptSetForConcept(activeConcept)}
+                />
+              ) : null}
               <div className="grid gap-3 md:grid-cols-2">
                 <FieldRow label="Episode Number" value={activeConcept.episodeNumber ? String(activeConcept.episodeNumber) : ""} />
                 <FieldRow label="Product Placement" value={activeConcept.productPlacement} />
@@ -2775,7 +3023,6 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
                 <FieldRow label="English Caption Draft" value={activeConcept.englishCaptionDraft} />
                 <FieldRow label="Japanese Caption Draft" value={activeConcept.japaneseCaptionDraft} />
               </div>
-              <FieldRow label="Notes" value={activeConcept.notes} />
               <div className="grid gap-3 md:grid-cols-2">
                 <FieldRow label="Linked Prompts" chips={(activeConcept.linkedPromptIds ?? []).map((id) => linkedPrompts.find((prompt) => prompt.id === id)?.title ?? id)} />
                 <FieldRow label="Linked Actions" chips={(activeConcept.linkedActionIds ?? []).map((id) => actions.find((action) => action.id === id)?.title ?? id)} />
@@ -2789,6 +3036,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
             <ConceptForm
               draft={conceptDraft}
               setDraft={setConceptDraft}
+              brand={brand}
               pillarOptions={pillarOptions}
               seriesOptions={seriesOptions}
               onSave={saveConcept}

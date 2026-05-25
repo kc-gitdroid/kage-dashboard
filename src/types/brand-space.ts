@@ -92,6 +92,8 @@ export interface BrandContentSystem {
   contentRules?: string[] | ContentRules;
 }
 
+export type ContentPromptStatus = "Prompt Pending" | "Prompt Ready" | "Revised" | "Approved";
+
 export interface ContentConcept {
   id: string;
   brandId: BrandId;
@@ -109,6 +111,13 @@ export interface ContentConcept {
   publishingTargetDate?: string;
   notes?: string;
   status?: string;
+  nanoBananaPrompt?: string;
+  higgsfieldPrompt?: string;
+  videoPrompt?: string;
+  captionOptions?: string;
+  storySuggestions?: string;
+  promptSetGeneratedAt?: string;
+  promptStatus?: ContentPromptStatus;
   linkedPromptIds?: string[];
   linkedActionIds?: string[];
   createdAt?: string;
