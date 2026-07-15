@@ -9,22 +9,25 @@ type SidebarProps = {
 
 export function Sidebar({ currentPath }: SidebarProps) {
   return (
-    <aside className="hidden w-[17.5rem] flex-col border-r border-white/5 bg-black/12 px-4 py-5 lg:flex">
-      <nav className="space-y-1.5">
+    <aside className="hidden w-[14rem] shrink-0 flex-col bg-panel/28 px-2.5 py-3.5 lg:flex">
+      <div className="mb-3 px-2">
+        <p className="ui-micro-label">Workspace Index</p>
+      </div>
+      <nav className="space-y-1">
         {navigation.map((item) => {
           const active = item.href === currentPath;
           const disabled = item.href.startsWith("#");
 
           const content = (
             <div
-              className={`flex items-center justify-between rounded-[18px] border px-4 py-2.5 transition ${
+              className={`flex items-center justify-between rounded-xl border px-3 py-2.5 transition ${
                 active
-                  ? "border-blue/28 bg-blue/8 text-ink"
-                  : "border-white/5 bg-white/[0.015] text-mute hover:border-white/8 hover:text-ink"
+                  ? "border-ink/20 bg-ink text-canvas"
+                  : "border-transparent text-mute hover:border-line hover:bg-panel hover:text-ink"
               } ${disabled ? "opacity-55" : ""}`}
             >
-              <span className="font-display text-[10px] uppercase tracking-[0.26em]">{item.label}</span>
-              <span className="text-xs">{item.marker}</span>
+              <span className="font-display text-[10px] uppercase tracking-[0.2em]">{item.label}</span>
+              <span className="font-display text-[9px] opacity-65">{item.marker}</span>
             </div>
           );
 
@@ -38,12 +41,6 @@ export function Sidebar({ currentPath }: SidebarProps) {
         })}
       </nav>
 
-      <div className="mt-auto rounded-[18px] border border-white/5 bg-panelMuted/92 p-4">
-        <p className="font-display text-[10px] uppercase tracking-[0.24em] text-mute">System Thinking</p>
-        <p className="mt-2.5 text-sm leading-5 text-mute">
-          Blueprint defines truth. Guidelines define execution. World defines the recurring universe.
-        </p>
-      </div>
     </aside>
   );
 }

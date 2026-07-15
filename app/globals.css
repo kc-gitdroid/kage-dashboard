@@ -9,7 +9,49 @@
 }
 
 :root {
+  color-scheme: light;
+  --color-canvas: 244 242 235;
+  --color-panel: 252 251 247;
+  --color-panel-strong: 255 255 255;
+  --color-panel-muted: 238 235 226;
+  --color-line: 204 199 187;
+  --color-ink: 24 27 28;
+  --color-mute: 98 101 100;
+  --color-white: 24 27 28;
+  --color-black: 24 27 28;
+  --color-blue: 27 93 196;
+  --color-yellow: 180 139 0;
+  --color-orange: 198 86 22;
+  --color-purple: 110 72 171;
+  --color-cyan: 0 124 158;
+  --color-lime: 74 126 15;
+  --grid-line: rgba(24, 27, 28, 0.025);
+  --page-glow: rgba(244, 210, 60, 0.12);
+  --title-color: #1df58d;
+  --shadow-panel: 0 8px 24px rgba(42, 37, 25, 0.045);
+}
+
+:root[data-theme="dark"] {
   color-scheme: dark;
+  --color-canvas: 5 7 10;
+  --color-panel: 11 15 20;
+  --color-panel-strong: 17 23 32;
+  --color-panel-muted: 13 18 24;
+  --color-line: 27 38 51;
+  --color-ink: 238 243 248;
+  --color-mute: 147 160 178;
+  --color-white: 255 255 255;
+  --color-black: 0 0 0;
+  --color-blue: 45 127 249;
+  --color-yellow: 244 210 60;
+  --color-orange: 243 139 42;
+  --color-purple: 138 99 210;
+  --color-cyan: 114 217 255;
+  --color-lime: 182 232 74;
+  --grid-line: rgba(255, 255, 255, 0.012);
+  --page-glow: rgba(45, 127, 249, 0.09);
+  --title-color: #1df58d;
+  --shadow-panel: 0 12px 32px rgba(0, 0, 0, 0.16);
 }
 
 * {
@@ -19,9 +61,8 @@
 html {
   overflow-x: hidden;
   background:
-    radial-gradient(circle at top, rgba(45, 127, 249, 0.09), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(244, 210, 60, 0.05), transparent 24%),
-    #05070a;
+    radial-gradient(circle at 70% 0%, var(--page-glow), transparent 30%),
+    rgb(var(--color-canvas));
 }
 
 body {
@@ -29,10 +70,11 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    linear-gradient(180deg, rgba(11, 15, 20, 0.985), rgba(5, 7, 10, 1)),
-    #05070a;
-  color: #eef3f8;
-  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    linear-gradient(180deg, rgb(var(--color-panel) / 0.32), transparent 28rem),
+    rgb(var(--color-canvas));
+  color: rgb(var(--color-ink));
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  font-weight: 400;
   letter-spacing: 0.005em;
 }
 
@@ -58,42 +100,42 @@ textarea {
 }
 
 ::selection {
-  background: rgba(45, 127, 249, 0.3);
-  color: #eef3f8;
+  background: rgb(var(--color-blue) / 0.2);
+  color: rgb(var(--color-ink));
 }
 
 .dashboard-grid {
-  background-image: linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-  background-size: 36px 36px;
+  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
 .pixel-title {
-  color: #1df58d;
+  color: var(--title-color);
   font-family: "ArcadeClassic", "Courier New", monospace;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-shadow:
-    0 0 8px rgba(29, 245, 141, 0.08),
-    0 0 12px rgba(29, 245, 141, 0.08);
+    0 0 8px color-mix(in srgb, var(--title-color) 8%, transparent),
+    0 0 12px color-mix(in srgb, var(--title-color) 8%, transparent);
 }
 
 .ui-eyebrow {
-  color: rgba(244, 210, 60, 0.82);
-  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, "Liberation Mono", monospace;
+  color: rgb(var(--color-yellow));
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
   font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.3em;
+  font-weight: 600;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
 .ui-micro-label {
-  color: rgba(244, 210, 60, 0.76);
-  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, "Liberation Mono", monospace;
+  color: rgb(var(--color-yellow));
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
   font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.22em;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -142,7 +184,7 @@ textarea {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: 9999px;
+  border-radius: 0.5rem;
   padding: 0.25rem 0.625rem;
   text-align: center;
   vertical-align: middle;

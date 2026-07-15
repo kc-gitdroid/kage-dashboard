@@ -238,7 +238,7 @@ export function ProjectDetailPage({ project }: { project: ProjectItem }) {
   }
 
   return (
-    <div className="space-y-5 md:space-y-6">
+    <div className="space-y-3 md:space-y-4">
       <Panel eyebrow={`Project / ${brand?.name ?? "Project"}`} title={project.title} subtitle={project.summary ?? project.goal} accent={brandSpace?.tone}>
         <div className="space-y-4">
           <div id={sectionIds.Overview} className="scroll-mt-24 rounded-2xl border border-white/6 bg-black/10 p-4">
@@ -406,7 +406,7 @@ export function ProjectDetailPage({ project }: { project: ProjectItem }) {
         </div>
       </Panel>
 
-      <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
+      <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
         <InlineSection
           id={sectionIds.Milestones}
           eyebrow="Project / Milestones"
@@ -454,7 +454,7 @@ export function ProjectDetailPage({ project }: { project: ProjectItem }) {
         </InlineSection>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
+      <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
         <InlineSection
           id={sectionIds["Linked Tasks"]}
           eyebrow="Project / Related Tasks"

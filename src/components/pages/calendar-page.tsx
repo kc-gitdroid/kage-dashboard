@@ -455,7 +455,7 @@ export function CalendarPage() {
   const selectedDateEvents = selectedMonthDate ? dateEventMap[selectedMonthDate] ?? [] : [];
 
   return (
-    <div className="space-y-5 md:space-y-6">
+    <div className="space-y-3 md:space-y-4">
       <Panel
         eyebrow="Calendar / Planning"
         title="Structured view across brands and commitments"

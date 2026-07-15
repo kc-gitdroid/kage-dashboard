@@ -34,7 +34,7 @@ export function BrandsPage() {
   });
 
   return (
-    <div className="space-y-5 md:space-y-6">
+    <div className="space-y-3 md:space-y-4">
       <Panel
         eyebrow="Brands / Overview"
         title="Workspace Directory"

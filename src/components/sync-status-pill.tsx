@@ -45,12 +45,12 @@ export function SyncStatusPill({ className = "", compact = false }: { className?
   return (
     <div className={className}>
       <div
-        className={`ui-pill inline-flex min-h-8 gap-2 rounded-full border bg-black/10 ${
+        className={`ui-pill inline-flex min-h-8 gap-2 rounded-lg border bg-panel/80 ${
           compact ? "px-3 py-1.5" : "px-3 py-1.5"
         } ${tone}`}
       >
         <span className="h-1.5 w-1.5 rounded-full bg-current" />
-        <span className="block leading-none font-display text-[10px] uppercase tracking-[0.18em]">{label}</span>
+        <span className="block font-display text-[10px] font-semibold uppercase leading-none tracking-[0.12em]">{label}</span>
       </div>
     </div>
   );

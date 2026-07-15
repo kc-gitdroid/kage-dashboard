@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 
 import { BrandPill } from "@/components/brand-pill";
@@ -81,9 +81,26 @@ const sectionIds = {
   "Content System Reference": "content-system-reference",
 } as const;
 
-type BrandPageSection = keyof typeof sectionIds;
+const workspaceTabs = ["Overview", "Compass", "Publishing", "Work", "Library"] as const;
+type WorkspaceTab = (typeof workspaceTabs)[number];
 
-const brandPageSections = ["Concepts", "Publishing Calendar", "Prompts", "Actions", "Thinking", "Projects", "Compass", "Content System Reference"] as const;
+const workspaceTabHashes: Record<WorkspaceTab, string> = {
+  Overview: "overview",
+  Compass: "compass",
+  Publishing: "publishing-calendar",
+  Work: "actions",
+  Library: "prompts",
+};
+
+function getWorkspaceTabFromHash(hash: string): WorkspaceTab {
+  const section = hash.replace(/^#/, "");
+
+  if (section === "compass" || section === "content-system-reference") return "Compass";
+  if (section === "concepts" || section === "publishing-calendar") return "Publishing";
+  if (section === "actions" || section === "projects") return "Work";
+  if (section === "prompts" || section === "thinking") return "Library";
+  return "Overview";
+}
 
 const emptyText = "Not defined yet";
 
@@ -1615,13 +1632,13 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const actions = brand.actions ?? [];
   const thinkingItems = brand.thinking ?? [];
   const visibleActions = actions;
-  const visibleBrandPageSections: BrandPageSection[] = [...brandPageSections];
   const seriesOptions = contentSeries.map((series) => ({ value: series.id, label: getSeriesTitle(series) }));
   const pillarOptions = contentPillars.map((pillar) => ({ value: pillar.id, label: pillar.name }));
   const conceptOptions = contentConcepts.map((concept) => ({ value: concept.id, label: concept.title }));
   const scheduledPostOptions = publishingCalendar.map((post) => ({ value: post.id, label: `${post.date} / ${post.title}` }));
 
   const [editingSection, setEditingSection] = useState<EditingSection>(null);
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<WorkspaceTab>("Overview");
   const [overviewDraft, setOverviewDraft] = useState<OverviewDraft>(() => toOverviewDraft(brand));
   const [strategyDraft, setStrategyDraft] = useState<StrategyDraft>(() => toStrategyDraft(brand));
   const [visualLanguageDraft, setVisualLanguageDraft] = useState<VisualLanguageDraft>(() => toVisualLanguageDraft(brand));
@@ -1662,6 +1679,20 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+
+  useEffect(() => {
+    const syncTabWithHash = () => setActiveWorkspaceTab(getWorkspaceTabFromHash(window.location.hash));
+
+    syncTabWithHash();
+    window.addEventListener("hashchange", syncTabWithHash);
+    return () => window.removeEventListener("hashchange", syncTabWithHash);
+  }, []);
+
+  function selectWorkspaceTab(tab: WorkspaceTab) {
+    setActiveWorkspaceTab(tab);
+    window.history.replaceState(null, "", `#${workspaceTabHashes[tab]}`);
+  }
+
   const strategyView = toStrategyDraft(brand);
   const visualLanguageView = toVisualLanguageDraft(brand);
   const voiceView = toVoiceDraft(brand);
@@ -2152,10 +2183,13 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   }
 
   return (
-    <div className="flex flex-col gap-5 md:gap-6">
+    <div className="flex flex-col gap-3 md:gap-4">
       <Panel eyebrow={`Workspace / ${brand.name}`} title={brand.name} subtitle={brand.description} accent={brand.tone} className="order-1">
         <div className="space-y-4">
-          <div id={sectionIds.Overview} className="scroll-mt-24 rounded-2xl border border-white/6 bg-black/10 p-4">
+          <div
+            id={sectionIds.Overview}
+            className={`${activeWorkspaceTab === "Overview" ? "block" : "hidden"} scroll-mt-24 rounded-2xl border border-white/6 bg-black/10 p-4`}
+          >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <p className="ui-micro-label">Overview</p>
               <div className="flex flex-wrap items-center gap-2">
@@ -2214,15 +2248,22 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {visibleBrandPageSections.map((section) => (
-              <a
-                key={section}
-                href={`#${sectionIds[section]}`}
-                className="rounded-full border border-white/8 px-2.5 py-1 font-display text-[10px] uppercase tracking-[0.18em] text-mute transition hover:border-white/14 hover:text-ink"
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Workspace views">
+            {workspaceTabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={activeWorkspaceTab === tab}
+                onClick={() => selectWorkspaceTab(tab)}
+                className={`rounded-lg border px-3 py-1.5 font-display text-[10px] font-semibold uppercase tracking-[0.12em] transition ${
+                  activeWorkspaceTab === tab
+                    ? "border-yellow/35 bg-yellow/10 text-yellow"
+                    : "border-white/8 text-mute hover:border-white/14 hover:text-ink"
+                }`}
               >
-                {section}
-              </a>
+                {tab}
+              </button>
             ))}
           </div>
 
@@ -2234,7 +2275,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </div>
       </Panel>
 
-      <div id={sectionIds.Compass} className="order-7 scroll-mt-24">
+      <div id={sectionIds.Compass} className={`${activeWorkspaceTab === "Compass" ? "block" : "hidden"} order-7 scroll-mt-24`}>
         <Panel
           eyebrow="Workspace / Compass"
           title="Brand Compass"
@@ -2368,7 +2409,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </Panel>
       </div>
 
-      <div id={sectionIds["Content System Reference"]} className="order-8 scroll-mt-24">
+      <div id={sectionIds["Content System Reference"]} className={`${activeWorkspaceTab === "Compass" ? "block" : "hidden"} order-8 scroll-mt-24`}>
         <Panel
           eyebrow="Workspace / Content System"
           title="Content System Reference"
@@ -2377,7 +2418,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
           headerAction={<ReferenceToggleButton expanded={contentSystemReferenceExpanded} onClick={() => setContentSystemReferenceExpanded((current) => !current)} />}
         >
           {contentSystemReferenceExpanded ? (
-          <div className="space-y-5">
+          <div className="space-y-4">
           <div className="rounded-[18px] border border-white/10 bg-black/15 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/5 pb-3">
               <div>
@@ -2443,7 +2484,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
             )}
           </div>
 
-          <div className="grid gap-5 xl:grid-cols-2">
+          <div className="grid gap-4 xl:grid-cols-2">
             <div className="rounded-[18px] border border-white/10 bg-black/15 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/5 pb-3">
                 <div>
@@ -2550,7 +2591,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
             </div>
           </div>
 
-          <div className="grid gap-5 xl:grid-cols-2">
+          <div className="grid gap-4 xl:grid-cols-2">
             <div className="rounded-[18px] border border-white/10 bg-black/15 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/5 pb-3">
                 <div>
@@ -2599,7 +2640,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </Panel>
       </div>
 
-      <div id={sectionIds.Concepts} className="order-2 scroll-mt-24">
+      <div id={sectionIds.Concepts} className={`${activeWorkspaceTab === "Publishing" ? "block" : "hidden"} order-2 scroll-mt-24`}>
         <Panel
           eyebrow="Workspace / Concepts"
           title="Content Concepts"
@@ -2694,7 +2735,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </Panel>
       </div>
 
-      <div id={sectionIds["Publishing Calendar"]} className="order-3 scroll-mt-24">
+      <div id={sectionIds["Publishing Calendar"]} className={`${activeWorkspaceTab === "Publishing" ? "block" : "hidden"} order-3 scroll-mt-24`}>
         <Panel
           eyebrow="Workspace / Publishing Calendar"
           title="Publishing Calendar"
@@ -2817,7 +2858,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </Panel>
       </div>
 
-      <div id={sectionIds.Prompts} className="order-4 scroll-mt-24">
+      <div id={sectionIds.Prompts} className={`${activeWorkspaceTab === "Library" ? "block" : "hidden"} order-4 scroll-mt-24`}>
         <Panel
           eyebrow="Workspace / Prompts"
           title="Prompts"
@@ -2870,8 +2911,8 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </Panel>
       </div>
 
-      <section className="order-5 space-y-5 xl:grid xl:grid-cols-2 xl:items-start xl:gap-5 xl:space-y-0">
-        <div id={sectionIds.Actions} className="scroll-mt-24">
+      <section className={`${activeWorkspaceTab === "Work" || activeWorkspaceTab === "Library" ? "block" : "hidden"} order-5`}>
+        <div id={sectionIds.Actions} className={`${activeWorkspaceTab === "Work" ? "block" : "hidden"} scroll-mt-24`}>
           <Panel
             eyebrow="Workspace / Actions"
             title="Actions"
@@ -2911,7 +2952,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
           </Panel>
         </div>
 
-        <div id={sectionIds.Thinking} className="scroll-mt-24">
+        <div id={sectionIds.Thinking} className={`${activeWorkspaceTab === "Library" ? "mt-5 block" : "hidden"} scroll-mt-24`}>
           <Panel
             eyebrow="Workspace / Thinking"
             title="Thinking"
@@ -2945,7 +2986,7 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
         </div>
       </section>
 
-      <div id={sectionIds.Projects} className="order-6 scroll-mt-24">
+      <div id={sectionIds.Projects} className={`${activeWorkspaceTab === "Work" ? "block" : "hidden"} order-6 scroll-mt-24`}>
         <Panel
           eyebrow="Workspace / Projects"
           title="Projects"

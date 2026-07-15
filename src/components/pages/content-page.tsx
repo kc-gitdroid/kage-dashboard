@@ -202,7 +202,7 @@ export function ContentPage() {
   }
 
   return (
-    <div className="space-y-5 md:space-y-6">
+    <div className="space-y-3 md:space-y-4">
       <Panel
         eyebrow="Posts / Planner"
         title="Post Planner"
@@ -256,7 +256,7 @@ export function ContentPage() {
         </div>
       </Panel>
 
-      <section className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <Panel eyebrow="Posts / List" title="List View" subtitle="Detailed planning rows for title, format, pillar, caption, assets, schedule, and overall status." accent="blue">
           <div className="space-y-3">
             <div className="hidden rounded-2xl border border-white/6 bg-white/[0.02] px-4 py-3 text-xs uppercase tracking-[0.18em] text-mute md:grid md:grid-cols-[1.7fr_0.75fr_0.8fr_1fr_0.9fr_0.9fr_0.8fr_0.8fr] md:gap-3">

@@ -7,7 +7,7 @@ type BrandPillProps = {
 export function BrandPill({ color, children, className = "" }: BrandPillProps) {
   return (
     <span
-      className={`ui-pill max-w-full border text-center font-display text-[10px] uppercase tracking-[0.18em] ${className}`}
+      className={`ui-pill max-w-full border text-center font-display text-[10px] font-semibold uppercase tracking-[0.1em] ${className}`}
       style={{
         color,
         borderColor: `${color}38`,

@@ -105,19 +105,6 @@ type CalendarDraft = {
   notes: string;
 };
 
-type HomeThinkingRow = {
-  id: string;
-  title: string;
-  body: string;
-  brandId?: BrandId;
-  brand?: { id: BrandId; shortName: string; color: string };
-  type?: string;
-  status?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  href: string;
-};
-
 function startOfDay(value: Date) {
   return new Date(value.getFullYear(), value.getMonth(), value.getDate());
 }
@@ -159,16 +146,6 @@ function formatRelativeDay(value: string, today: Date) {
   }
 
   return formatMonthDay(value);
-}
-
-function getThinkingTitle(item: { title?: string; body?: string }) {
-  const title = item.title?.trim();
-  if (title) {
-    return title;
-  }
-
-  const firstBodyLine = item.body?.split("\n").find((line) => line.trim())?.trim();
-  return firstBodyLine || "Untitled thinking";
 }
 
 const quickActions: {
@@ -489,7 +466,8 @@ export function HomePage() {
         return a.isHighPriority ? -1 : 1;
       }
       return a.sortTime - b.sortTime;
-    });
+    })
+    .slice(0, 5);
 
   const upcomingRows: UpcomingRow[] = [
     ...calendarItems
@@ -542,19 +520,8 @@ export function HomePage() {
       })),
   ]
     .sort((a, b) => a.sortTime - b.sortTime)
-    .slice(0, 6);
+    .slice(0, 5);
 
-  const allBrandActions = brandSpaces.flatMap((brand) => {
-    const actions = brand.actions ?? [];
-
-    return actions.map((action) => ({ ...action, brand }));
-  });
-  const todaysActions = allBrandActions
-    .filter((item) => {
-      const dueToday = item.dueDate ? startOfDay(new Date(item.dueDate)).getTime() === todayStart.getTime() : false;
-      return item.status === "Next" || dueToday;
-    })
-    .slice(0, 6);
   const publishingThisWeek = brandSpaces
     .flatMap((brand) =>
       (brand.publishingCalendar ?? []).map((post) => ({
@@ -568,80 +535,7 @@ export function HomePage() {
       return date >= todayStart && date < nextWeekEnd;
     })
     .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 6);
-  const recentPromptRows = [...promptItems]
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, 5);
-  const recentThinkingRows: HomeThinkingRow[] = [
-    ...notes.map((item) => {
-      const brand = item.brandId ? brands.find((entry) => entry.id === item.brandId) : undefined;
-      return {
-        id: item.id,
-        title: getThinkingTitle(item),
-        body: item.body,
-        brandId: item.brandId,
-        brand,
-        type: item.type,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
-        href: `/notes?edit=${item.id}&origin=home`,
-      };
-    }),
-    ...brandSpaces.flatMap((brand) =>
-      (brand.thinking ?? []).map((item) => ({
-        id: item.id,
-        title: getThinkingTitle(item),
-        body: item.body,
-        brandId: brand.id,
-        brand,
-        type: item.type,
-        status: item.status,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
-        href: `/brands/${brand.id}#thinking`,
-      })),
-    ),
-  ]
-    .sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() - new Date(a.updatedAt ?? a.createdAt ?? 0).getTime())
-    .slice(0, 5);
-
-  const homeCalendarRows = [
-    ...calendarItems.map((item) => ({
-      key: `calendar-${item.id}`,
-      title: item.title,
-      brandId: item.brandId,
-      type: formatTokenLabel(item.type),
-      date: item.start,
-      timing: formatMonthDayTime(item.start),
-      targetType: "calendar" as const,
-      id: item.id,
-    })),
-    ...contentItems
-      .filter((item) => item.scheduleDate)
-      .map((item) => ({
-        key: `post-${item.id}`,
-        title: item.title,
-        brandId: item.brandId,
-        type: "Post",
-        date: item.scheduleDate as string,
-        timing: formatMonthDayTime(item.scheduleDate as string),
-        targetType: "content" as const,
-        id: item.id,
-      })),
-    ...tasks.map((task) => ({
-      key: `action-${task.id}`,
-      title: task.title,
-      brandId: task.brandId,
-      type: "Action",
-      date: task.dueDate,
-      timing: `Due ${formatMonthDay(task.dueDate)}`,
-      targetType: "task" as const,
-      id: task.id,
-    })),
-  ]
-    .filter((item) => new Date(item.date) >= todayStart)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 6);
+    .slice(0, 4);
 
   const brandSnapshots = [...brandSpaces]
     .sort((a, b) => brandWorkspaceOrder.indexOf(a.id) - brandWorkspaceOrder.indexOf(b.id))
@@ -726,15 +620,6 @@ export function HomePage() {
     brandsCount: brands.length,
     brandOptionCount: brands.length,
   });
-
-  const activeProjectRows = projects
-    .filter((project) => project.status === "active")
-    .sort((a, b) => {
-      const aTime = a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY;
-      const bTime = b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY;
-      return aTime - bTime;
-    })
-    .slice(0, 4);
 
   function openQuickAction(action: QuickActionId) {
     if (action === "task") {
@@ -971,199 +856,128 @@ export function HomePage() {
   }
 
   return (
-    <div className="w-full min-w-0 max-w-full space-y-5 overflow-x-hidden md:space-y-6">
-      <section className="flex flex-col gap-5 xl:grid xl:grid-cols-[1.04fr_0.96fr] xl:items-start xl:gap-5">
-        <div className="contents xl:block xl:space-y-5">
+    <div className="w-full min-w-0 max-w-full space-y-3 overflow-x-hidden md:space-y-4">
+      <section className="flex flex-col gap-3 xl:grid xl:grid-cols-[1.04fr_0.96fr] xl:items-start xl:gap-3">
+        <div className="contents xl:block xl:space-y-3">
           <Panel
             eyebrow="Home / Today"
             title="Today"
-            subtitle="What needs attention now: overdue work, today’s commitments, and scheduled outputs in one focused list."
+            subtitle="Only the work that needs attention now."
             accent="blue"
             className="order-1"
           >
-          <div
-            className={
-              todayRows.length === 0
-                ? ""
-                : todayRows.length > 20
-                  ? "space-y-3 max-h-[32rem] overflow-y-auto pr-1"
-                  : "space-y-3"
-            }
-          >
-            {todayRows.map((item, index) => {
-              const brand = brands.find((entry) => entry.id === item.brandId);
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => openHomeItem(item)}
-                  className={`touch-manipulation rounded-2xl border px-4 py-3 md:px-4 ${
-                    item.isOverdue
-                      ? "border-orange/35 bg-orange/8"
-                      : index === 0
-                        ? "border-blue/35 bg-blue/8"
-                        : "border-white/6 bg-black/10"
-                  } w-full text-left transition hover:border-white/12`}
-                >
-                  <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-ink">{item.title}</p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <span className="font-display text-[10px] uppercase tracking-[0.18em] text-mute">
-                          {formatTokenLabel(item.type)}
-                        </span>
-                        <span className="text-[11px] text-mute">{item.timing}</span>
-                        {brand && <BrandPill color={brand.color}>{brand.shortName}</BrandPill>}
-                      </div>
-                  </div>
-                </button>
-              );
-            })}
-            {todayRows.length === 0 && (
-              <div className="inline-flex max-w-md items-center gap-3 rounded-2xl border border-white/6 bg-black/10 px-4 py-3 text-sm text-mute">
-                <span className="font-display text-[10px] uppercase tracking-[0.18em] text-blue">Clear</span>
-                <span>No urgent items right now. Use Quick Add to capture new work or check Upcoming for the next move.</span>
-              </div>
-            )}
-          </div>
-          </Panel>
-
-          <Panel
-            eyebrow="Home / Actions"
-            title="Today’s Actions"
-            subtitle="Next moves from brand workspaces, ordered by priority and timing."
-            accent="yellow"
-            className="order-6"
-          >
             <div className="space-y-3">
-              {todaysActions.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => router.push(`/brands/${item.brand.id}`)}
-                  className="w-full rounded-2xl border border-white/6 bg-black/10 p-4 text-left transition hover:border-white/12"
-                >
-                  <p className="text-sm font-medium leading-6 text-ink">{item.title}</p>
-                  {item.nextMove ? <p className="mt-2 text-sm leading-6 text-mute">{item.nextMove}</p> : null}
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <BrandPill color={item.brand.color}>{item.brand.shortName}</BrandPill>
-                    <span className="whitespace-nowrap text-xs leading-tight text-mute md:text-[13px]">
-                      {item.linkedItemType ?? "Brand"} · {item.status ?? "Next"}
-                    </span>
-                    {item.dueDate ? <span className="whitespace-nowrap text-xs leading-tight text-mute md:text-[13px]">Due {formatMonthDay(item.dueDate)}</span> : null}
-                  </div>
-                </button>
-              ))}
-              {todaysActions.length === 0 ? (
+              {todayRows.map((item, index) => {
+                const brand = brands.find((entry) => entry.id === item.brandId);
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => openHomeItem(item)}
+                    className={`touch-manipulation w-full rounded-2xl border px-4 py-3 text-left transition hover:border-white/12 ${
+                      item.isOverdue
+                        ? "border-orange/35 bg-orange/8"
+                        : index === 0
+                          ? "border-blue/35 bg-blue/8"
+                          : "border-white/6 bg-black/10"
+                    }`}
+                  >
+                    <p className="truncate text-sm font-medium text-ink">{item.title}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="font-display text-[10px] uppercase tracking-[0.16em] text-mute">{formatTokenLabel(item.type)}</span>
+                      <span className="text-[11px] text-mute">{item.timing}</span>
+                      {brand ? <BrandPill color={brand.color}>{brand.shortName}</BrandPill> : null}
+                    </div>
+                  </button>
+                );
+              })}
+              {todayRows.length === 0 ? (
                 <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
-                  No next actions are marked for today.
+                  Nothing urgent right now.
                 </div>
               ) : null}
+              <button type="button" onClick={() => router.push("/tasks")} className="text-sm text-mute transition hover:text-ink">
+                View all actions
+              </button>
             </div>
           </Panel>
 
           <Panel
-            eyebrow="Home / Brand Snapshot"
-            title="Brand Snapshot"
-            subtitle="What matters across AAI, Masteryatelier, Massiveoutfit / MO Studio, Personal, and biro at a glance."
+            eyebrow="Home / Workspaces"
+            title="Workspace Status"
+            subtitle="A compact read on active work across every brand."
             accent="lime"
-            className="order-10"
+            className="order-5"
           >
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               {brandSnapshots.map((brand) => (
                 <button
                   key={brand.id}
                   type="button"
                   onClick={() => router.push(`/brands/${brand.id}`)}
-                  className="box-border max-w-full overflow-hidden rounded-2xl border border-white/6 bg-white/[0.02] p-[clamp(1.25rem,3vw,2rem)] text-left"
+                  className="min-w-0 rounded-2xl border border-white/6 bg-white/[0.02] p-4 text-left transition hover:border-white/12"
                   style={{ boxShadow: `inset 0 1px 0 0 ${brand.color}20` }}
                 >
-                  <div className="min-w-0 max-w-full">
-                    <div className="flex items-center gap-2.5">
-                      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: brand.color }} />
-                      <h3 className="min-w-0 text-base font-semibold leading-none text-ink">{brand.shortName}</h3>
-                    </div>
-                    <p className="mt-3 text-left text-sm leading-6 text-mute">{brand.description}</p>
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: brand.color }} />
+                    <h3 className="truncate text-sm font-semibold text-ink">{brand.shortName}</h3>
                   </div>
-
-                  <div className="mt-3 box-border w-full max-w-full overflow-hidden rounded-[18px] border border-white/6 bg-black/10 px-2.5 py-3.5 min-[520px]:px-3.5 min-[520px]:py-4">
-                    <div className="grid w-full min-w-0 grid-cols-3 gap-x-2.5 min-[520px]:gap-x-3">
-                      <div className="min-w-0 text-center">
-                        <span className="block whitespace-nowrap font-display text-[8px] uppercase leading-[1.1] tracking-[0.02em] text-mute min-[520px]:text-[clamp(8px,0.75vw,10px)] min-[520px]:tracking-[0.04em]">Projects</span>
-                        <span className="mt-2 block text-[26px] font-semibold leading-none text-ink min-[520px]:text-[clamp(24px,3vw,36px)]">{brand.activeProjectCount}</span>
-                      </div>
-                      <div className="min-w-0 text-center">
-                        <span className="block whitespace-nowrap font-display text-[8px] uppercase leading-[1.1] tracking-[0.02em] text-mute min-[520px]:text-[clamp(8px,0.75vw,10px)] min-[520px]:tracking-[0.04em]">Actions</span>
-                        <span className="mt-2 block text-[26px] font-semibold leading-none text-ink min-[520px]:text-[clamp(24px,3vw,36px)]">{brand.openTaskCount}</span>
-                      </div>
-                      <div className="min-w-0 text-center">
-                        <span className="block whitespace-nowrap font-display text-[8px] uppercase leading-[1.1] tracking-[0.02em] text-mute min-[520px]:text-[clamp(8px,0.75vw,10px)] min-[520px]:tracking-[0.04em]">Posts</span>
-                        <span className="mt-2 block text-[26px] font-semibold leading-none text-ink min-[520px]:text-[clamp(24px,3vw,36px)]">{brand.scheduledContentCount}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="mt-3 text-left text-xs text-mute">Thinking: {brand.thinkingCount} · Prompts: {brand.promptCount}</p>
-
-                  <div className="mt-4 rounded-xl border border-white/6 bg-black/10 px-3 py-3">
-                    <p className="ui-micro-label">Next Priority</p>
-                    {brand.nextPriority ? (
-                      <>
-                        <p className="mt-2 text-sm font-medium text-ink">{brand.nextPriority.label}</p>
-                        <p className="mt-1 text-sm text-mute">{brand.nextPriority.timing}</p>
-                      </>
-                    ) : (
-                      <p className="mt-2 text-sm text-mute">No immediate items scheduled.</p>
-                    )}
-                  </div>
+                  <p className="mt-2 line-clamp-2 text-sm leading-5 text-mute">{brand.description}</p>
+                  <p className="mt-3 text-xs text-mute">
+                    {brand.activeProjectCount} projects · {brand.openTaskCount} actions · {brand.scheduledContentCount} posts
+                  </p>
+                  <p className="mt-2 truncate text-xs text-ink">
+                    {brand.nextPriority ? `Next: ${brand.nextPriority.label}` : "No immediate priority"}
+                  </p>
                 </button>
               ))}
             </div>
           </Panel>
         </div>
 
-        <div className="contents xl:block xl:space-y-5">
+        <div className="contents xl:block xl:space-y-3">
           <Panel
             eyebrow="Home / Upcoming"
             title="Upcoming"
-            subtitle="What is coming next across the next 7 days, with the most important items surfaced first."
+            subtitle="The next seven days, ordered by timing."
             className="order-2"
           >
-          <div className={upcomingRows.length > 6 ? "space-y-3 max-h-[32rem] overflow-y-auto pr-1" : "space-y-3"}>
-            {upcomingRows.map((item) => {
-              const brand = brands.find((entry) => entry.id === item.brandId);
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => openHomeItem(item)}
-                  className="touch-manipulation w-full rounded-2xl border border-white/6 bg-black/10 px-4 py-3 text-left transition hover:border-white/12"
-                >
-                  <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-ink">{item.title}</p>
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <span className="font-display text-[10px] uppercase tracking-[0.18em] text-mute">
-                            {formatTokenLabel(item.type)}
-                          </span>
-                          <span className="text-[11px] text-mute">{item.timing}</span>
-                          {brand && <BrandPill color={brand.color}>{brand.shortName}</BrandPill>}
-                        </div>
+            <div className="space-y-3">
+              {upcomingRows.map((item) => {
+                const brand = brands.find((entry) => entry.id === item.brandId);
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => openHomeItem(item)}
+                    className="touch-manipulation w-full rounded-2xl border border-white/6 bg-black/10 px-4 py-3 text-left transition hover:border-white/12"
+                  >
+                    <p className="truncate text-sm font-medium text-ink">{item.title}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="font-display text-[10px] uppercase tracking-[0.16em] text-mute">{formatTokenLabel(item.type)}</span>
+                      <span className="text-[11px] text-mute">{item.timing}</span>
+                      {brand ? <BrandPill color={brand.color}>{brand.shortName}</BrandPill> : null}
                     </div>
-                </button>
-              );
-            })}
-            {upcomingRows.length === 0 && (
-              <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
-                Nothing major is scheduled in the next 7 days.
-              </div>
-            )}
-          </div>
+                  </button>
+                );
+              })}
+              {upcomingRows.length === 0 ? (
+                <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
+                  Nothing major is scheduled in the next seven days.
+                </div>
+              ) : null}
+              <button type="button" onClick={() => router.push("/calendar")} className="text-sm text-mute transition hover:text-ink">
+                Open calendar
+              </button>
+            </div>
           </Panel>
 
           <Panel
             eyebrow="Home / Publishing"
             title="Publishing This Week"
-            subtitle="Scheduled brand posts from the publishing calendars across all workspaces."
+            subtitle="Scheduled posts across all workspaces."
             accent="lime"
-            className="order-7"
+            className="order-3"
           >
             <div className="space-y-3">
               {publishingThisWeek.map((post) => (
@@ -1171,27 +985,18 @@ export function HomePage() {
                   key={post.id}
                   type="button"
                   onClick={() => router.push(`/brands/${post.brand.id}#publishing-calendar`)}
-                  className="w-full rounded-2xl border border-white/6 bg-black/10 p-4 text-left transition hover:border-white/12"
+                  className="w-full rounded-2xl border border-white/6 bg-black/10 px-4 py-3 text-left transition hover:border-white/12"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-medium text-ink">{post.title}</p>
                     <BrandPill color={post.brand.color}>{post.brand.shortName}</BrandPill>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{formatMonthDay(post.date)}</span>
-                    <span className="rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">{post.status ?? "Scheduled"}</span>
-                    {post.pillar ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/8 px-2 py-1 text-[11px] text-mute">
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: post.pillar.color }} />
-                        {post.pillar.name}
-                      </span>
-                    ) : null}
-                  </div>
+                  <p className="mt-2 text-xs text-mute">{formatMonthDay(post.date)} · {post.status ?? "Scheduled"}</p>
                 </button>
               ))}
               {publishingThisWeek.length === 0 ? (
                 <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
-                  No brand publishing posts are scheduled in the next 7 days.
+                  No posts are scheduled in the next seven days.
                 </div>
               ) : null}
             </div>
@@ -1200,158 +1005,26 @@ export function HomePage() {
           <Panel
             eyebrow="Home / Quick Add"
             title="Quick Add"
-            subtitle="Fast entry actions for the items that most often need to be captured in motion."
+            subtitle="Capture the next item without leaving Home."
             accent="yellow"
-            className="order-8"
+            className="order-4"
           >
-          <div className={quickActions.length > 2 ? "space-y-3 max-h-[32rem] overflow-y-auto pr-1" : "space-y-3"}>
-            {quickActions.map((item, index) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => openQuickAction(item.id)}
-                className={`touch-manipulation flex w-full items-start justify-between rounded-2xl border px-4 py-4 text-left transition ${
-                  index === 0
-                    ? "border-yellow/20 bg-yellow/6 hover:border-yellow/35"
-                    : "border-white/6 bg-white/[0.02] hover:border-white/12"
-                }`}
-              >
-                <div>
-                  <p className="font-display text-[11px] uppercase tracking-[0.24em] text-ink">{item.label}</p>
-                  <p className="mt-2 text-sm leading-6 text-mute">{item.hint}</p>
-                </div>
-                <span className="font-display text-lg text-mute">+</span>
-              </button>
-            ))}
-          </div>
-          </Panel>
-
-          <Panel
-            eyebrow="Home / Projects"
-            title="Active Projects"
-            subtitle="Active delivery streams only, ordered by nearest due date so pressure points surface quickly."
-            accent="orange"
-            className="order-9"
-          >
-          <div className="space-y-3">
-            {activeProjectRows.map((project) => {
-              const brand = brands.find((entry) => entry.id === project.brandId);
-              return (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {quickActions.map((item, index) => (
                 <button
-                  key={project.id}
+                  key={item.id}
                   type="button"
-                  onClick={() => router.push(`/projects/${project.id}`)}
-                  className="block w-full rounded-2xl border border-white/6 bg-white/[0.02] p-4 text-left transition hover:border-white/12"
+                  onClick={() => openQuickAction(item.id)}
+                  className={`touch-manipulation flex min-w-0 items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
+                    index === 0
+                      ? "border-yellow/20 bg-yellow/6 hover:border-yellow/35"
+                      : "border-white/6 bg-white/[0.02] hover:border-white/12"
+                  }`}
                 >
-                  <div className="min-w-0">
-                      <p className="text-sm font-medium text-ink">{project.title}</p>
-                      <p className="mt-2 text-sm leading-6 text-mute">{project.summary ?? project.goal}</p>
-                  </div>
-                  <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-                    <span className="font-display text-[10px] uppercase tracking-[0.18em] text-mute">
-                      {formatTokenLabel(project.status)}
-                    </span>
-                    <span className="text-mute">
-                      {project.dueDate ? `Due ${formatMonthDay(project.dueDate)}` : `Started ${formatMonthDay(project.startDate)}`}
-                    </span>
-                    {brand && <BrandPill color={brand.color}>{brand.shortName}</BrandPill>}
-                  </div>
+                  <span className="font-display text-[10px] uppercase tracking-[0.16em] text-ink">{item.label}</span>
+                  <span className="font-display text-lg text-mute">+</span>
                 </button>
-              );
-            })}
-            {activeProjectRows.length === 0 && (
-              <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
-                No active projects are open right now.
-              </div>
-            )}
-          </div>
-          </Panel>
-
-          <Panel eyebrow="Home / Prompts" title="Recent Prompts" subtitle="Recently updated prompt records across brands." className="order-3">
-            <div className="space-y-3">
-              {recentPromptRows.map((prompt) => {
-                const brand = prompt.brandId ? brands.find((entry) => entry.id === prompt.brandId) : undefined;
-                return (
-                  <button
-                    key={prompt.id}
-                    type="button"
-                    onClick={() => prompt.brandId ? router.push(`/brands/${prompt.brandId}#prompts`) : router.push("/prompts")}
-                    className="w-full rounded-2xl border border-white/6 bg-black/10 p-4 text-left transition hover:border-white/12"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <p className="text-sm font-medium text-ink">{prompt.title}</p>
-                      {brand ? <BrandPill color={brand.color}>{brand.shortName}</BrandPill> : null}
-                    </div>
-                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-mute">{prompt.resultNotes ?? prompt.summary}</p>
-                  </button>
-                );
-              })}
-              {recentPromptRows.length === 0 ? (
-                <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
-                  No prompt records yet.
-                </div>
-              ) : null}
-            </div>
-          </Panel>
-
-          <Panel eyebrow="Home / Thinking" title="Recent Thinking" subtitle="Recent observations, references, and creative direction from brand workspaces." className="order-4">
-            <div className="space-y-3">
-              {recentThinkingRows.map((item) => {
-                const updatedLabel = item.updatedAt ?? item.createdAt;
-                return (
-                  <button
-                    key={`${item.href}-${item.id}`}
-                    type="button"
-                    onClick={() => router.push(item.href)}
-                    className="w-full rounded-2xl border border-white/6 bg-black/10 p-4 text-left transition hover:border-white/12"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <p className="text-sm font-medium text-ink">{item.title}</p>
-                      {item.brand ? <BrandPill color={item.brand.color}>{item.brand.shortName}</BrandPill> : null}
-                    </div>
-                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-mute">{item.body || "No body added yet."}</p>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-mute">
-                      <span>{item.type ?? "Other"}</span>
-                      {updatedLabel ? <span>{formatMonthDay(updatedLabel)}</span> : null}
-                    </div>
-                  </button>
-                );
-              })}
-              {recentThinkingRows.length === 0 ? (
-                <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
-                  No thinking records yet. Capture observations, references, and creative direction from each brand workspace.
-                </div>
-              ) : null}
-            </div>
-          </Panel>
-
-          <Panel eyebrow="Month View / Calendar" title="Calendar" subtitle="Near-term scheduled posts, actions, and calendar items across all brands." className="order-5" accent="blue">
-            <div className="space-y-3">
-              {homeCalendarRows.map((item) => {
-                const brand = brands.find((entry) => entry.id === item.brandId);
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => openHomeItem(item)}
-                    className="w-full rounded-2xl border border-white/6 bg-black/10 p-4 text-left transition hover:border-white/12"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <p className="text-sm font-medium text-ink">{item.title}</p>
-                      {brand ? <BrandPill color={brand.color}>{brand.shortName}</BrandPill> : null}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-mute">
-                      <span>{item.type}</span>
-                      <span>{item.timing}</span>
-                    </div>
-                  </button>
-                );
-              })}
-              {homeCalendarRows.length === 0 ? (
-                <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
-                  No upcoming calendar items are scheduled yet.
-                </div>
-              ) : null}
+              ))}
             </div>
           </Panel>
         </div>

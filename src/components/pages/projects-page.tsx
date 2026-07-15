@@ -120,7 +120,7 @@ export function ProjectsPage() {
   }
 
   return (
-    <div className="space-y-5 md:space-y-6">
+    <div className="space-y-3 md:space-y-4">
       <Panel
         eyebrow="Projects / Overview"
         title="Projects"

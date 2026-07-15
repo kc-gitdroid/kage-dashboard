@@ -170,13 +170,13 @@ export function NotesPage() {
   }
 
   return (
-    <div className="space-y-5 md:space-y-6">
+    <div className="space-y-3 md:space-y-4">
       <Panel
         eyebrow="Thinking / System"
         title="Quick Capture"
         subtitle="Capture observations, references, caption ideas, and creative direction before they disappear."
       >
-        <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
           <form onSubmit={handleSubmit} className="rounded-2xl border border-white/6 bg-black/10 p-4 md:p-5">
             <div className="space-y-4">
               <div>

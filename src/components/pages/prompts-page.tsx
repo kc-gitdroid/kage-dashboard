@@ -144,7 +144,7 @@ export function PromptsPage() {
   }
 
   return (
-    <div className="space-y-5 md:space-y-6">
+    <div className="space-y-3 md:space-y-4">
       <Panel
         eyebrow="Prompts / Workspace"
         title="Prompt Library"
