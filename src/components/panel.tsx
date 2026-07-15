@@ -20,7 +20,7 @@ export function Panel({
 }: PanelProps) {
   return (
     <section
-      className={`min-w-0 max-w-full rounded-xl bg-panel/78 p-3 shadow-panel md:p-3.5 ${className}`}
+      className={`min-w-0 max-w-full rounded-xl bg-panel/78 py-3 shadow-panel md:py-3.5 ${className}`}
     >
       {(eyebrow || title || subtitle) && (
         <header className="mb-2.5 space-y-1">

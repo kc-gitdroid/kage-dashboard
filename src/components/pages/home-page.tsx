@@ -1116,37 +1116,35 @@ export function HomePage() {
           </button>
 
           {taskDrawerMode === "edit" && taskDraft.id && (
-            <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
-              {!taskConfirmDelete ? (
-                <button
-                  type="button"
-                  onClick={() => setTaskConfirmDelete(true)}
-                  className="w-full rounded-2xl border border-orange/28 bg-orange/8 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
-                >
-                  Delete Action
-                </button>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-mute">Delete this action from the dashboard? Home and action views will update immediately.</p>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={handleTaskDelete}
-                      className="flex-1 rounded-2xl border border-orange/35 bg-orange/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
-                    >
-                      Confirm Delete
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTaskConfirmDelete(false)}
-                      className="flex-1 rounded-2xl border border-white/8 px-4 py-3 text-sm text-mute"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+            !taskConfirmDelete ? (
+              <button
+                type="button"
+                onClick={() => setTaskConfirmDelete(true)}
+                className="w-full rounded-2xl border border-orange/35 bg-orange/8 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
+              >
+                Delete Action
+              </button>
+            ) : (
+              <div className="space-y-3 rounded-2xl border border-orange/20 bg-orange/5 p-4">
+                <p className="text-sm text-mute">Delete this action from the dashboard? Home and action views will update immediately.</p>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={handleTaskDelete}
+                    className="flex-1 rounded-2xl border border-orange/35 bg-orange/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
+                  >
+                    Confirm Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTaskConfirmDelete(false)}
+                    className="flex-1 rounded-2xl border border-white/8 px-4 py-3 text-sm text-mute"
+                  >
+                    Cancel
+                  </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )
           )}
         </div>
       </PreviewDrawer>

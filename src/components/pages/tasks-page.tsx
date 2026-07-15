@@ -368,37 +368,35 @@ export function TasksPage() {
           </button>
 
           {drawerMode === "edit" && draft.id && (
-            <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
-              {!confirmDelete ? (
-                <button
-                  type="button"
-                  onClick={() => setConfirmDelete(true)}
-                  className="w-full rounded-2xl border border-orange/28 bg-orange/8 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
-                >
-                  Delete Action
-                </button>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-mute">Delete this action from the dashboard? This updates the visible UI immediately.</p>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      className="flex-1 rounded-2xl border border-orange/35 bg-orange/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
-                    >
-                      Confirm Delete
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDelete(false)}
-                      className="flex-1 rounded-2xl border border-white/8 px-4 py-3 text-sm text-mute"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+            !confirmDelete ? (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                className="w-full rounded-2xl border border-orange/35 bg-orange/8 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
+              >
+                Delete Action
+              </button>
+            ) : (
+              <div className="space-y-3 rounded-2xl border border-orange/20 bg-orange/5 p-4">
+                <p className="text-sm text-mute">Delete this action from the dashboard? This updates the visible UI immediately.</p>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="flex-1 rounded-2xl border border-orange/35 bg-orange/10 px-4 py-3 font-display text-[11px] uppercase tracking-[0.22em] text-orange"
+                  >
+                    Confirm Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(false)}
+                    className="flex-1 rounded-2xl border border-white/8 px-4 py-3 text-sm text-mute"
+                  >
+                    Cancel
+                  </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )
           )}
         </div>
       </PreviewDrawer>
