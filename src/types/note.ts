@@ -6,5 +6,7 @@ export interface NoteItem extends SyncMetadata {
   brandId?: BrandId;
   type: NoteType;
   body: string;
+  possibleUse?: string;
+  status?: string;
   createdAt: string;
 }

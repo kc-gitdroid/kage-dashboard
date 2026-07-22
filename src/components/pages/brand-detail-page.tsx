@@ -7,6 +7,7 @@ import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { BrandPill } from "@/components/brand-pill";
 import { Panel } from "@/components/panel";
 import { useDashboardData } from "@/components/providers/dashboard-data-provider";
+import { normalizeThinkingType, thinkingTypes } from "@/data";
 import {
   assembleAaiPromptGenerationContext,
   generateAaiPromptSet,
@@ -26,6 +27,7 @@ import type {
   ContentPillarRotationItem,
   ContentRules,
   ContentSeries,
+  NoteItem,
   PublishingCalendarItem,
   PromptItem,
 } from "@/types";
@@ -128,7 +130,6 @@ const promptTypes = ["Image", "Video", "Edit", "Caption", "Strategy", "Character
 const promptCreativeStatuses = ["Draft", "Tested", "Working", "Needs Refinement", "Final"] as const;
 const actionStatuses = ["Next", "In Progress", "Waiting", "Done"] as const;
 const actionLinkedItemTypes = ["Brand", "Project", "Content Concept", "Scheduled Post", "Prompt", "Thinking"] as const;
-const thinkingTypes = ["Strategy", "Visual", "Product", "Caption", "Reference", "Observation", "Other"] as const;
 const thinkingStatuses = ["Raw", "Useful", "Archived"] as const;
 
 type ConceptModalMode = "create" | "edit" | "view";
@@ -1619,7 +1620,7 @@ function resolveLinkedItemLabel({
 }
 
 export function BrandDetailPage({ brand }: BrandDetailPageProps) {
-  const { brands, projects, promptItems, saveBrand, saveBrandSpace, savePromptItem, deletePromptItem } = useDashboardData();
+  const { brands, projects, promptItems, notes, saveBrand, saveBrandSpace, savePromptItem, deletePromptItem, saveNote, deleteNote } = useDashboardData();
   const linkedProjects = projects.filter((project) => project.brandId === brand.id);
   const linkedPrompts = promptItems.filter((prompt) => prompt.brandId === brand.id);
   const contentSystem = normalizeContentSystem(brand.contentSystem);
@@ -1630,7 +1631,29 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
   const contentConcepts = brand.contentConcepts ?? [];
   const publishingCalendar = brand.publishingCalendar ?? [];
   const actions = brand.actions ?? [];
-  const thinkingItems = brand.thinking ?? [];
+  const embeddedThinkingItems = (brand.thinking ?? []).map((item) => ({
+    ...item,
+    type: normalizeThinkingType(item.type),
+  }));
+  const hostedThinkingItems: BrandThinkingItem[] = notes
+    .filter((note) => note.brandId === brand.id)
+    .map((note) => ({
+      id: note.id,
+      brandId: brand.id,
+      title: note.title,
+      body: note.body,
+      type: normalizeThinkingType(note.type),
+      possibleUse: note.possibleUse,
+      status: note.status ?? thinkingStatuses[0],
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt,
+    }));
+  const thinkingItems = Array.from(
+    new Map([...embeddedThinkingItems, ...hostedThinkingItems].map((item) => [item.id, item])).values(),
+  ).sort(
+    (a, b) =>
+      new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() - new Date(a.updatedAt ?? a.createdAt ?? 0).getTime(),
+  );
   const visibleActions = actions;
   const seriesOptions = contentSeries.map((series) => ({ value: series.id, label: getSeriesTitle(series) }));
   const pillarOptions = contentPillars.map((pillar) => ({ value: pillar.id, label: pillar.name }));
@@ -2162,12 +2185,30 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
 
   function saveThinking() {
     const existing = thinkingItems.find((item) => item.id === thinkingDraft.id);
+    const existingHostedNote = notes.find((note) => note.id === thinkingDraft.id);
+    const existingEmbeddedThinking = (brand.thinking ?? []).find((item) => item.id === thinkingDraft.id);
     const nextThinking = thinkingFromDraft(thinkingDraft, brand, existing);
-    const nextThinkingItems = existing
-      ? thinkingItems.map((item) => (item.id === nextThinking.id ? nextThinking : item))
-      : [...thinkingItems, nextThinking];
 
-    updateBrandSpace({ thinking: nextThinkingItems });
+    if (existingHostedNote || !existingEmbeddedThinking) {
+      const nextNote: NoteItem = {
+        ...existingHostedNote,
+        id: nextThinking.id,
+        brandId: brand.id,
+        title: nextThinking.title,
+        body: nextThinking.body,
+        type: normalizeThinkingType(nextThinking.type),
+        possibleUse: nextThinking.possibleUse,
+        status: nextThinking.status,
+        createdAt: existingHostedNote?.createdAt ?? nextThinking.createdAt ?? nowIso(),
+        updatedAt: nextThinking.updatedAt ?? nowIso(),
+      };
+      saveNote(nextNote);
+    } else {
+      updateBrandSpace({
+        thinking: (brand.thinking ?? []).map((item) => (item.id === nextThinking.id ? nextThinking : item)),
+      });
+    }
+
     setThinkingDraft(toThinkingDraft(nextThinking));
     setSelectedThinkingId(nextThinking.id);
     setThinkingModalMode("view");
@@ -2178,7 +2219,11 @@ export function BrandDetailPage({ brand }: BrandDetailPageProps) {
       return;
     }
 
-    updateBrandSpace({ thinking: thinkingItems.filter((item) => item.id !== thinkingId) });
+    if (notes.some((note) => note.id === thinkingId)) {
+      deleteNote(thinkingId);
+    } else {
+      updateBrandSpace({ thinking: (brand.thinking ?? []).filter((item) => item.id !== thinkingId) });
+    }
     closeThinkingModal();
   }
 

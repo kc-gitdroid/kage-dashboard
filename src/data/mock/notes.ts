@@ -1,6 +1,26 @@
-import { NoteItem, NoteType } from "@/types";
+import { NoteItem, ThinkingType } from "@/types";
 
-export const noteTypes: NoteType[] = ["idea", "reflection", "reminder", "reference"];
+export const thinkingTypes: ThinkingType[] = ["Strategy", "Visual", "Product", "Caption", "Reference", "Observation", "Other"];
+export const noteTypes = thinkingTypes;
+
+export function normalizeThinkingType(value?: string): ThinkingType {
+  const normalizedValue = value?.trim().toLowerCase();
+  const canonicalType = thinkingTypes.find((type) => type.toLowerCase() === normalizedValue);
+
+  if (canonicalType) {
+    return canonicalType;
+  }
+
+  if (normalizedValue === "reflection") {
+    return "Observation";
+  }
+
+  if (normalizedValue === "reference") {
+    return "Reference";
+  }
+
+  return "Other";
+}
 
 export const notes: NoteItem[] = [
   {

@@ -22,7 +22,11 @@ export type DocumentType =
   | "notes"
   | "business";
 
-export type NoteType = "idea" | "reflection" | "reminder" | "reference";
+export type ThinkingType = "Strategy" | "Visual" | "Product" | "Caption" | "Reference" | "Observation" | "Other";
+
+export type LegacyNoteType = "idea" | "reflection" | "reminder" | "reference";
+
+export type NoteType = ThinkingType | LegacyNoteType;
 
 export type ContentFormat = "feed" | "story" | "reel" | "carousel" | "article";
 

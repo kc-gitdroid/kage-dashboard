@@ -8,22 +8,22 @@ import { BrandPill } from "@/components/brand-pill";
 import { Panel } from "@/components/panel";
 import { PreviewDrawer } from "@/components/preview-drawer";
 import { createLocalRecordId, useDashboardData } from "@/components/providers/dashboard-data-provider";
-import { noteTypes } from "@/data";
+import { normalizeThinkingType, thinkingTypes } from "@/data";
 import { formatTokenLabel } from "@/lib/format-token-label";
-import { BrandId, NoteItem, NoteType } from "@/types";
+import { BrandId, NoteItem, ThinkingType } from "@/types";
 
 type DraftState = {
   id?: string;
   title: string;
   brandId?: BrandId;
-  type: NoteType;
+  type: ThinkingType;
   body: string;
 };
 
 const initialDraft: DraftState = {
   title: "",
   brandId: "personal",
-  type: "idea",
+  type: thinkingTypes[0],
   body: "",
 };
 
@@ -32,7 +32,7 @@ function toDraft(note: NoteItem): DraftState {
     id: note.id,
     title: note.title,
     brandId: note.brandId,
-    type: note.type,
+    type: normalizeThinkingType(note.type),
     body: note.body,
   };
 }
@@ -54,7 +54,7 @@ export function NotesPage() {
   const filteredNotes = useMemo(() => {
     return notes.filter((note) => {
       const matchesBrand = brandFilter === "All" || note.brandId === brandFilter;
-      const matchesType = typeFilter === "All" || note.type === typeFilter;
+      const matchesType = typeFilter === "All" || normalizeThinkingType(note.type) === typeFilter;
       return matchesBrand && matchesType;
     });
   }, [notes, brandFilter, typeFilter]);
@@ -112,6 +112,8 @@ export function NotesPage() {
       brandId: draft.brandId,
       type: draft.type,
       body: draft.body.trim(),
+      possibleUse: selectedNote?.possibleUse,
+      status: selectedNote?.status,
       createdAt: draft.id && selectedNote ? selectedNote.createdAt : new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -153,6 +155,8 @@ export function NotesPage() {
       brandId: draft.brandId,
       type: draft.type,
       body: draft.body.trim(),
+      possibleUse: selectedNote.possibleUse,
+      status: selectedNote.status,
       createdAt: selectedNote.createdAt,
       updatedAt: new Date().toISOString(),
     });
@@ -215,10 +219,10 @@ export function NotesPage() {
                   <label className="mb-2 block font-display text-[11px] uppercase tracking-[0.22em] text-mute">Type</label>
                   <select
                     value={draft.type}
-                    onChange={(event) => setDraft((current) => ({ ...current, type: event.target.value as NoteType }))}
+                    onChange={(event) => setDraft((current) => ({ ...current, type: event.target.value as ThinkingType }))}
                     className="w-full rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-ink outline-none"
                   >
-                    {noteTypes.map((type) => (
+                    {thinkingTypes.map((type) => (
                       <option key={type} value={type}>
                         {formatTokenLabel(type)}
                       </option>
@@ -330,7 +334,7 @@ export function NotesPage() {
               <p className="font-display text-[11px] uppercase tracking-[0.22em] text-mute">Type Filter</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <FilterChip label="All" active={typeFilter === "All"} onClick={() => setTypeFilter("All")} />
-                {noteTypes.map((type) => (
+                {thinkingTypes.map((type) => (
                   <FilterChip key={type} label={formatTokenLabel(type)} active={typeFilter === type} onClick={() => setTypeFilter(type)} />
                 ))}
               </div>
@@ -363,7 +367,7 @@ export function NotesPage() {
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2 text-sm text-mute">
-                    <span className="rounded-full border border-white/8 px-2.5 py-1 text-[11px]">{formatTokenLabel(note.type)}</span>
+                    <span className="rounded-full border border-white/8 px-2.5 py-1 text-[11px]">{normalizeThinkingType(note.type)}</span>
                   <span className="rounded-full border border-white/8 px-2.5 py-1 text-[11px]">{createdAtLabel}</span>
                   </div>
                 </button>
@@ -404,17 +408,17 @@ export function NotesPage() {
                 {previewEditing ? (
                   <select
                     value={draft.type}
-                    onChange={(event) => setDraft((current) => ({ ...current, type: event.target.value as NoteType }))}
+                    onChange={(event) => setDraft((current) => ({ ...current, type: event.target.value as ThinkingType }))}
                     className="mt-3 w-full rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2 text-sm text-ink outline-none"
                   >
-                    {noteTypes.map((type) => (
+                    {thinkingTypes.map((type) => (
                       <option key={type} value={type}>
                         {formatTokenLabel(type)}
                       </option>
                     ))}
                   </select>
                 ) : (
-                  <p className="mt-3 text-sm text-mute">{formatTokenLabel(selectedNote.type)}</p>
+                  <p className="mt-3 text-sm text-mute">{normalizeThinkingType(selectedNote.type)}</p>
                 )}
               </div>
               <div className="rounded-2xl border border-white/6 bg-white/[0.02] p-4">

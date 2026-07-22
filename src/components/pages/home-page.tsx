@@ -7,7 +7,7 @@ import { BrandPill } from "@/components/brand-pill";
 import { Panel } from "@/components/panel";
 import { PreviewDrawer } from "@/components/preview-drawer";
 import { createLocalRecordId, useDashboardData } from "@/components/providers/dashboard-data-provider";
-import { brandWorkspaceOrder, calendarTypes, contentFormats, noteTypes, taskCategories, taskPriorities, taskStatuses } from "@/data";
+import { brandWorkspaceOrder, calendarTypes, contentFormats, normalizeThinkingType, taskCategories, taskPriorities, taskStatuses, thinkingTypes } from "@/data";
 import { formatTokenLabel } from "@/lib/format-token-label";
 import {
   BrandId,
@@ -18,7 +18,7 @@ import {
   ContentFormat,
   ContentItem,
   NoteItem,
-  NoteType,
+  ThinkingType,
   Priority,
   Status,
   TaskCategory,
@@ -74,7 +74,7 @@ type NoteDraft = {
   id?: string;
   title: string;
   brandId?: BrandId;
-  type: NoteType;
+  type: ThinkingType;
   body: string;
 };
 
@@ -178,7 +178,7 @@ const quickActions: {
 const initialNoteDraft: NoteDraft = {
   title: "",
   brandId: "personal",
-  type: "idea",
+  type: thinkingTypes[0],
   body: "",
 };
 
@@ -241,7 +241,7 @@ function createInitialCalendarDraft(referenceDate = new Date()): CalendarDraft {
   };
 }
 
-const noteTypeOptions = noteTypes.map((type) => ({ value: type, label: formatTokenLabel(type) }));
+const noteTypeOptions = thinkingTypes.map((type) => ({ value: type, label: type }));
 const contentStatusOptions: Status[] = ["draft", "planned", "in-progress", "scheduled", "completed"];
 const captionStatusOptions: ContentCaptionStatus[] = ["none", "draft", "ready"];
 const assetStatusOptions: ContentAssetStatus[] = ["needed", "in-progress", "ready"];
@@ -266,7 +266,7 @@ function toNoteDraft(note: NoteItem): NoteDraft {
     id: note.id,
     title: note.title,
     brandId: note.brandId,
-    type: note.type,
+    type: normalizeThinkingType(note.type),
     body: note.body,
   };
 }
@@ -522,6 +522,14 @@ export function HomePage() {
     .sort((a, b) => a.sortTime - b.sortTime)
     .slice(0, 5);
 
+  const recentThinking = [...notes]
+    .sort((a, b) => {
+      const aTime = new Date(a.updatedAt ?? a.createdAt).getTime();
+      const bTime = new Date(b.updatedAt ?? b.createdAt).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, 5);
+
   const publishingThisWeek = brandSpaces
     .flatMap((brand) =>
       (brand.publishingCalendar ?? []).map((post) => ({
@@ -720,6 +728,8 @@ export function HomePage() {
       brandId: noteDraft.brandId,
       type: noteDraft.type,
       body: noteDraft.body.trim(),
+      possibleUse: existing?.possibleUse,
+      status: existing?.status,
       createdAt: existing?.createdAt ?? new Date().toISOString(),
     });
 
@@ -907,7 +917,7 @@ export function HomePage() {
             title="Workspace Status"
             subtitle="A compact read on active work across every brand."
             accent="lime"
-            className="order-5"
+            className="order-6"
           >
             <div className="grid gap-3 sm:grid-cols-2">
               {brandSnapshots.map((brand) => (
@@ -973,11 +983,52 @@ export function HomePage() {
           </Panel>
 
           <Panel
+            eyebrow="Home / Thinking"
+            title="Recent Thinking"
+            subtitle="The latest observations and creative direction across every workspace."
+            accent="yellow"
+            className="order-3"
+          >
+            <div className="space-y-3">
+              {recentThinking.map((note) => {
+                const brand = brands.find((entry) => entry.id === note.brandId);
+                return (
+                  <button
+                    key={note.id}
+                    type="button"
+                    onClick={() => openNoteEdit(note)}
+                    className="touch-manipulation w-full rounded-2xl border border-white/6 bg-black/10 px-4 py-3 text-left transition hover:border-white/12"
+                  >
+                    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                      <p className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
+                        {note.title.trim() || note.body.split("\n")[0]?.trim() || "Untitled thinking"}
+                      </p>
+                      {brand ? <BrandPill color={brand.color}>{brand.shortName}</BrandPill> : null}
+                    </div>
+                    <p className="mt-2 line-clamp-2 text-sm leading-5 text-mute">{note.body}</p>
+                    <p className="mt-2 font-display text-[10px] uppercase tracking-[0.14em] text-mute">
+                      {normalizeThinkingType(note.type)} · Updated {formatMonthDay(note.updatedAt ?? note.createdAt)}
+                    </p>
+                  </button>
+                );
+              })}
+              {recentThinking.length === 0 ? (
+                <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-4 text-sm text-mute">
+                  No thinking records yet. Capture an observation or creative direction from Quick Add.
+                </div>
+              ) : null}
+              <button type="button" onClick={() => router.push("/notes")} className="text-sm text-mute transition hover:text-ink">
+                View all thinking
+              </button>
+            </div>
+          </Panel>
+
+          <Panel
             eyebrow="Home / Publishing"
             title="Publishing This Week"
             subtitle="Scheduled posts across all workspaces."
             accent="lime"
-            className="order-3"
+            className="order-4"
           >
             <div className="space-y-3">
               {publishingThisWeek.map((post) => (
@@ -1007,7 +1058,7 @@ export function HomePage() {
             title="Quick Add"
             subtitle="Capture the next item without leaving Home."
             accent="yellow"
-            className="order-4"
+            className="order-5"
           >
             <div className="grid gap-3 sm:grid-cols-2">
               {quickActions.map((item, index) => (
@@ -1177,7 +1228,7 @@ export function HomePage() {
             <FieldSelect
               label="Type"
               value={noteDraft.type}
-              onChange={(value) => setNoteDraft((current) => ({ ...current, type: value as NoteType }))}
+              onChange={(value) => setNoteDraft((current) => ({ ...current, type: value as ThinkingType }))}
               options={noteTypeOptions}
             />
           </div>
