@@ -1009,12 +1009,12 @@ export function HomePage() {
                 return (
                   <div
                     key={note.id}
-                    className="w-full rounded-2xl border border-white/6 bg-black/10 px-4 py-3 transition hover:border-white/12"
+                    className="h-fit min-h-0 w-full self-start overflow-hidden rounded-2xl border border-white/6 bg-black/10 px-4 py-3 transition hover:border-white/12"
                   >
                     <button
                       type="button"
                       onClick={() => openNoteEdit(note)}
-                      className="min-w-0 max-w-full touch-manipulation text-left"
+                      className="block w-full min-w-0 max-w-full touch-manipulation text-left"
                     >
                       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                         <p className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
@@ -1022,14 +1022,14 @@ export function HomePage() {
                         </p>
                         {brand ? <BrandPill color={brand.color}>{brand.shortName}</BrandPill> : null}
                       </div>
-                      <p
-                        className={`mt-2 max-w-full break-words text-sm leading-5 text-mute [overflow-wrap:anywhere] ${
-                          isExpanded ? "whitespace-pre-wrap" : "line-clamp-2"
-                        }`}
-                      >
-                        {note.body}
-                      </p>
                     </button>
+                    <p
+                      className={`mt-2 max-w-full break-words text-sm leading-5 text-mute [overflow-wrap:anywhere] ${
+                        isExpanded ? "whitespace-pre-wrap" : "line-clamp-2 max-h-10 overflow-hidden"
+                      }`}
+                    >
+                      {note.body}
+                    </p>
                     <div className="mt-2 flex min-w-0 items-center justify-between gap-3">
                       <p className="min-w-0 truncate font-display text-[10px] uppercase tracking-[0.14em] text-mute">
                         {normalizeThinkingType(note.type)} · Updated {formatMonthDay(note.updatedAt ?? note.createdAt)}
