@@ -334,6 +334,7 @@ export function HomePage() {
   const [noteConfirmDelete, setNoteConfirmDelete] = useState(false);
   const [contentConfirmDelete, setContentConfirmDelete] = useState(false);
   const [calendarConfirmDelete, setCalendarConfirmDelete] = useState(false);
+  const [expandedThinkingIds, setExpandedThinkingIds] = useState<Set<string>>(() => new Set());
   const [today, setToday] = useState(HYDRATION_SAFE_NOW);
 
   useEffect(() => {
@@ -710,6 +711,18 @@ export function HomePage() {
     setNoteConfirmDelete(false);
   }
 
+  function toggleThinkingExpanded(noteId: string) {
+    setExpandedThinkingIds((current) => {
+      const next = new Set(current);
+      if (next.has(noteId)) {
+        next.delete(noteId);
+      } else {
+        next.add(noteId);
+      }
+      return next;
+    });
+  }
+
   function closeNoteDrawer() {
     setNoteDrawerMode(null);
     setNoteDraft(initialNoteDraft);
@@ -992,24 +1005,46 @@ export function HomePage() {
             <div className="space-y-3">
               {recentThinking.map((note) => {
                 const brand = brands.find((entry) => entry.id === note.brandId);
+                const isExpanded = expandedThinkingIds.has(note.id);
                 return (
-                  <button
+                  <div
                     key={note.id}
-                    type="button"
-                    onClick={() => openNoteEdit(note)}
-                    className="touch-manipulation w-full rounded-2xl border border-white/6 bg-black/10 px-4 py-3 text-left transition hover:border-white/12"
+                    className="w-full rounded-2xl border border-white/6 bg-black/10 px-4 py-3 transition hover:border-white/12"
                   >
-                    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                      <p className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
-                        {note.title.trim() || note.body.split("\n")[0]?.trim() || "Untitled thinking"}
+                    <button
+                      type="button"
+                      onClick={() => openNoteEdit(note)}
+                      className="min-w-0 max-w-full touch-manipulation text-left"
+                    >
+                      <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                        <p className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
+                          {note.title.trim() || note.body.split("\n")[0]?.trim() || "Untitled thinking"}
+                        </p>
+                        {brand ? <BrandPill color={brand.color}>{brand.shortName}</BrandPill> : null}
+                      </div>
+                      <p
+                        className={`mt-2 max-w-full break-words text-sm leading-5 text-mute [overflow-wrap:anywhere] ${
+                          isExpanded ? "whitespace-pre-wrap" : "line-clamp-2"
+                        }`}
+                      >
+                        {note.body}
                       </p>
-                      {brand ? <BrandPill color={brand.color}>{brand.shortName}</BrandPill> : null}
+                    </button>
+                    <div className="mt-2 flex min-w-0 items-center justify-between gap-3">
+                      <p className="min-w-0 truncate font-display text-[10px] uppercase tracking-[0.14em] text-mute">
+                        {normalizeThinkingType(note.type)} · Updated {formatMonthDay(note.updatedAt ?? note.createdAt)}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => toggleThinkingExpanded(note.id)}
+                        aria-label={isExpanded ? `Collapse ${note.title}` : `Expand ${note.title}`}
+                        aria-expanded={isExpanded}
+                        className="flex h-6 w-6 shrink-0 touch-manipulation items-center justify-center rounded-full text-lg leading-none text-mute transition hover:bg-black/10 hover:text-ink"
+                      >
+                        <span aria-hidden="true">{isExpanded ? "−" : "+"}</span>
+                      </button>
                     </div>
-                    <p className="mt-2 line-clamp-2 text-sm leading-5 text-mute">{note.body}</p>
-                    <p className="mt-2 font-display text-[10px] uppercase tracking-[0.14em] text-mute">
-                      {normalizeThinkingType(note.type)} · Updated {formatMonthDay(note.updatedAt ?? note.createdAt)}
-                    </p>
-                  </button>
+                  </div>
                 );
               })}
               {recentThinking.length === 0 ? (
