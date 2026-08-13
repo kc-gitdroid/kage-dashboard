@@ -335,11 +335,56 @@ export function HomePage() {
   const [contentConfirmDelete, setContentConfirmDelete] = useState(false);
   const [calendarConfirmDelete, setCalendarConfirmDelete] = useState(false);
   const [expandedThinkingIds, setExpandedThinkingIds] = useState<Set<string>>(() => new Set());
+  const [currentlyBody, setCurrentlyBody] = useState("");
+  const [currentlyLoaded, setCurrentlyLoaded] = useState(false);
   const [today, setToday] = useState(HYDRATION_SAFE_NOW);
 
   useEffect(() => {
     setToday(new Date());
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCurrently() {
+      try {
+        const response = await fetch("/api/currently", { cache: "no-store" });
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as { body?: string };
+        if (!cancelled) {
+          setCurrentlyBody(payload.body ?? "");
+        }
+      } finally {
+        if (!cancelled) {
+          setCurrentlyLoaded(true);
+        }
+      }
+    }
+
+    void loadCurrently();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!currentlyLoaded) {
+      return;
+    }
+
+    const saveTimer = window.setTimeout(() => {
+      void fetch("/api/currently", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: currentlyBody }),
+      });
+    }, 500);
+
+    return () => window.clearTimeout(saveTimer);
+  }, [currentlyBody, currentlyLoaded]);
 
   const todayStart = startOfDay(today);
   const tomorrowStart = new Date(todayStart);
@@ -890,6 +935,20 @@ export function HomePage() {
             className="order-1"
           >
             <div className="space-y-3">
+              <div className="rounded-2xl border border-yellow/25 bg-yellow/[0.04] p-3 md:p-4">
+                <label htmlFor="currently-body" className="mb-2 block text-sm font-semibold text-ink">
+                  Currently
+                </label>
+                <textarea
+                  id="currently-body"
+                  value={currentlyBody}
+                  onChange={(event) => setCurrentlyBody(event.target.value)}
+                  rows={4}
+                  placeholder="Write what you are working on right now."
+                  className="block w-full resize-y rounded-xl border border-white/8 bg-panel/55 px-3 py-2.5 text-sm leading-5 text-ink outline-none transition placeholder:text-mute/70 focus:border-yellow/45"
+                />
+              </div>
+
               {todayRows.map((item, index) => {
                 const brand = brands.find((entry) => entry.id === item.brandId);
                 return (
