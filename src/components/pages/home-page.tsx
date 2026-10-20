@@ -337,6 +337,8 @@ export function HomePage() {
   const [expandedThinkingIds, setExpandedThinkingIds] = useState<Set<string>>(() => new Set());
   const [currentlyBody, setCurrentlyBody] = useState("");
   const [currentlyLoaded, setCurrentlyLoaded] = useState(false);
+  const [contentSpaceBody, setContentSpaceBody] = useState("");
+  const [contentSpaceLoaded, setContentSpaceLoaded] = useState(false);
   const [today, setToday] = useState(HYDRATION_SAFE_NOW);
 
   useEffect(() => {
@@ -385,6 +387,49 @@ export function HomePage() {
 
     return () => window.clearTimeout(saveTimer);
   }, [currentlyBody, currentlyLoaded]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadContentSpace() {
+      try {
+        const response = await fetch("/api/content-space", { cache: "no-store" });
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as { body?: string };
+        if (!cancelled) {
+          setContentSpaceBody(payload.body ?? "");
+        }
+      } finally {
+        if (!cancelled) {
+          setContentSpaceLoaded(true);
+        }
+      }
+    }
+
+    void loadContentSpace();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!contentSpaceLoaded) {
+      return;
+    }
+
+    const saveTimer = window.setTimeout(() => {
+      void fetch("/api/content-space", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: contentSpaceBody }),
+      });
+    }, 500);
+
+    return () => window.clearTimeout(saveTimer);
+  }, [contentSpaceBody, contentSpaceLoaded]);
 
   const todayStart = startOfDay(today);
   const tomorrowStart = new Date(todayStart);
@@ -989,7 +1034,7 @@ export function HomePage() {
             title="Workspace Status"
             subtitle="A compact read on active work across every brand."
             accent="lime"
-            className="order-6"
+            className="order-7"
           >
             <div className="grid gap-3 sm:grid-cols-2">
               {brandSnapshots.map((brand) => (
@@ -1054,12 +1099,29 @@ export function HomePage() {
             </div>
           </Panel>
 
+          <section
+            aria-labelledby="content-space-title"
+            className="order-3 rounded-2xl border border-blue/45 bg-blue/[0.05] p-3 shadow-panel md:p-4"
+          >
+            <label id="content-space-title" htmlFor="content-space-body" className="mb-2 block text-sm font-semibold text-ink">
+              Content
+            </label>
+            <textarea
+              id="content-space-body"
+              value={contentSpaceBody}
+              onChange={(event) => setContentSpaceBody(event.target.value)}
+              rows={4}
+              placeholder="Write content ideas, directions, or reminders here."
+              className="block w-full resize-y rounded-xl border border-blue/25 bg-panel/55 px-3 py-2.5 text-sm leading-5 text-ink outline-none transition placeholder:text-mute/70 focus:border-blue/70"
+            />
+          </section>
+
           <Panel
             eyebrow="Home / Thinking"
             title="Recent Thinking"
             subtitle="The latest observations and creative direction across every workspace."
             accent="yellow"
-            className="order-3"
+            className="order-4"
           >
             <div className="space-y-3">
               {recentThinking.map((note) => {
@@ -1122,7 +1184,7 @@ export function HomePage() {
             title="Publishing This Week"
             subtitle="Scheduled posts across all workspaces."
             accent="lime"
-            className="order-4"
+            className="order-5"
           >
             <div className="space-y-3">
               {publishingThisWeek.map((post) => (
@@ -1152,7 +1214,7 @@ export function HomePage() {
             title="Quick Add"
             subtitle="Capture the next item without leaving Home."
             accent="yellow"
-            className="order-5"
+            className="order-6"
           >
             <div className="grid gap-3 sm:grid-cols-2">
               {quickActions.map((item, index) => (
