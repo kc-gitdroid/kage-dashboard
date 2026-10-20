@@ -38,20 +38,24 @@ function getTone({
 }
 
 export function SyncStatusPill({ className = "", compact = false }: { className?: string; compact?: boolean }) {
-  const { syncIndicator } = useDashboardData();
+  const { syncIndicator, syncNow } = useDashboardData();
   const label = getLabel(syncIndicator);
   const tone = getTone(syncIndicator);
 
   return (
     <div className={className}>
-      <div
+      <button
+        type="button"
+        onClick={() => void syncNow()}
+        aria-label="Sync now"
+        title="Sync now"
         className={`ui-pill inline-flex min-h-8 gap-2 rounded-lg border bg-panel/80 ${
           compact ? "px-3 py-1.5" : "px-3 py-1.5"
-        } ${tone}`}
+        } ${tone} transition hover:border-current`}
       >
         <span className="h-1.5 w-1.5 rounded-full bg-current" />
         <span className="block font-display text-[10px] font-semibold uppercase leading-none tracking-[0.12em]">{label}</span>
-      </div>
+      </button>
     </div>
   );
 }

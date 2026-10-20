@@ -337,8 +337,10 @@ export function HomePage() {
   const [expandedThinkingIds, setExpandedThinkingIds] = useState<Set<string>>(() => new Set());
   const [currentlyBody, setCurrentlyBody] = useState("");
   const [currentlyLoaded, setCurrentlyLoaded] = useState(false);
+  const [currentlyEditVersion, setCurrentlyEditVersion] = useState(0);
   const [contentSpaceBody, setContentSpaceBody] = useState("");
   const [contentSpaceLoaded, setContentSpaceLoaded] = useState(false);
+  const [contentSpaceEditVersion, setContentSpaceEditVersion] = useState(0);
   const [today, setToday] = useState(HYDRATION_SAFE_NOW);
 
   useEffect(() => {
@@ -373,7 +375,7 @@ export function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!currentlyLoaded) {
+    if (!currentlyLoaded || currentlyEditVersion === 0) {
       return;
     }
 
@@ -383,10 +385,10 @@ export function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: currentlyBody }),
       });
-    }, 500);
+    }, 1500);
 
     return () => window.clearTimeout(saveTimer);
-  }, [currentlyBody, currentlyLoaded]);
+  }, [currentlyBody, currentlyEditVersion, currentlyLoaded]);
 
   useEffect(() => {
     let cancelled = false;
@@ -416,7 +418,7 @@ export function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!contentSpaceLoaded) {
+    if (!contentSpaceLoaded || contentSpaceEditVersion === 0) {
       return;
     }
 
@@ -426,10 +428,10 @@ export function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: contentSpaceBody }),
       });
-    }, 500);
+    }, 1500);
 
     return () => window.clearTimeout(saveTimer);
-  }, [contentSpaceBody, contentSpaceLoaded]);
+  }, [contentSpaceBody, contentSpaceEditVersion, contentSpaceLoaded]);
 
   const todayStart = startOfDay(today);
   const tomorrowStart = new Date(todayStart);
@@ -987,7 +989,10 @@ export function HomePage() {
                 <textarea
                   id="currently-body"
                   value={currentlyBody}
-                  onChange={(event) => setCurrentlyBody(event.target.value)}
+                  onChange={(event) => {
+                    setCurrentlyBody(event.target.value);
+                    setCurrentlyEditVersion((version) => version + 1);
+                  }}
                   rows={4}
                   placeholder="Write what you are working on right now."
                   className="block w-full resize-y rounded-xl border border-white/8 bg-panel/55 px-3 py-2.5 text-sm leading-5 text-ink outline-none transition placeholder:text-mute/70 focus:border-yellow/45"
@@ -1109,7 +1114,10 @@ export function HomePage() {
             <textarea
               id="content-space-body"
               value={contentSpaceBody}
-              onChange={(event) => setContentSpaceBody(event.target.value)}
+              onChange={(event) => {
+                setContentSpaceBody(event.target.value);
+                setContentSpaceEditVersion((version) => version + 1);
+              }}
               rows={4}
               placeholder="Write content ideas, directions, or reminders here."
               className="block w-full resize-y rounded-xl border border-blue/25 bg-panel/55 px-3 py-2.5 text-sm leading-5 text-ink outline-none transition placeholder:text-mute/70 focus:border-blue/70"

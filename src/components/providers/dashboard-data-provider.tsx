@@ -80,6 +80,8 @@ type StoreSnapshot = {
 
 const DashboardDataContext = createContext<DashboardDataContextValue | null>(null);
 const BRAND_STATE_PERSISTENCE_VERSION = 1;
+const BACKGROUND_REFRESH_INTERVAL_MS = 3 * 60 * 1000;
+const PASSIVE_REFRESH_DEDUPE_MS = 2_000;
 
 function createTasklessState(state: DashboardState): DashboardState {
   return {
@@ -473,6 +475,7 @@ function mergeHostedPromptsWithPending(
 export function DashboardDataProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<StoreSnapshot>(createBootstrapStore);
   const syncInFlightRef = useRef(false);
+  const lastPassiveRefreshAtRef = useRef(0);
   const storeRef = useRef(store);
   const pendingTaskMutationsRef = useRef(new Map<string, "upsert" | "delete">());
   const pendingNoteMutationsRef = useRef(new Map<string, "upsert" | "delete">());
@@ -1837,28 +1840,48 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function refreshDirectStores() {
+    await Promise.allSettled([
+      refreshTasksFromServer(),
+      refreshNotesFromServer(),
+      refreshCalendarItemsFromServer(),
+      refreshProjectsFromServer(),
+      refreshContentItemsFromServer(),
+      refreshPromptsFromServer(),
+    ]);
+  }
+
+  async function refreshServerState({ force = false }: { force?: boolean } = {}) {
+    if (!storeRef.current.hydrated) {
+      return;
+    }
+
+    const now = Date.now();
+    if (!force && now - lastPassiveRefreshAtRef.current < PASSIVE_REFRESH_DEDUPE_MS) {
+      return;
+    }
+    lastPassiveRefreshAtRef.current = now;
+
+    await Promise.allSettled([runSync(), refreshDirectStores()]);
+  }
+
   useEffect(() => {
     if (!store.hydrated) {
       return;
     }
 
-    void runSync();
-    void refreshTasksFromServer();
-    void refreshNotesFromServer();
-    void refreshCalendarItemsFromServer();
-    void refreshProjectsFromServer();
-    void refreshContentItemsFromServer();
-    void refreshPromptsFromServer();
+    // Generic brand state is already fetched during hydration.
+    void refreshDirectStores();
   }, [store.hydrated]);
 
   useEffect(() => {
-    if (!store.hydrated) {
+    if (!store.hydrated || store.queue.length === 0) {
       return;
     }
 
     const timeout = window.setTimeout(() => {
       void runSync();
-    }, store.queue.length > 0 ? 600 : 1200);
+    }, 600);
 
     return () => window.clearTimeout(timeout);
   }, [store.hydrated, store.queue.length]);
@@ -1869,14 +1892,10 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
     }
 
     const interval = window.setInterval(() => {
-      void runSync();
-      void refreshTasksFromServer();
-      void refreshNotesFromServer();
-      void refreshCalendarItemsFromServer();
-      void refreshProjectsFromServer();
-      void refreshContentItemsFromServer();
-      void refreshPromptsFromServer();
-    }, 5000);
+      if (document.visibilityState === "visible") {
+        void refreshServerState();
+      }
+    }, BACKGROUND_REFRESH_INTERVAL_MS);
 
     return () => window.clearInterval(interval);
   }, [store.hydrated]);
@@ -1884,42 +1903,20 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     function onVisibilityChange() {
       if (document.visibilityState === "visible") {
-        void runSync();
-        void refreshTasksFromServer();
-        void refreshNotesFromServer();
-        void refreshCalendarItemsFromServer();
-        void refreshProjectsFromServer();
-        void refreshContentItemsFromServer();
-        void refreshPromptsFromServer();
+        void refreshServerState();
       }
     }
 
     function onFocus() {
-      void runSync();
-      void refreshTasksFromServer();
-      void refreshNotesFromServer();
-      void refreshCalendarItemsFromServer();
-      void refreshProjectsFromServer();
-      void refreshContentItemsFromServer();
-      void refreshPromptsFromServer();
+      void refreshServerState();
     }
 
     function onPageShow() {
-      void runSync();
-      void refreshTasksFromServer();
-      void refreshNotesFromServer();
-      void refreshCalendarItemsFromServer();
-      void refreshProjectsFromServer();
-      void refreshContentItemsFromServer();
-      void refreshPromptsFromServer();
+      void refreshServerState();
     }
 
     function onOnline() {
-      void runSync();
-      void refreshTasksFromServer();
-      void refreshNotesFromServer();
-      void refreshCalendarItemsFromServer();
-      void refreshProjectsFromServer();
+      void refreshServerState({ force: true });
     }
 
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -1957,7 +1954,7 @@ export function DashboardDataProvider({ children }: { children: ReactNode }) {
       ...visibleState,
       hydrated: store.hydrated,
       syncIndicator: store.syncIndicator,
-      syncNow: runSync,
+      syncNow: () => refreshServerState({ force: true }),
       saveTask: saveTaskDirect,
       saveNote: saveNoteDirect,
       saveCalendarItem: saveCalendarDirect,
